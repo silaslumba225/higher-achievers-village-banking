@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+{% block page_title %}Welfare Fund{% endblock %}
+{% block subtitle %}Manage welfare contributions, emergency claims, approvals, payments and fund balance{% endblock %}
+
+{% block content %}
+<section class="kpi-grid">
+  <div class="kpi"><span>Total Welfare Contributions</span><strong>{{ total_contributions|kwacha }}</strong><em>Separate from monthly savings</em></div>
+  <div class="kpi"><span>Welfare Support Paid</span><strong>{{ total_paid|kwacha }}</strong><em>Approved and paid claims</em></div>
+  <div class="kpi"><span>Approved Not Paid</span><strong>{{ approved_not_paid|kwacha }}</strong><em>Claims awaiting payment</em></div>
+  <div class="kpi accent"><span>Welfare Fund Balance</span><strong>{{ balance|kwacha }}</strong><em>Contributions less paid support</em></div>
+</section>
+
+<section class="two-col">
+  <div class="panel">
+    <h2>Record Welfare Contribution</h2>
+    <form method="post" class="form-grid">
+      <input type="hidden" name="action" value="contribution">
+      <label>Member
+        <select name="member_id" required>
+          {% for m in members %}<option value="{{ m.id }}">{{ m.member_no }} - {{ m.full_name }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Month
+        <input type="month" name="month" required>
+      </label>
+      <label>Amount
+        <input type="number" name="amount" min="0.01" step="0.01" required>
+      </label>
+      <label>Method
+        <select name="method">{% for p in payment_methods %}<option>{{ p }}</option>{% endfor %}</select>
+      </label>
+      <label>Reference
+        <input name="reference" placeholder="Receipt / transaction ref">
+      </label>
+      <label>Paid On
+        <input type="date" name="paid_on">
+      </label>
+      <button type="submit">Record Contribution</button>
+    </form>
+  </div>
+
+  <div class="panel">
+    <h2>Create Welfare Claim</h2>
+    <form method="post" class="form-grid">
+      <input type="hidden" name="action" value="claim">
+      <label>Member
+        <select name="member_id" required>
+          {% for m in members %}<option value="{{ m.id }}">{{ m.member_no }} - {{ m.full_name }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Category
+        <input name="category" required placeholder="Funeral, Hospital, Emergency">
+      </label>
+      <label>Amount Requested
+        <input type="number" name="amount_requested" min="0.01" step="0.01" required>
+      </label>
+      <label>Requested On
+        <input type="date" name="requested_on">
+      </label>
+      <label class="wide">Reason / Notes
+        <input name="reason" placeholder="Example: Hospitalization support">
+      </label>
+      <button type="submit">Create Claim</button>
+    </form>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Welfare Claims Register</h2>
+      <p>Track claim review, approval, rejection and payment.</p>
+    </div>
+    <a class="btn" href="{{ url_for('export_welfare_csv') }}">Export CSV</a>
+  </div>
+
+  <form method="get" class="actions">
+    <input name="q" value="{{ q }}" placeholder="Search claims...">
+    <select name="status">
+      <option value="">All statuses</option>
+      {% for s in ['Requested','Reviewed','Approved','Paid','Rejected'] %}
+        <option value="{{ s }}" {% if status==s %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">Filter</button>
+  </form>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Date</th><th>Member</th><th>Category</th><th>Requested</th><th>Approved</th><th>Status</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for c in claims %}
+        <tr>
+          <td>{{ c.requested_on }}</td>
+          <td><strong>{{ c.member.member_no }}</strong><br>{{ c.member.full_name }}</td>
+          <td>{{ c.category }}<br><small>{{ c.reason or '-' }}</small></td>
+          <td>{{ c.amount_requested|kwacha }}</td>
+          <td>{{ c.amount_approved|kwacha }}</td>
+          <td><span class="status">{{ c.status }}</span></td>
+          <td>
+            {% if c.status == 'Requested' %}
+              <form method="post" action="{{ url_for('welfare_review', claim_id=c.id) }}" class="inline-form">
+                <button type="submit">Review</button>
+              </form>
+            {% endif %}
+
+            {% if c.status in ['Requested', 'Reviewed'] %}
+              <form method="post" action="{{ url_for('welfare_approve', claim_id=c.id) }}" class="inline-form">
+                <input type="number" name="amount_approved" min="0.01" step="0.01" placeholder="Approved amount" value="{{ c.amount_requested }}" required>
+                <input name="approved_by" placeholder="Approved by">
+                <button type="submit">Approve</button>
+              </form>
+              <form method="post" action="{{ url_for('welfare_reject', claim_id=c.id) }}" class="inline-form" onsubmit="return confirm('Reject this welfare claim?');">
+                <input name="reason" placeholder="Rejection reason">
+                <button type="submit">Reject</button>
+              </form>
+            {% endif %}
+
+            {% if c.status == 'Approved' %}
+              <form method="post" action="{{ url_for('welfare_pay', claim_id=c.id) }}" class="inline-form">
+                <select name="method">{% for p in payment_methods %}<option>{{ p }}</option>{% endfor %}</select>
+                <input name="reference" placeholder="Payment ref">
+                <input type="date" name="paid_on">
+                <button type="submit">Mark Paid</button>
+              </form>
+            {% endif %}
+
+            {% if c.status in ['Paid', 'Rejected'] %}<small>No further action</small>{% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7">No welfare claims found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Recent Welfare Contributions</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Date</th><th>Member</th><th>Month</th><th>Method</th><th>Reference</th><th>Amount</th></tr></thead>
+      <tbody>
+        {% for w in contributions %}
+        <tr>
+          <td>{{ w.paid_on }}</td>
+          <td>{{ w.member.member_no }} - {{ w.member.full_name }}</td>
+          <td>{{ w.month }}</td>
+          <td>{{ w.method }}</td>
+          <td>{{ w.reference or '-' }}</td>
+          <td>{{ w.amount|kwacha }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6">No welfare contributions recorded.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
