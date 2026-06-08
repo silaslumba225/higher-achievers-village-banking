@@ -15,8 +15,7 @@
         <span>Village Banking</span>
       </div>
     </div>
-    <nav>
- <nav>
+  <nav>
   {% if user_can('dashboard') %}<a href="{{ url_for('dashboard') }}">▣ Dashboard</a>{% endif %}
   {% if user_can('members') %}<a href="{{ url_for('members') }}">👥 Members</a>{% endif %}
   {% if user_can('contributions') %}<a href="{{ url_for('contributions') }}">💰 Contributions</a>{% endif %}
@@ -25,11 +24,16 @@
   {% if user_can('meetings') %}<a href="{{ url_for('meetings') }}">📅 Meetings</a>{% endif %}
   {% if user_can('reports') %}<a href="{{ url_for('reports') }}">📈 Reports</a>{% endif %}
 
-  <!-- Temporary safe links until all routes are confirmed -->
-  <a href="{{ url_for('members') }}">📄 Member Statements</a>
+  <a href="{{ url_for('statements') }}">📄 Member Statements</a>
+  <a href="{{ url_for('shareout') }}">🧮 Share-Out Calculator</a>
+  <a href="{{ url_for('welfare') }}">🤝 Welfare Fund</a>
+  <a href="{{ url_for('attendance') }}">✅ Attendance Register</a>
+  <a href="{{ url_for('notifications') }}">📱 SMS & WhatsApp</a>
+  <a href="{{ url_for('accounting') }}">📚 Accounting</a>
+  <a href="{{ url_for('audit_trail') }}">📝 Audit Trail</a>
+  <a href="{{ url_for('backups') }}">💾 Backup & Restore</a>
 
   {% if user_can('users') %}<a href="{{ url_for('users') }}">🔐 Users & Roles</a>{% endif %}
-</nav>
 </nav>
     <div class="sidebar-footer">
       <small>Produced by</small>
