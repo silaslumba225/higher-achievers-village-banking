@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block page_title %}Share-Out Calculator{% endblock %}
+{% block subtitle %}Calculate dividend and share-out distribution for members{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Share-Out Calculator</h2>
+      <p>Calculate member payout based on contributions, surplus income and expenses.</p>
+    </div>
+    <a class="btn" href="{{ url_for('shareout_csv') }}">Export CSV</a>
+  </div>
+
+  <form method="get" class="form-grid">
+    <label>Start Month
+      <input type="month" name="start_month" value="{{ start_month }}">
+    </label>
+    <label>End Month
+      <input type="month" name="end_month" value="{{ end_month }}">
+    </label>
+    <label>Other Income
+      <input type="number" name="other_income" step="0.01" value="{{ other_income }}">
+    </label>
+    <label>Expenses
+      <input type="number" name="expenses" step="0.01" value="{{ expenses }}">
+    </label>
+    <button type="submit">Calculate</button>
+  </form>
+</section>
+
+<section class="kpi-grid">
+  <div class="kpi"><span>Total Contributions</span><strong>{{ total_contributions|kwacha }}</strong><em>Within selected period</em></div>
+  <div class="kpi"><span>Surplus / Income</span><strong>{{ surplus|kwacha }}</strong><em>Interest, fines and other income</em></div>
+  <div class="kpi accent"><span>Share-Out Fund</span><strong>{{ shareout_fund|kwacha }}</strong><em>Available for distribution</em></div>
+</section>
+
+<section class="panel">
+  <h2>Member Share-Out Schedule</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Member</th>
+          <th>Contribution</th>
+          <th>Share %</th>
+          <th>Dividend</th>
+          <th>Total Payout</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td><strong>{{ row.member.member_no }}</strong><br>{{ row.member.full_name }}</td>
+          <td>{{ row.contribution|kwacha }}</td>
+          <td>{{ row.share_percent }}</td>
+          <td>{{ row.dividend|kwacha }}</td>
+          <td><strong>{{ row.total_payout|kwacha }}</strong></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5">No share-out records found for the selected period.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
