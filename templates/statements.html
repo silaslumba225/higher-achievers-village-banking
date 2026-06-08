@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block page_title %}Member Statements{% endblock %}
+{% block subtitle %}Generate PDF statements for member contributions, loans, repayments and distributions{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Member Statements</h2>
+      <p>Select a member and download a PDF statement.</p>
+    </div>
+  </div>
+
+  <form method="get" class="actions">
+    <input name="q" value="{{ q }}" placeholder="Search member no, name or phone">
+    <button type="submit">Search</button>
+  </form>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Member No</th>
+          <th>Full Name</th>
+          <th>Phone</th>
+          <th>Group</th>
+          <th>Status</th>
+          <th>Statement</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in members %}
+        <tr>
+          <td><strong>{{ m.member_no }}</strong></td>
+          <td>{{ m.full_name }}</td>
+          <td>{{ m.phone or '-' }}</td>
+          <td>{{ m.group_name or '-' }}</td>
+          <td><span class="status active">{{ m.status }}</span></td>
+          <td>
+            <a class="btn small" href="{{ url_for('member_statement_pdf', member_id=m.id) }}">Download PDF</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6">No members found.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
