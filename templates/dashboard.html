@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block page_title %}Executive Dashboard{% endblock %}
+{% block subtitle %}Live overview of members, savings, loans, repayments and meetings{% endblock %}
+{% block content %}
+<section class="kpi-grid">
+  <div class="kpi"><span>Total Members</span><strong>{{ members }}</strong><em>{{ active_members }} active</em></div>
+  <div class="kpi"><span>Total Contributions</span><strong>{{ contribution_total|kwacha }}</strong><em>This month: {{ month_contribution_total|kwacha }}</em></div>
+  <div class="kpi"><span>Active Loans</span><strong>{{ open_loans|length }}</strong><em>Outstanding {{ loan_balance|kwacha }}</em></div>
+  <div class="kpi"><span>Interest Earned</span><strong>{{ interest_earned|kwacha }}</strong><em>Flat {{ interest_percent }}% lending rate</em></div>
+  <div class="kpi"><span>Distributions</span><strong>{{ distribution_total|kwacha }}</strong><em>Bank, Mobile Money, Cash</em></div>
+  <div class="kpi accent"><span>Available Fund</span><strong>{{ available_fund|kwacha }}</strong><em>Estimated net position</em></div>
+</section>
+<section class="two-col">
+  <div class="panel">
+    <div class="panel-head"><h2>Financial Position</h2><span class="badge">Portfolio</span></div>
+    <div class="progress-row"><span>Contributions</span><div><b style="width:85%"></b></div><strong>{{ contribution_total|kwacha }}</strong></div>
+    <div class="progress-row"><span>Loans Issued</span><div><b style="width:65%"></b></div><strong>{{ loans_total|kwacha }}</strong></div>
+    <div class="progress-row"><span>Repayments</span><div><b style="width:45%"></b></div><strong>{{ repayment_total|kwacha }}</strong></div>
+    <div class="progress-row"><span>Outstanding</span><div><b style="width:35%"></b></div><strong>{{ loan_balance|kwacha }}</strong></div>
+  </div>
+  <div class="panel highlight">
+    <div class="panel-head"><h2>Governance Calendar</h2><span class="badge">Meetings</span></div>
+    <div class="calendar-item"><strong>Management Committee</strong><span>{{ next_committee.strftime('%d %b %Y') }}</span><small>Monthly, month-end</small></div>
+    <div class="calendar-item"><strong>All Members Meeting</strong><span>{{ next_full.strftime('%d %b %Y') }}</span><small>Every three months</small></div>
+    <div class="calendar-item warning"><strong>Overdue Loans</strong><span>{{ overdue_loans|length }}</span><small>Requires follow-up</small></div>
+  </div>
+</section>
+<section class="two-col">
+  <div class="panel">
+    <div class="panel-head"><h2>Recent Contributions</h2><a href="{{ url_for('contributions') }}">View all</a></div>
+    <table><thead><tr><th>Date</th><th>Member</th><th>Month</th><th>Amount</th></tr></thead><tbody>
+      {% for c in recent_contribs %}<tr><td>{{ c.paid_on }}</td><td>{{ c.member.full_name }}</td><td>{{ c.month }}</td><td>{{ c.amount|kwacha }}</td></tr>{% else %}<tr><td colspan="4">No contributions yet.</td></tr>{% endfor %}
+    </tbody></table>
+  </div>
+  <div class="panel">
+    <div class="panel-head"><h2>Recent Loans</h2><a href="{{ url_for('loans') }}">Manage</a></div>
+    <table><thead><tr><th>Member</th><th>Principal</th><th>Balance</th><th>Status</th></tr></thead><tbody>
+      {% for l in recent_loans %}<tr><td>{{ l.member.full_name }}</td><td>{{ l.principal|kwacha }}</td><td>{{ l.balance|kwacha }}</td><td><span class="status {{ l.status|lower }}">{{ l.status }}</span></td></tr>{% else %}<tr><td colspan="4">No loans yet.</td></tr>{% endfor %}
+    </tbody></table>
+  </div>
+</section>
+{% endblock %}

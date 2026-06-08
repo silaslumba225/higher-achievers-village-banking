@@ -1,0 +1,7 @@
+{% extends 'base.html' %}
+{% block page_title %}Member Management{% endblock %}
+{% block subtitle %}Register and monitor all 250 Higher Achievers members{% endblock %}
+{% block content %}
+<div class="actions"><form><input name="q" value="{{ q }}" placeholder="Search member no, name or phone"><button class="btn">Search</button></form><a class="btn primary" href="{{ url_for('member_new') }}">+ New Member</a><a class="btn" href="{{ url_for('export_csv', kind='members') }}">Export CSV</a></div>
+<div class="panel"><table><thead><tr><th>Member No</th><th>Full Name</th><th>Phone</th><th>NRC/ID</th><th>Group</th><th>Status</th></tr></thead><tbody>{% for m in members %}<tr><td><strong>{{ m.member_no }}</strong></td><td>{{ m.full_name }}</td><td>{{ m.phone or '-' }}</td><td>{{ m.national_id or '-' }}</td><td>{{ m.group_name or '-' }}</td><td><span class="status active">{{ m.status }}</span></td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}
