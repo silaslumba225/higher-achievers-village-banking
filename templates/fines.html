@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block page_title %}Fines & Penalties{% endblock %}
+{% block subtitle %}Manage member fines, penalties and payments{% endblock %}
+
+{% block content %}
+
+<section class="kpi-grid">
+  <div class="kpi">
+    <span>Total Fines</span>
+    <strong>{{ total_fines }}</strong>
+  </div>
+
+  <div class="kpi">
+    <span>Total Paid</span>
+    <strong>{{ total_paid }}</strong>
+  </div>
+
+  <div class="kpi accent">
+    <span>Outstanding Balance</span>
+    <strong>{{ total_balance }}</strong>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h2>Fines Register</h2>
+  </div>
+
+  <form method="get" class="actions">
+    <input name="q" value="{{ q }}" placeholder="Search member">
+    <select name="status">
+      <option value="">All Statuses</option>
+      <option value="Paid" {% if status=='Paid' %}selected{% endif %}>Paid</option>
+      <option value="Pending" {% if status=='Pending' %}selected{% endif %}>Pending</option>
+    </select>
+    <button type="submit">Filter</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Member</th>
+        <th>Reason</th>
+        <th>Amount</th>
+        <th>Paid</th>
+        <th>Balance</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for fine in fines %}
+      <tr>
+        <td>{{ fine.member_name }}</td>
+        <td>{{ fine.reason }}</td>
+        <td>{{ fine.amount }}</td>
+        <td>{{ fine.paid_amount }}</td>
+        <td>{{ fine.balance }}</td>
+        <td>
+          <span class="status {% if fine.balance <= 0 %}active{% endif %}">
+            {% if fine.balance <= 0 %}
+              Paid
+            {% else %}
+              Pending
+            {% endif %}
+          </span>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="6">No fines recorded.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+</section>
+
+{% endblock %}
