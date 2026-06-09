@@ -1,4 +1,5 @@
 from datetime import date, datetime, timedelta
+from openpyxl import load_workbook
 import os
 from decimal import Decimal
 from functools import wraps
@@ -652,23 +653,62 @@ def members_import():
         file = request.files.get('file')
 
         if not file or file.filename == '':
-            flash('Please select a CSV file to import.', 'error')
+            flash('Please select a CSV or Excel file to import.', 'error')
             return render_template('members_import.html', results=results)
 
+        filename = file.filename.lower()
+
         try:
-            stream = io.StringIO(file.stream.read().decode('utf-8-sig'), newline=None)
-            reader = csv.DictReader(stream)
+            rows = []
 
-            required = ['member_no', 'full_name']
-            missing = [col for col in required if col not in reader.fieldnames]
+            if filename.endswith('.xlsx'):
+                workbook = load_workbook(file)
+                sheet = workbook.active
 
-            if missing:
-                flash(f'Missing required columns: {", ".join(missing)}', 'error')
+                headers = [
+                    str(cell.value or '').strip().lower()
+                    for cell in sheet[1]
+                ]
+
+                required = ['member_no', 'full_name']
+                missing = [col for col in required if col not in headers]
+
+                if missing:
+                    flash(f'Missing required columns: {", ".join(missing)}', 'error')
+                    return render_template('members_import.html', results=results)
+
+                for line_no, values in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+                    row = dict(zip(headers, values))
+                    rows.append((line_no, row))
+
+            elif filename.endswith('.csv'):
+                raw = file.stream.read()
+
+                try:
+                    decoded = raw.decode('utf-8-sig')
+                except UnicodeDecodeError:
+                    decoded = raw.decode('latin-1')
+
+                stream = io.StringIO(decoded, newline=None)
+                reader = csv.DictReader(stream)
+
+                required = ['member_no', 'full_name']
+                missing = [col for col in required if col not in reader.fieldnames]
+
+                if missing:
+                    flash(f'Missing required columns: {", ".join(missing)}', 'error')
+                    return render_template('members_import.html', results=results)
+
+                for line_no, row in enumerate(reader, start=2):
+                    rows.append((line_no, row))
+
+            else:
+                flash('Unsupported file type. Please upload .xlsx or .csv file.', 'error')
                 return render_template('members_import.html', results=results)
 
-            for line_no, row in enumerate(reader, start=2):
-                member_no = (row.get('member_no') or '').strip()
-                full_name = (row.get('full_name') or '').strip()
+            for line_no, row in rows:
+                member_no = str(row.get('member_no') or '').strip()
+                full_name = str(row.get('full_name') or '').strip()
 
                 if not member_no or not full_name:
                     results['skipped'] += 1
@@ -683,10 +723,10 @@ def members_import():
                 member = Member(
                     member_no=member_no,
                     full_name=full_name,
-                    phone=(row.get('phone') or '').strip(),
-                    national_id=(row.get('national_id') or '').strip(),
-                    group_name=(row.get('group_name') or '').strip(),
-                    status=(row.get('status') or 'Active').strip() or 'Active'
+                    phone=str(row.get('phone') or '').strip(),
+                    national_id=str(row.get('national_id') or '').strip(),
+                    group_name=str(row.get('group_name') or '').strip(),
+                    status=str(row.get('status') or 'Active').strip() or 'Active'
                 )
 
                 db.session.add(member)
