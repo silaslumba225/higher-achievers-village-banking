@@ -743,18 +743,7 @@ def members_import():
                     db.session.add(member)
                     results['created'] += 1
 
-                member = Member(
-                    member_no=member_no,
-                    full_name=full_name,
-                    phone=str(row.get('phone') or '').strip(),
-                    national_id=str(row.get('national_id') or '').strip(),
-                    group_name=str(row.get('group_name') or '').strip(),
-                    status=str(row.get('status') or 'Active').strip() or 'Active'
-                )
-
-                db.session.add(member)
-                results['created'] += 1
-
+                
             db.session.commit()
 
             log_audit(
