@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% block page_title %}SMS & WhatsApp Notifications{% endblock %}
+{% block subtitle %}Prepare member reminders and communication logs{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Prepare Notifications</h2>
+      <p>Create SMS or WhatsApp messages for selected members.</p>
+    </div>
+    <a class="btn" href="{{ url_for('export_notifications_csv') }}">Export CSV</a>
+  </div>
+
+  <form method="post" class="form-grid">
+    <label>Channel
+      <select name="channel">
+        <option>SMS</option>
+        <option>WhatsApp</option>
+      </select>
+    </label>
+
+    <label>Notification Type
+      <select name="notification_type">
+        {% for key, text in templates.items() %}
+          <option value="{{ key }}">{{ key }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>Member Search
+      <input name="q" value="{{ q }}" placeholder="Search member no, name or phone">
+    </label>
+
+    <label class="wide">Message
+      <textarea name="message" placeholder="Type message here..."></textarea>
+    </label>
+
+    <button type="submit" class="primary">Prepare Notifications</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Members</h2>
+  <p>Select members by using the search above. Messages are prepared for members with phone numbers.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Member No</th>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Group</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in members %}
+        <tr>
+          <td><strong>{{ m.member_no }}</strong></td>
+          <td>{{ m.full_name }}</td>
+          <td>{{ m.phone or '-' }}</td>
+          <td>{{ m.group_name or '-' }}</td>
+          <td>{{ m.status }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5">No members found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Notification History</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Member</th>
+          <th>Channel</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th>Message</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for n in logs %}
+        <tr>
+          <td>{{ n.created_at }}</td>
+          <td>{{ n.member.full_name if n.member else '-' }}</td>
+          <td>{{ n.channel }}</td>
+          <td>{{ n.notification_type }}</td>
+          <td><span class="status">{{ n.status }}</span></td>
+          <td>{{ n.message }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6">No notifications prepared yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
