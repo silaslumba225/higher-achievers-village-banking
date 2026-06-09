@@ -1319,16 +1319,50 @@ def backup_restore():
 def audit_trail():
     q = request.args.get('q', '').strip()
     action = request.args.get('action', '').strip()
+
     query = AuditLog.query
+
     if q:
         like = f'%{q}%'
-        query = query.filter(db.or_(AuditLog.username.like(like), AuditLog.full_name.like(like), AuditLog.entity.like(like), AuditLog.details.like(like)))
+        query = query.filter(
+            db.or_(
+                AuditLog.username.like(like),
+                AuditLog.full_name.like(like),
+                AuditLog.entity.like(like),
+                AuditLog.details.like(like)
+            )
+        )
+
     if action:
         query = query.filter(AuditLog.action == action)
-    logs = query.order_by(AuditLog.created_at.desc()).limit(500).all()
-    actions = [row[0] for row in db.session.query(AuditLog.action).distinct().order_by(AuditLog.action).all()]
-    return render_template('audit.html', logs=logs, q=q, action=action, actions=actions)
 
+    page = request.args.get('page', 1, type=int)
+    per_page = 25
+
+    pagination = query.order_by(AuditLog.created_at.desc()).paginate(
+        page=page,
+        per_page=per_page,
+        error_out=False
+    )
+
+    logs = pagination.items
+
+    actions = [
+        row[0]
+        for row in db.session.query(AuditLog.action)
+        .distinct()
+        .order_by(AuditLog.action)
+        .all()
+    ]
+
+    return render_template(
+        'audit.html',
+        logs=logs,
+        pagination=pagination,
+        q=q,
+        action=action,
+        actions=actions
+    )
 @app.route('/export/audit.csv')
 @login_required
 @role_required('audit')
