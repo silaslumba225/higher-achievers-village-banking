@@ -20,19 +20,19 @@
         </thead>
         <tbody>
           {% for m in members %}
-          {% set existing = existing_by_member.get(m.id) %}
+          {% set existing_record = existing.get(m.id) %}
           <tr>
             <td><strong>{{ m.member_no }}</strong></td>
             <td>{{ m.full_name }}</td>
             <td>
               <select name="status_{{ m.id }}">
                 {% for s in ['Present', 'Absent', 'Late', 'Excused'] %}
-                  <option value="{{ s }}" {% if existing and existing.status == s %}selected{% endif %}>{{ s }}</option>
+                  <option value="{{ s }}" {% if existing_record and existing_record.status == s %}selected{% endif %}>{{ s }}</option>
                 {% endfor %}
               </select>
             </td>
             <td>
-              <input name="remarks_{{ m.id }}" value="{{ existing.remarks if existing else '' }}" placeholder="Optional remarks">
+              <input name="remarks_{{ m.id }}" value="{{ existing_record.remarks if existing_record else '' }}" placeholder="Optional remarks">
             </td>
           </tr>
           {% else %}
