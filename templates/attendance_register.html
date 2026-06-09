@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block page_title %}Meeting Attendance Register{% endblock %}
+{% block subtitle %}Mark members as present, absent, late or excused{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <h2>{{ meeting.meeting_type }} - {{ meeting.meeting_date }}</h2>
+  <p>Record attendance for this meeting.</p>
+
+  <form method="post">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Member No</th>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Remarks</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in members %}
+          {% set existing = existing_by_member.get(m.id) %}
+          <tr>
+            <td><strong>{{ m.member_no }}</strong></td>
+            <td>{{ m.full_name }}</td>
+            <td>
+              <select name="status_{{ m.id }}">
+                {% for s in ['Present', 'Absent', 'Late', 'Excused'] %}
+                  <option value="{{ s }}" {% if existing and existing.status == s %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td>
+              <input name="remarks_{{ m.id }}" value="{{ existing.remarks if existing else '' }}" placeholder="Optional remarks">
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4">No members available.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <br>
+    <button type="submit" class="primary">Save Attendance</button>
+    <a class="btn" href="{{ url_for('attendance') }}">Back</a>
+  </form>
+</section>
+{% endblock %}

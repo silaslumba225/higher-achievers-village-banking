@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block page_title %}Attendance Register{% endblock %}
+{% block subtitle %}Track meeting attendance, absences, lateness and attendance rates{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Attendance Register</h2>
+      <p>Select a meeting to record or review attendance.</p>
+    </div>
+    <a class="btn" href="{{ url_for('export_attendance_csv') }}">Export CSV</a>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Meeting Date</th>
+          <th>Type</th>
+          <th>Attendance Count</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in summary %}
+        <tr>
+          <td>{{ row.meeting.meeting_date }}</td>
+          <td>{{ row.meeting.meeting_type }}</td>
+          <td>{{ row.present_count }} present / {{ row.total_count }} recorded</td>
+          <td>
+            <a class="btn small" href="{{ url_for('attendance_register', meeting_id=row.meeting.id) }}">Open Register</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4">No meetings found. Create meetings first under the Meetings menu.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
