@@ -35,6 +35,9 @@ db = SQLAlchemy(app)
 
 INTEREST_RATE = Decimal('0.15')
 PAYMENT_METHODS = ['Bank Transfer', 'Mobile Money', 'Cash']
+ABSENCE_FINE_AMOUNT = Decimal('50.00')
+LATE_ATTENDANCE_FINE_AMOUNT = Decimal('20.00')
+LATE_CONTRIBUTION_FINE_AMOUNT = Decimal('10.00')
 CLIENT_NAME = 'Higher Achievers'
 PRODUCER_NAME = 'Excelling Foundation'
 BACKUP_RETENTION = 30
@@ -1061,9 +1064,9 @@ def attendance_register(meeting_id):
     members = Member.query.filter_by(status='Active').order_by(Member.member_no).all()
     user = session.get('user') or {}
     if request.method == 'POST':
-        absent_fine = money(request.form.get('absent_fine') or 0)
-        late_fine = money(request.form.get('late_fine') or 0)
-        create_fines = bool(request.form.get('create_fines'))
+        absent_fine = Decimal('50.00')
+        late_fine = Decimal('20.00')
+        create_fines = True
         saved = 0
         fines_created = 0
         for member in members:
