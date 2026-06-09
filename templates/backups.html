@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block page_title %}Backup & Restore{% endblock %}
+{% block subtitle %}Protect village banking data with exports and backups{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Backup & Restore</h2>
+      <p>Create backups and restore system data when required.</p>
+    </div>
+  </div>
+
+  <div class="actions">
+    <a class="btn primary" href="{{ url_for('backup_download') }}">Download Backup</a>
+  </div>
+</section>
+
+<section class="kpi-grid">
+  <div class="kpi">
+    <span>Total Backups</span>
+    <strong>{{ backups|length if backups else 0 }}</strong>
+    <em>Available backup files</em>
+  </div>
+
+  <div class="kpi accent">
+    <span>System Status</span>
+    <strong>Protected</strong>
+    <em>Backup module active</em>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Available Backups</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>File Name</th>
+        <th>Size</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in backups %}
+      <tr>
+        <td>{{ b.created_at }}</td>
+        <td>{{ b.filename }}</td>
+        <td>{{ b.size }}</td>
+        <td>
+          <a class="btn small" href="{{ url_for('backup_download', backup_id=b.id) }}">
+            Download
+          </a>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="4">No backups available.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
