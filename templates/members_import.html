@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block page_title %}Import Members{% endblock %}
+{% block subtitle %}Bulk upload members using a CSV file{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Bulk Member Import</h2>
+      <p>Upload a CSV file containing member records.</p>
+    </div>
+    <a class="btn" href="{{ url_for('members') }}">Back to Members</a>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" class="form-grid single">
+    <label>CSV File
+      <input type="file" name="file" accept=".csv" required>
+    </label>
+    <button type="submit" class="primary">Import Members</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Required CSV Format</h2>
+  <p>Your CSV file must contain these column headings:</p>
+
+  <pre>member_no,full_name,phone,national_id,group_name,status</pre>
+
+  <p>Example:</p>
+
+  <pre>M001,John Banda,+260971234567,123456/10/1,Group 1,Active
+M002,Mary Phiri,+260961234567,223456/10/1,Group 1,Active</pre>
+</section>
+
+{% if results %}
+<section class="panel">
+  <h2>Import Results</h2>
+  <p><strong>Created:</strong> {{ results.created }}</p>
+  <p><strong>Skipped:</strong> {{ results.skipped }}</p>
+
+  {% if results.errors %}
+  <h3>Errors / Skipped Rows</h3>
+  <ul>
+    {% for e in results.errors %}
+      <li>{{ e }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

@@ -635,6 +635,78 @@ def member_new():
         db.session.add(m); db.session.commit(); log_audit('CREATE_MEMBER', 'Member', m.id, f'{m.member_no} - {m.full_name}'); flash('Member added successfully.'); return redirect(url_for('members'))
     return render_template('member_form.html')
 
+@app.route('/members/import', methods=['GET', 'POST'])
+@login_required
+@role_required('members')
+def members_import():
+    results = {
+        'created': 0,
+        'skipped': 0,
+        'errors': []
+    }
+
+    if request.method == 'POST':
+        file = request.files.get('file')
+
+        if not file or file.filename == '':
+            flash('Please select a CSV file to import.', 'error')
+            return render_template('members_import.html', results=results)
+
+        try:
+            stream = io.StringIO(file.stream.read().decode('utf-8-sig'), newline=None)
+            reader = csv.DictReader(stream)
+
+            required = ['member_no', 'full_name']
+            missing = [col for col in required if col not in reader.fieldnames]
+
+            if missing:
+                flash(f'Missing required columns: {", ".join(missing)}', 'error')
+                return render_template('members_import.html', results=results)
+
+            for line_no, row in enumerate(reader, start=2):
+                member_no = (row.get('member_no') or '').strip()
+                full_name = (row.get('full_name') or '').strip()
+
+                if not member_no or not full_name:
+                    results['skipped'] += 1
+                    results['errors'].append(f'Line {line_no}: member_no and full_name are required.')
+                    continue
+
+                if Member.query.filter_by(member_no=member_no).first():
+                    results['skipped'] += 1
+                    results['errors'].append(f'Line {line_no}: Member number {member_no} already exists.')
+                    continue
+
+                member = Member(
+                    member_no=member_no,
+                    full_name=full_name,
+                    phone=(row.get('phone') or '').strip(),
+                    national_id=(row.get('national_id') or '').strip(),
+                    group_name=(row.get('group_name') or '').strip(),
+                    status=(row.get('status') or 'Active').strip() or 'Active'
+                )
+
+                db.session.add(member)
+                results['created'] += 1
+
+            db.session.commit()
+
+            log_audit(
+                'IMPORT_MEMBERS',
+                'Member',
+                None,
+                f'Bulk member import completed. Created: {results["created"]}, Skipped: {results["skipped"]}'
+            )
+
+            flash(f'Import complete. Created {results["created"]}, skipped {results["skipped"]}.')
+            return render_template('members_import.html', results=results)
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Import failed: {str(e)}', 'error')
+
+    return render_template('members_import.html', results=results)
+
 @app.route('/contributions', methods=['GET','POST'])
 @login_required
 @role_required('contributions')
