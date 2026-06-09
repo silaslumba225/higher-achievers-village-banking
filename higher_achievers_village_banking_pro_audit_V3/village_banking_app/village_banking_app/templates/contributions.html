@@ -1,7 +1,0 @@
-{% extends 'base.html' %}
-{% block page_title %}Monthly Contributions{% endblock %}
-{% block subtitle %}Record monthly savings by bank transfer, mobile money or cash{% endblock %}
-{% block content %}
-<div class="panel"><form method="post" class="form-grid"><label>Member<select name="member_id" required>{% for m in members %}<option value="{{ m.id }}">{{ m.member_no }} - {{ m.full_name }}</option>{% endfor %}</select></label><label>Month<input type="month" name="month" required></label><label>Amount<input type="number" step="0.01" name="amount" required></label><label>Method<select name="method">{% for p in payment_methods %}<option>{{ p }}</option>{% endfor %}</select></label><label>Reference<input name="reference"></label><label>Paid On<input type="date" name="paid_on"></label><button class="btn primary">Record Contribution</button></form></div>
-<div class="panel"><table><thead><tr><th>Date</th><th>Member</th><th>Month</th><th>Method</th><th>Reference</th><th>Amount</th></tr></thead><tbody>{% for c in contributions %}<tr><td>{{ c.paid_on }}</td><td>{{ c.member.full_name }}</td><td>{{ c.month }}</td><td>{{ c.method }}</td><td>{{ c.reference or '-' }}</td><td>{{ c.amount|kwacha }}</td></tr>{% endfor %}</tbody></table></div>
-{% endblock %}
