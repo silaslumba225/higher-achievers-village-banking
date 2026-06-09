@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% block page_title %}General Ledger & Accounting{% endblock %}
+{% block subtitle %}Chart of accounts, journals, cashbook, trial balance and financial summaries{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>General Ledger & Accounting</h2>
+      <p>Manage accounts and review financial position.</p>
+    </div>
+    <a class="btn" href="{{ url_for('export_accounting_csv') }}">Export CSV</a>
+  </div>
+
+  <form method="post" class="actions">
+    <input type="hidden" name="action" value="sync">
+    <button type="submit" class="primary">Sync Operational Transactions to Ledger</button>
+  </form>
+</section>
+
+<section class="kpi-grid">
+  <div class="kpi">
+    <span>Total Debits</span>
+    <strong>{{ total_debits|default(0)|kwacha }}</strong>
+    <em>Posted debit entries</em>
+  </div>
+  <div class="kpi">
+    <span>Total Credits</span>
+    <strong>{{ total_credits|default(0)|kwacha }}</strong>
+    <em>Posted credit entries</em>
+  </div>
+  <div class="kpi accent">
+    <span>Difference</span>
+    <strong>{{ difference|default(0)|kwacha }}</strong>
+    <em>Debits less credits</em>
+  </div>
+</section>
+
+<section class="two-col">
+  <div class="panel">
+    <h2>Chart of Accounts</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Code</th><th>Name</th><th>Type</th><th>Normal Balance</th></tr>
+        </thead>
+        <tbody>
+          {% for a in accounts %}
+          <tr>
+            <td><strong>{{ a.code }}</strong></td>
+            <td>{{ a.name }}</td>
+            <td>{{ a.account_type }}</td>
+            <td>{{ a.normal_balance }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4">No accounts found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Create Account</h2>
+    <form method="post" class="form-grid single">
+      <input type="hidden" name="action" value="account">
+      <label>Account Code
+        <input name="code" required placeholder="Example: 1000">
+      </label>
+      <label>Account Name
+        <input name="name" required placeholder="Example: Cash">
+      </label>
+      <label>Account Type
+        <select name="account_type">
+          <option>Asset</option>
+          <option>Liability</option>
+          <option>Equity</option>
+          <option>Income</option>
+          <option>Expense</option>
+        </select>
+      </label>
+      <label>Normal Balance
+        <select name="normal_balance">
+          <option>Debit</option>
+          <option>Credit</option>
+        </select>
+      </label>
+      <button type="submit">Create Account</button>
+    </form>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Recent Journal Entries</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Description</th>
+          <th>Reference</th>
+          <th>Total Debit</th>
+          <th>Total Credit</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for j in entries %}
+        <tr>
+          <td>{{ j.entry_date }}</td>
+          <td>{{ j.description }}</td>
+          <td>{{ j.reference or '-' }}</td>
+          <td>{{ j.total_debit|kwacha }}</td>
+          <td>{{ j.total_credit|kwacha }}</td>
+          <td>{% if j.balanced %}<span class="status active">Balanced</span>{% else %}<span class="status overdue">Unbalanced</span>{% endif %}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6">No journal entries found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Trial Balance</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Account</th><th>Debit</th><th>Credit</th></tr>
+      </thead>
+      <tbody>
+        {% for row in trial_balance %}
+        <tr>
+          <td>{{ row.account.code }} - {{ row.account.name }}</td>
+          <td>{{ row.debit|kwacha }}</td>
+          <td>{{ row.credit|kwacha }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3">No trial balance records available.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
