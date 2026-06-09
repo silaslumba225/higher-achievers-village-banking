@@ -645,6 +645,7 @@ def member_new():
 def members_import():
     results = {
         'created': 0,
+        'updated': 0,
         'skipped': 0,
         'errors': []
     }
@@ -715,10 +716,32 @@ def members_import():
                     results['errors'].append(f'Line {line_no}: member_no and full_name are required.')
                     continue
 
-                if Member.query.filter_by(member_no=member_no).first():
-                    results['skipped'] += 1
-                    results['errors'].append(f'Line {line_no}: Member number {member_no} already exists.')
-                    continue
+               
+                phone = str(row.get('phone') or '').strip()
+                national_id = str(row.get('national_id') or '').strip()
+                group_name = str(row.get('group_name') or '').strip()
+                status = str(row.get('status') or 'Active').strip() or 'Active'
+
+                member = Member.query.filter_by(member_no=member_no).first()
+
+                if member:
+                    member.full_name = full_name
+                    member.phone = phone
+                    member.national_id = national_id
+                    member.group_name = group_name
+                    member.status = status
+                    results['updated'] += 1
+                else:
+                    member = Member(
+                        member_no=member_no,
+                        full_name=full_name,
+                        phone=phone,
+                        national_id=national_id,
+                        group_name=group_name,
+                        status=status
+                    )
+                    db.session.add(member)
+                    results['created'] += 1
 
                 member = Member(
                     member_no=member_no,
@@ -738,10 +761,14 @@ def members_import():
                 'IMPORT_MEMBERS',
                 'Member',
                 None,
-                f'Bulk member import completed. Created: {results["created"]}, Skipped: {results["skipped"]}'
+                f'Bulk member import completed. Created: {results["created"]}, Updated: {results["updated"]}, Skipped: {results["skipped"]}'
             )
 
-            flash(f'Import complete. Created {results["created"]}, skipped {results["skipped"]}.')
+            flash(
+                f'Import complete. Created {results["created"]}, '
+                f'updated {results["updated"]}, '
+                f'skipped {results["skipped"]}.'
+            )
             return render_template('members_import.html', results=results)
 
         except Exception as e:
