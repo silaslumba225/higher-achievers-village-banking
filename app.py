@@ -1648,6 +1648,15 @@ def member_statement_pdf(member_id):
     total_fine_balance = money(sum((f.balance for f in fines if f.status != 'Waived'), Decimal('0.00')))
     total_welfare_contrib = money(sum((w.amount for w in welfare_contribs), Decimal('0.00')))
     total_welfare_paid = money(sum((w.amount_approved for w in welfare_claims if w.status == 'Paid'), Decimal('0.00')))
+    member_equity = money(
+    total_contrib
+    + total_distrib
+    + total_welfare_paid
+    - total_balance
+    - total_fine_balance
+                        )
+
+    equity_label = 'Member Equity / Surplus' if member_equity >= 0 else 'Member Equity / Deficit'
 
     summary = [
         ['Total Contributions', kwacha(total_contrib)],
@@ -1661,6 +1670,7 @@ def member_statement_pdf(member_id):
         ['Outstanding Fines', kwacha(total_fine_balance)],
         ['Welfare Contributions', kwacha(total_welfare_contrib)],
         ['Welfare Support Paid', kwacha(total_welfare_paid)],
+        [equity_label, kwacha(member_equity)],
     ]
     summary_table = Table(summary, colWidths=[95*mm, 65*mm])
     summary_table.setStyle(TableStyle([
