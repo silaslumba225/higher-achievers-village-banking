@@ -624,11 +624,31 @@ def dashboard():
 @login_required
 @role_required('members')
 def members():
-    q = request.args.get('q','').strip()
+    q = request.args.get('q', '').strip()
+    page = request.args.get('page', 1, type=int)
+    per_page = 25
+
     query = Member.query
+
     if q:
-        query = query.filter(Member.full_name.contains(q) | Member.member_no.contains(q) | Member.phone.contains(q))
-    return render_template('members.html', members=query.order_by(Member.member_no).all(), q=q)
+        query = query.filter(
+            Member.full_name.contains(q) |
+            Member.member_no.contains(q) |
+            Member.phone.contains(q)
+        )
+
+    pagination = query.order_by(Member.member_no).paginate(
+        page=page,
+        per_page=per_page,
+        error_out=False
+    )
+
+    return render_template(
+        'members.html',
+        members=pagination.items,
+        pagination=pagination,
+        q=q
+    )
 
 @app.route('/members/new', methods=['GET','POST'])
 @login_required
@@ -638,6 +658,43 @@ def member_new():
         m = Member(member_no=request.form['member_no'], full_name=request.form['full_name'], phone=request.form.get('phone'), national_id=request.form.get('national_id'), group_name=request.form.get('group_name'))
         db.session.add(m); db.session.commit(); log_audit('CREATE_MEMBER', 'Member', m.id, f'{m.member_no} - {m.full_name}'); flash('Member added successfully.'); return redirect(url_for('members'))
     return render_template('member_form.html')
+@app.route('/members/<int:member_id>/edit', methods=['GET', 'POST'])
+@login_required
+@role_required('members')
+def member_edit(member_id):
+    member = Member.query.get_or_404(member_id)
+
+    if request.method == 'POST':
+        member.member_no = request.form['member_no'].strip()
+        member.full_name = request.form['full_name'].strip()
+        member.phone = request.form.get('phone')
+        member.national_id = request.form.get('national_id')
+        member.group_name = request.form.get('group_name')
+        member.status = request.form.get('status') or 'Active'
+
+        db.session.commit()
+        log_audit('UPDATE_MEMBER', 'Member', member.id, f'{member.member_no} - {member.full_name}')
+        flash('Member updated successfully.')
+        return redirect(url_for('members'))
+
+    return render_template('member_form.html', member=member)
+
+
+@app.route('/members/<int:member_id>/toggle', methods=['POST'])
+@login_required
+@role_required('members')
+def member_toggle(member_id):
+    member = Member.query.get_or_404(member_id)
+
+    if member.status == 'Active':
+        member.status = 'Inactive'
+    else:
+        member.status = 'Active'
+
+    db.session.commit()
+    log_audit('TOGGLE_MEMBER_STATUS', 'Member', member.id, f'{member.member_no} status changed to {member.status}')
+    flash(f'Member status changed to {member.status}.')
+    return redirect(url_for('members'))
 
 @app.route('/members/import', methods=['GET', 'POST'])
 @login_required
