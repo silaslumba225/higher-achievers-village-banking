@@ -3,6 +3,11 @@
 {% block subtitle %}Maintain member registration details{% endblock %}
 
 {% block content %}
+<div class="actions">
+    <a class="btn" href="{{ url_for('members') }}">
+        ← Back to Members Register
+    </a>
+</div>
 <section class="panel narrow">
   <form method="post" class="form-grid single">
     <label>Member No
@@ -33,8 +38,17 @@
       </select>
     </label>
 
-    <button type="submit" class="primary">Save Member</button>
-    <a class="btn" href="{{ url_for('members') }}">Cancel</a>
+    <!-- <button type="submit" class="primary">Save Member</button>   
+    <a class="btn" href="{{ url_for('members') }}">Cancel</a> -->
+    <div class="actions">
+        <button type="submit" class="primary">
+            Save Member
+        </button>
+
+        <a class="btn" href="{{ url_for('members') }}">
+            Cancel
+        </a>
+    </div>
   </form>
 </section>
 {% endblock %}
