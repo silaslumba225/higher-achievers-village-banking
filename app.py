@@ -267,7 +267,7 @@ class FinePenalty(db.Model):
     @property
     def balance(self):
         return money(self.amount - self.total_paid)
-
+    
 class FinePayment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     fine_id = db.Column(db.Integer, db.ForeignKey('fine_penalty.id'), nullable=False)
