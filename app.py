@@ -658,6 +658,42 @@ def member_new():
         m = Member(member_no=request.form['member_no'], full_name=request.form['full_name'], phone=request.form.get('phone'), national_id=request.form.get('national_id'), group_name=request.form.get('group_name'))
         db.session.add(m); db.session.commit(); log_audit('CREATE_MEMBER', 'Member', m.id, f'{m.member_no} - {m.full_name}'); flash('Member added successfully.'); return redirect(url_for('members'))
     return render_template('member_form.html')
+
+@app.route('/members/<int:member_id>/edit', methods=['GET', 'POST'])
+@login_required
+@role_required('members')
+def member_edit(member_id):
+    member = Member.query.get_or_404(member_id)
+
+    if request.method == 'POST':
+        member.member_no = request.form['member_no'].strip()
+        member.full_name = request.form['full_name'].strip()
+        member.phone = request.form.get('phone')
+        member.national_id = request.form.get('national_id')
+        member.group_name = request.form.get('group_name')
+        member.status = request.form.get('status') or 'Active'
+
+        db.session.commit()
+        log_audit('UPDATE_MEMBER', 'Member', member.id, f'{member.member_no} - {member.full_name}')
+        flash('Member updated successfully.')
+        return redirect(url_for('members'))
+
+    return render_template('member_form.html', member=member)
+
+
+@app.route('/members/<int:member_id>/toggle', methods=['POST'])
+@login_required
+@role_required('members')
+def member_toggle(member_id):
+    member = Member.query.get_or_404(member_id)
+
+    member.status = 'Inactive' if member.status == 'Active' else 'Active'
+
+    db.session.commit()
+    log_audit('TOGGLE_MEMBER_STATUS', 'Member', member.id, f'{member.member_no} status changed to {member.status}')
+    flash(f'Member status changed to {member.status}.')
+    return redirect(url_for('members'))
+
 @app.route('/members/<int:member_id>/edit', methods=['GET', 'POST'])
 @login_required
 @role_required('members')
