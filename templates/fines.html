@@ -45,6 +45,7 @@
         <th>Paid</th>
         <th>Balance</th>
         <th>Status</th>
+        <th>Payment</th>
       </tr>
     </thead>
 
@@ -65,10 +66,27 @@
             {% endif %}
           </span>
         </td>
+        <td>
+          {% if fine.balance > 0 %}
+          <form method="post" action="{{ url_for('fine_payment', fine_id=fine.id) }}" class="inline-form">
+            <input type="number" name="amount" step="0.01" min="0.01" max="{{ fine.balance }}" placeholder="Amount" required>
+            <select name="method" required>
+              {% for p in payment_methods %}
+                <option>{{ p }}</option>
+              {% endfor %}
+            </select>
+            <input name="reference" placeholder="Reference">
+            <input type="date" name="paid_on">
+            <button type="submit">Pay</button>
+          </form>
+          {% else %}
+            <small>Fully paid</small>
+          {% endif %}
+        </td>
       </tr>
       {% else %}
       <tr>
-        <td colspan="6">No fines recorded.</td>
+        <td colspan="7">No fines recorded.</td>
       </tr>
       {% endfor %}
     </tbody>
