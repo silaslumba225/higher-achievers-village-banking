@@ -1,5 +1,40 @@
 {% extends 'base.html' %}
-{% block page_title %}Register Member{% endblock %}
+{% block page_title %}{{ 'Edit Member' if member else 'New Member' }}{% endblock %}
+{% block subtitle %}Maintain member registration details{% endblock %}
+
 {% block content %}
-<div class="panel narrow"><form method="post" class="form-grid"><label>Member No<input name="member_no" required placeholder="M251"></label><label>Full Name<input name="full_name" required></label><label>Phone<input name="phone"></label><label>NRC/ID<input name="national_id"></label><label>Group<input name="group_name" placeholder="Group 1"></label><button class="btn primary">Save Member</button></form></div>
+<section class="panel narrow">
+  <form method="post" class="form-grid single">
+    <label>Member No
+      <input name="member_no" value="{{ member.member_no if member else '' }}" required>
+    </label>
+
+    <label>Full Name
+      <input name="full_name" value="{{ member.full_name if member else '' }}" required>
+    </label>
+
+    <label>Phone
+      <input name="phone" value="{{ member.phone if member else '' }}">
+    </label>
+
+    <label>NRC / ID
+      <input name="national_id" value="{{ member.national_id if member else '' }}">
+    </label>
+
+    <label>Group
+      <input name="group_name" value="{{ member.group_name if member else '' }}">
+    </label>
+
+    <label>Status
+      <select name="status">
+        {% for s in ['Active', 'Inactive'] %}
+          <option value="{{ s }}" {% if member and member.status == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <button type="submit" class="primary">Save Member</button>
+    <a class="btn" href="{{ url_for('members') }}">Cancel</a>
+  </form>
+</section>
 {% endblock %}
