@@ -1163,14 +1163,42 @@ def welfare():
         claim_query = claim_query.filter(db.or_(Member.full_name.like(like), Member.member_no.like(like), WelfareClaim.category.like(like), WelfareClaim.reason.like(like)))
     if status:
         claim_query = claim_query.filter(WelfareClaim.status == status)
-    claims = claim_query.order_by(WelfareClaim.requested_on.desc(), WelfareClaim.id.desc()).all()
-    contributions = WelfareContribution.query.order_by(WelfareContribution.paid_on.desc(), WelfareContribution.id.desc()).limit(100).all()
+    page = request.args.get('page', 1, type=int)
+    per_page = 25
+
+    pagination = claim_query.order_by(
+    WelfareClaim.requested_on.desc(),
+    WelfareClaim.id.desc()
+).paginate(
+    page=page,
+    per_page=per_page,
+    error_out=False
+)
+
+    claims = pagination.items
+
+    contributions = WelfareContribution.query.order_by(
+    WelfareContribution.paid_on.desc(),
+    WelfareContribution.id.desc()
+    ).limit(100).all()
     members = Member.query.order_by(Member.full_name).all()
     total_contributions = money(db.session.query(db.func.coalesce(db.func.sum(WelfareContribution.amount), 0)).scalar())
     total_paid = money(db.session.query(db.func.coalesce(db.func.sum(WelfareClaim.amount_approved), 0)).filter(WelfareClaim.status == 'Paid').scalar())
     approved_not_paid = money(db.session.query(db.func.coalesce(db.func.sum(WelfareClaim.amount_approved), 0)).filter(WelfareClaim.status == 'Approved').scalar())
     balance = money(total_contributions - total_paid)
-    return render_template('welfare.html', claims=claims, contributions=contributions, members=members, q=q, status=status, total_contributions=total_contributions, total_paid=total_paid, approved_not_paid=approved_not_paid, balance=balance)
+    return render_template(
+        'welfare.html',
+        claims=claims,
+        contributions=contributions,
+        members=members,
+        pagination=pagination,
+        q=q,
+        status=status,
+        total_contributions=total_contributions,
+        total_paid=total_paid,
+        approved_not_paid=approved_not_paid,
+        balance=balance
+    )
 
 @app.route('/welfare/claims/<int:claim_id>/review', methods=['POST'])
 @login_required
@@ -1722,12 +1750,34 @@ def export_audit_csv():
 @login_required
 @role_required('statements')
 def statements():
-    q = request.args.get('q','').strip()
+    q = request.args.get('q', '').strip()
+
     query = Member.query
+
     if q:
-        query = query.filter(Member.full_name.contains(q) | Member.member_no.contains(q) | Member.phone.contains(q))
-    members = query.order_by(Member.member_no).all()
-    return render_template('statements.html', members=members, q=q)
+        query = query.filter(
+            Member.full_name.contains(q) |
+            Member.member_no.contains(q) |
+            Member.phone.contains(q)
+        )
+
+    page = request.args.get('page', 1, type=int)
+    per_page = 25
+
+    pagination = query.order_by(
+        Member.member_no
+    ).paginate(
+        page=page,
+        per_page=per_page,
+        error_out=False
+    )
+
+    return render_template(
+        'statements.html',
+        members=pagination.items,
+        pagination=pagination,
+        q=q
+    )
 
 @app.route('/statements/member/<int:member_id>.pdf')
 @login_required
@@ -1768,6 +1818,16 @@ def member_statement_pdf(member_id):
     total_welfare_contrib = money(sum((w.amount for w in welfare_contribs), Decimal('0.00')))
     total_welfare_paid = money(sum((w.amount_approved for w in welfare_claims if w.status == 'Paid'), Decimal('0.00')))
 
+    member_equity = money(
+    total_contrib
+    + total_distrib
+    + total_welfare_paid
+    - total_balance
+    - total_fine_balance
+    )
+
+    equity_label = 'Member Equity / Surplus' if member_equity >= 0 else 'Member Equity / Deficit'
+
     summary = [
         ['Total Contributions', kwacha(total_contrib)],
         ['Loan Principal', kwacha(total_principal)],
@@ -1780,7 +1840,9 @@ def member_statement_pdf(member_id):
         ['Outstanding Fines', kwacha(total_fine_balance)],
         ['Welfare Contributions', kwacha(total_welfare_contrib)],
         ['Welfare Support Paid', kwacha(total_welfare_paid)],
-    ]
+        [equity_label, kwacha(member_equity)],
+        ]
+    
     summary_table = Table(summary, colWidths=[95*mm, 65*mm])
     summary_table.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#e8f2f6')),
