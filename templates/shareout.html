@@ -51,11 +51,11 @@
       <tbody>
         {% for row in rows %}
         <tr>
-          <td><strong>{{ row.member.member_no }}</strong><br>{{ row.member.full_name }}</td>
-          <td>{{ row.contribution|kwacha }}</td>
-          <td>{{ row.share_percent }}</td>
-          <td>{{ row.dividend|kwacha }}</td>
-          <td><strong>{{ row.total_payout|kwacha }}</strong></td>
+          <td><strong>{{ row.member_no }}</strong><br>{{ row.full_name }}</td>
+          <td>{{ row.contributed|kwacha }}</td>
+          <td>{{ row.percent }}%</td>
+          <td>{{ row.surplus|kwacha }}</td>
+          <td><strong>{{ row.payout|kwacha }}</strong></td>
         </tr>
         {% else %}
         <tr><td colspan="5">No share-out records found for the selected period.</td></tr>
