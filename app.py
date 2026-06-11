@@ -693,45 +693,6 @@ def member_toggle(member_id):
     log_audit('TOGGLE_MEMBER_STATUS', 'Member', member.id, f'{member.member_no} status changed to {member.status}')
     flash(f'Member status changed to {member.status}.')
     return redirect(url_for('members'))
-
-@app.route('/members/<int:member_id>/edit', methods=['GET', 'POST'])
-@login_required
-@role_required('members')
-def member_edit(member_id):
-    member = Member.query.get_or_404(member_id)
-
-    if request.method == 'POST':
-        member.member_no = request.form['member_no'].strip()
-        member.full_name = request.form['full_name'].strip()
-        member.phone = request.form.get('phone')
-        member.national_id = request.form.get('national_id')
-        member.group_name = request.form.get('group_name')
-        member.status = request.form.get('status') or 'Active'
-
-        db.session.commit()
-        log_audit('UPDATE_MEMBER', 'Member', member.id, f'{member.member_no} - {member.full_name}')
-        flash('Member updated successfully.')
-        return redirect(url_for('members'))
-
-    return render_template('member_form.html', member=member)
-
-
-@app.route('/members/<int:member_id>/toggle', methods=['POST'])
-@login_required
-@role_required('members')
-def member_toggle(member_id):
-    member = Member.query.get_or_404(member_id)
-
-    if member.status == 'Active':
-        member.status = 'Inactive'
-    else:
-        member.status = 'Active'
-
-    db.session.commit()
-    log_audit('TOGGLE_MEMBER_STATUS', 'Member', member.id, f'{member.member_no} status changed to {member.status}')
-    flash(f'Member status changed to {member.status}.')
-    return redirect(url_for('members'))
-
 @app.route('/members/import', methods=['GET', 'POST'])
 @login_required
 @role_required('members')
