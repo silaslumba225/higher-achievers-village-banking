@@ -1040,11 +1040,38 @@ def fines():
         query = query.filter(db.or_(Member.full_name.like(like), Member.member_no.like(like), FinePenalty.category.like(like), FinePenalty.reason.like(like)))
     if status:
         query = query.filter(FinePenalty.status == status)
-    fine_rows = query.order_by(FinePenalty.fine_date.desc(), FinePenalty.id.desc()).all()
-    total_fines = money(sum((f.amount for f in fine_rows), Decimal('0.00')))
-    total_paid = money(sum((f.total_paid for f in fine_rows), Decimal('0.00')))
-    total_balance = money(sum((f.balance for f in fine_rows if f.status != 'Waived'), Decimal('0.00')))
-    return render_template('fines.html', fines=fine_rows, members=Member.query.order_by(Member.full_name).all(), q=q, status=status, total_fines=total_fines, total_paid=total_paid, total_balance=total_balance)
+    all_matching_fines = query.order_by(
+    FinePenalty.fine_date.desc(),
+    FinePenalty.id.desc()
+        ).all()
+
+    total_fines = money(sum((f.amount for f in all_matching_fines), Decimal('0.00')))
+    total_paid = money(sum((f.total_paid for f in all_matching_fines), Decimal('0.00')))
+    total_balance = money(sum((f.balance for f in all_matching_fines if f.status != 'Waived'), Decimal('0.00')))
+
+    page = request.args.get('page', 1, type=int)
+    per_page = 25
+
+    pagination = query.order_by(
+        FinePenalty.fine_date.desc(),
+        FinePenalty.id.desc()
+    ).paginate(
+        page=page,
+        per_page=per_page,
+        error_out=False
+    )
+
+    return render_template(
+        'fines.html',
+        fines=pagination.items,
+        pagination=pagination,
+        members=Member.query.order_by(Member.full_name).all(),
+        q=q,
+        status=status,
+        total_fines=total_fines,
+        total_paid=total_paid,
+        total_balance=total_balance
+    )
 
 @app.route('/fines/<int:fine_id>/pay', methods=['POST'])
 @login_required
