@@ -827,7 +827,23 @@ def contributions():
     if request.method == 'POST':
         c = Contribution(member_id=int(request.form['member_id']), month=request.form['month'], amount=money(request.form['amount']), method=request.form['method'], reference=request.form.get('reference'), paid_on=parse_date(request.form.get('paid_on')))
         db.session.add(c); db.session.commit(); log_audit('RECORD_CONTRIBUTION', 'Contribution', c.id, f'{c.member.full_name} paid {kwacha(c.amount)} for {c.month} via {c.method}'); flash('Contribution recorded.'); return redirect(url_for('contributions'))
-    return render_template('contributions.html', contributions=Contribution.query.order_by(Contribution.paid_on.desc()).limit(100).all(), members=Member.query.order_by(Member.full_name).all())
+    page = request.args.get('page', 1, type=int)
+    per_page = 25
+
+    pagination = Contribution.query.order_by(
+                Contribution.paid_on.desc()
+            ).paginate(
+                page=page,
+                per_page=per_page,
+                error_out=False
+            )
+
+    return render_template(
+                'contributions.html',
+                contributions=pagination.items,
+                pagination=pagination,
+                members=Member.query.order_by(Member.full_name).all()
+            )
 
 @app.route('/loans', methods=['GET','POST'])
 @login_required
