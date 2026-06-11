@@ -1261,7 +1261,23 @@ def meetings():
     if request.method == 'POST':
         mtg = Meeting(meeting_type=request.form['meeting_type'], meeting_date=parse_date(request.form['meeting_date']), agenda=request.form.get('agenda'), resolutions=request.form.get('resolutions'), attendance_count=int(request.form.get('attendance_count') or 0))
         db.session.add(mtg); db.session.commit(); log_audit('SAVE_MEETING', 'Meeting', mtg.id, f'{mtg.meeting_type} meeting on {mtg.meeting_date}; attendance {mtg.attendance_count}'); flash('Meeting record saved.'); return redirect(url_for('meetings'))
-    return render_template('meetings.html', meetings=Meeting.query.order_by(Meeting.meeting_date.desc()).all())
+    page = request.args.get('page', 1, type=int)
+    per_page = 25
+
+    pagination = Meeting.query.order_by(
+    Meeting.meeting_date.desc(),
+    Meeting.id.desc()
+    ).paginate(
+    page=page,
+    per_page=per_page,
+    error_out=False
+    )
+
+    return render_template(
+    'meetings.html',
+    meetings=pagination.items,
+    pagination=pagination
+)
 
 
 
@@ -1269,17 +1285,44 @@ def meetings():
 @login_required
 @role_required('attendance')
 def attendance():
-    meetings_list = Meeting.query.order_by(Meeting.meeting_date.desc(), Meeting.id.desc()).all()
+    page = request.args.get('page', 1, type=int)
+    per_page = 25
+
+    pagination = Meeting.query.order_by(
+        Meeting.meeting_date.desc(),
+        Meeting.id.desc()
+    ).paginate(
+        page=page,
+        per_page=per_page,
+        error_out=False
+    )
+
+    meetings_list = pagination.items
     summary = []
     total_members = Member.query.filter_by(status='Active').count()
+
     for mtg in meetings_list:
         records = MeetingAttendance.query.filter_by(meeting_id=mtg.id).all()
         present = sum(1 for r in records if r.status == 'Present')
         late = sum(1 for r in records if r.status == 'Late')
         absent = sum(1 for r in records if r.status == 'Absent')
         excused = sum(1 for r in records if r.status == 'Excused')
-        summary.append({'meeting': mtg, 'total': len(records), 'present': present, 'late': late, 'absent': absent, 'excused': excused, 'expected': total_members})
-    return render_template('attendance.html', summary=summary)
+
+        summary.append({
+            'meeting': mtg,
+            'total': len(records),
+            'present': present,
+            'late': late,
+            'absent': absent,
+            'excused': excused,
+            'expected': total_members
+        })
+
+    return render_template(
+        'attendance.html',
+        summary=summary,
+        pagination=pagination
+    )
 
 @app.route('/attendance/<int:meeting_id>', methods=['GET', 'POST'])
 @login_required
