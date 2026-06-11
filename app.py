@@ -852,26 +852,47 @@ def loans():
     if request.method == 'POST':
         issued = parse_date(request.form.get('issued_on'))
         due = parse_date(request.form.get('due_on')) or issued + timedelta(days=30)
-        l = Loan(member_id=int(request.form['member_id']), principal=money(request.form['principal']), due_on=due, issued_on=issued, purpose=request.form.get('purpose'), status='Applied')
-        db.session.add(l); db.session.commit(); log_audit('LOAN_APPLICATION_CREATED', 'Loan', l.id, f'{l.member.full_name} applied for {kwacha(l.principal)}; due {l.due_on}'); flash('Loan application created. It must be reviewed, approved, then disbursed before repayment can be recorded.'); return redirect(url_for('loans'))
-    all_loans = Loan.query.order_by(Loan.issued_on.desc()).all()
+
+        l = Loan(
+            member_id=int(request.form['member_id']),
+            principal=money(request.form['principal']),
+            due_on=due,
+            issued_on=issued,
+            purpose=request.form.get('purpose'),
+            status='Applied'
+        )
+
+        db.session.add(l)
+        db.session.commit()
+
+        log_audit(
+            'LOAN_APPLICATION_CREATED',
+            'Loan',
+            l.id,
+            f'{l.member.full_name} applied for {kwacha(l.principal)}; due {l.due_on}'
+        )
+
+        flash('Loan application created. It must be reviewed, approved, then disbursed before repayment can be recorded.')
+        return redirect(url_for('loans'))
+
     page = request.args.get('page', 1, type=int)
     per_page = 25
 
     pagination = Loan.query.order_by(
-            Loan.id.desc()
-        ).paginate(
-            page=page,
-            per_page=per_page,
-            error_out=False
-        )
+        Loan.issued_on.desc(),
+        Loan.id.desc()
+    ).paginate(
+        page=page,
+        per_page=per_page,
+        error_out=False
+    )
 
     return render_template(
-            'loans.html',
-            loans=pagination.items,
-            pagination=pagination,
-            members=Member.query.order_by(Member.full_name).all()
-        )
+        'loans.html',
+        loans=pagination.items,
+        pagination=pagination,
+        members=Member.query.order_by(Member.full_name).all()
+    )
 
 @app.route('/loans/<int:loan_id>/review', methods=['POST'])
 @login_required
@@ -952,11 +973,46 @@ def repayments():
 @role_required('distributions')
 def distributions():
     if request.method == 'POST':
-        d = Distribution(member_id=int(request.form['member_id']), amount=money(request.form['amount']), method=request.form['method'], reference=request.form.get('reference'), authorized_by=request.form.get('authorized_by'), paid_on=parse_date(request.form.get('paid_on')))
-        db.session.add(d); db.session.commit(); log_audit('RECORD_DISTRIBUTION', 'Distribution', d.id, f'{d.member.full_name} received {kwacha(d.amount)} via {d.method}'); flash('Distribution recorded.'); return redirect(url_for('distributions'))
-    return render_template('distributions.html', distributions=Distribution.query.order_by(Distribution.paid_on.desc()).all(), members=Member.query.order_by(Member.full_name).all())
+        d = Distribution(
+            member_id=int(request.form['member_id']),
+            amount=money(request.form['amount']),
+            method=request.form['method'],
+            reference=request.form.get('reference'),
+            authorized_by=request.form.get('authorized_by'),
+            paid_on=parse_date(request.form.get('paid_on'))
+        )
 
+        db.session.add(d)
+        db.session.commit()
 
+        log_audit(
+            'RECORD_DISTRIBUTION',
+            'Distribution',
+            d.id,
+            f'{d.member.full_name} received {kwacha(d.amount)} via {d.method}'
+        )
+
+        flash('Distribution recorded.')
+        return redirect(url_for('distributions'))
+
+    page = request.args.get('page', 1, type=int)
+    per_page = 25
+
+    pagination = Distribution.query.order_by(
+        Distribution.paid_on.desc(),
+        Distribution.id.desc()
+    ).paginate(
+        page=page,
+        per_page=per_page,
+        error_out=False
+    )
+
+    return render_template(
+        'distributions.html',
+        distributions=pagination.items,
+        pagination=pagination,
+        members=Member.query.order_by(Member.full_name).all()
+    )
 
 @app.route('/fines', methods=['GET','POST'])
 @login_required
