@@ -855,7 +855,23 @@ def loans():
         l = Loan(member_id=int(request.form['member_id']), principal=money(request.form['principal']), due_on=due, issued_on=issued, purpose=request.form.get('purpose'), status='Applied')
         db.session.add(l); db.session.commit(); log_audit('LOAN_APPLICATION_CREATED', 'Loan', l.id, f'{l.member.full_name} applied for {kwacha(l.principal)}; due {l.due_on}'); flash('Loan application created. It must be reviewed, approved, then disbursed before repayment can be recorded.'); return redirect(url_for('loans'))
     all_loans = Loan.query.order_by(Loan.issued_on.desc()).all()
-    return render_template('loans.html', loans=all_loans, members=Member.query.order_by(Member.full_name).all())
+    page = request.args.get('page', 1, type=int)
+    per_page = 25
+
+    pagination = Loan.query.order_by(
+            Loan.id.desc()
+        ).paginate(
+            page=page,
+            per_page=per_page,
+            error_out=False
+        )
+
+    return render_template(
+            'loans.html',
+            loans=pagination.items,
+            pagination=pagination,
+            members=Member.query.order_by(Member.full_name).all()
+        )
 
 @app.route('/loans/<int:loan_id>/review', methods=['POST'])
 @login_required
