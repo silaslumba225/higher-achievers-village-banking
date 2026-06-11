@@ -53,7 +53,8 @@
       </tbody>
     </table>
   </div>
-  <div class="actions">
+  {% if pagination %}
+<div class="actions">
   {% if pagination.has_prev %}
     <a class="btn" href="{{ url_for('audit_trail', page=pagination.prev_num, q=q, action=action) }}">Previous</a>
   {% endif %}
@@ -66,5 +67,6 @@
     <a class="btn" href="{{ url_for('audit_trail', page=pagination.next_num, q=q, action=action) }}">Next</a>
   {% endif %}
 </div>
+{% endif %}
 </section>
 {% endblock %}
