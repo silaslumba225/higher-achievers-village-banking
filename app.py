@@ -2153,6 +2153,27 @@ def month_end():
         processes=processes
     )
 
+@app.route('/month-end/<month>')
+@login_required
+@role_required('accounting')
+def month_end_details(month):
+    process = MonthEndProcess.query.filter_by(month=month).first_or_404()
+
+    savings_entries = SavingsInterest.query.filter_by(
+        month=month
+    ).order_by(SavingsInterest.id.desc()).all()
+
+    loan_entries = LoanInterest.query.filter_by(
+        month=month
+    ).order_by(LoanInterest.id.desc()).all()
+
+    return render_template(
+        'month_end_details.html',
+        process=process,
+        savings_entries=savings_entries,
+        loan_entries=loan_entries
+    )
+
 @app.route('/export/<kind>.csv')
 @login_required
 @role_required('exports')

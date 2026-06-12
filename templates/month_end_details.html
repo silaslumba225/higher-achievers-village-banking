@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block page_title %}Month-End Details{% endblock %}
+{% block subtitle %}Detailed interest calculation breakdown for {{ process.month }}{% endblock %}
+
+{% block content %}
+
+<div class="actions">
+  <a class="btn" href="{{ url_for('month_end') }}">← Back to Month-End</a>
+</div>
+
+<section class="kpi-grid">
+  <div class="kpi">
+    <span>Month</span>
+    <strong>{{ process.month }}</strong>
+  </div>
+
+  <div class="kpi">
+    <span>Savings Interest</span>
+    <strong>{{ process.savings_interest_total|kwacha }}</strong>
+  </div>
+
+  <div class="kpi accent">
+    <span>Loan Interest</span>
+    <strong>{{ process.loan_interest_total|kwacha }}</strong>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Savings Interest Details</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Member</th>
+        <th>Opening Balance</th>
+        <th>Rate</th>
+        <th>Interest</th>
+        <th>Closing Balance</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in savings_entries %}
+      <tr>
+        <td><strong>{{ s.member.member_no }}</strong><br>{{ s.member.full_name }}</td>
+        <td>{{ s.opening_balance|kwacha }}</td>
+        <td>{{ s.interest_rate }}%</td>
+        <td>{{ s.interest_amount|kwacha }}</td>
+        <td>{{ s.closing_balance|kwacha }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="5">No savings interest entries found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="panel">
+  <h2>Loan Interest Details</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Member</th>
+        <th>Loan ID</th>
+        <th>Opening Balance</th>
+        <th>Rate</th>
+        <th>Interest</th>
+        <th>Closing Balance</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for l in loan_entries %}
+      <tr>
+        <td><strong>{{ l.member.member_no }}</strong><br>{{ l.member.full_name }}</td>
+        <td>#{{ l.loan_id }}</td>
+        <td>{{ l.opening_balance|kwacha }}</td>
+        <td>{{ l.interest_rate }}%</td>
+        <td>{{ l.interest_amount|kwacha }}</td>
+        <td>{{ l.closing_balance|kwacha }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="6">No loan interest entries found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% endblock %}

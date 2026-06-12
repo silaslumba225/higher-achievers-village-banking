@@ -33,6 +33,7 @@
         <th>Loan Interest</th>
         <th>Processed By</th>
         <th>Processed On</th>
+        <th>Action</th>
       </tr>
     </thead>
     <tbody>
@@ -43,10 +44,15 @@
         <td>{{ p.loan_interest_total|kwacha }}</td>
         <td>{{ p.processed_by or '-' }}</td>
         <td>{{ p.processed_on }}</td>
+        <td>
+        <a class="btn small" href="{{ url_for('month_end_details', month=p.month) }}">
+            View Details
+        </a>
+        </td>
       </tr>
       {% else %}
       <tr>
-        <td colspan="5">No month-end processing has been recorded yet.</td>
+        <td colspan="6">No month-end processing has been recorded yet.</td>
       </tr>
       {% endfor %}
     </tbody>
