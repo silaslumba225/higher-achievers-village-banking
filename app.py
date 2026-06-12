@@ -341,6 +341,42 @@ class JournalLine(db.Model):
     entry = db.relationship('JournalEntry', backref='lines')
     account = db.relationship('Account', backref='journal_lines')
 
+class SavingsInterest(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    member_id = db.Column(db.Integer, db.ForeignKey('member.id'), nullable=False)
+    month = db.Column(db.String(7), nullable=False)  # YYYY-MM
+    opening_balance = db.Column(db.Numeric(12, 2), nullable=False)
+    interest_rate = db.Column(db.Numeric(5, 2), default=15.00)
+    interest_amount = db.Column(db.Numeric(12, 2), nullable=False)
+    closing_balance = db.Column(db.Numeric(12, 2), nullable=False)
+    processed_on = db.Column(db.Date, default=date.today)
+
+    member = db.relationship('Member', backref='savings_interest')
+
+
+class LoanInterest(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    loan_id = db.Column(db.Integer, db.ForeignKey('loan.id'), nullable=False)
+    member_id = db.Column(db.Integer, db.ForeignKey('member.id'), nullable=False)
+    month = db.Column(db.String(7), nullable=False)  # YYYY-MM
+    opening_balance = db.Column(db.Numeric(12, 2), nullable=False)
+    interest_rate = db.Column(db.Numeric(5, 2), default=15.00)
+    interest_amount = db.Column(db.Numeric(12, 2), nullable=False)
+    closing_balance = db.Column(db.Numeric(12, 2), nullable=False)
+    processed_on = db.Column(db.Date, default=date.today)
+
+    loan = db.relationship('Loan', backref='loan_interest_entries')
+    member = db.relationship('Member', backref='loan_interest_entries')
+
+
+class MonthEndProcess(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    month = db.Column(db.String(7), unique=True, nullable=False)  # YYYY-MM
+    savings_interest_total = db.Column(db.Numeric(12, 2), default=0)
+    loan_interest_total = db.Column(db.Numeric(12, 2), default=0)
+    processed_by = db.Column(db.String(120))
+    processed_on = db.Column(db.Date, default=date.today)
+
 
 def money(value):
     return Decimal(value or 0).quantize(Decimal('0.01'))
@@ -2002,6 +2038,120 @@ def shareout():
 @role_required('shareout')
 def shareout_csv():
     return shareout()
+
+@app.route('/month-end', methods=['GET', 'POST'])
+@login_required
+@role_required('accounting')
+def month_end():
+    selected_month = request.values.get('month') or date.today().strftime('%Y-%m')
+    rate = Decimal('0.15')
+
+    if request.method == 'POST':
+        existing = MonthEndProcess.query.filter_by(month=selected_month).first()
+
+        if existing:
+            flash(f'Month-end interest has already been processed for {selected_month}.', 'error')
+            return redirect(url_for('month_end', month=selected_month))
+
+        savings_total = Decimal('0.00')
+        loan_interest_total = Decimal('0.00')
+
+        members = Member.query.filter_by(status='Active').all()
+
+        for member in members:
+            total_contributions = money(
+                db.session.query(db.func.coalesce(db.func.sum(Contribution.amount), 0))
+                .filter(Contribution.member_id == member.id)
+                .scalar()
+            )
+
+            previous_interest = money(
+                db.session.query(db.func.coalesce(db.func.sum(SavingsInterest.interest_amount), 0))
+                .filter(SavingsInterest.member_id == member.id)
+                .scalar()
+            )
+
+            distributions_total = money(
+                db.session.query(db.func.coalesce(db.func.sum(Distribution.amount), 0))
+                .filter(Distribution.member_id == member.id)
+                .scalar()
+            )
+
+            opening_balance = money(total_contributions + previous_interest - distributions_total)
+
+            if opening_balance > 0:
+                interest_amount = money(opening_balance * rate)
+                closing_balance = money(opening_balance + interest_amount)
+
+                entry = SavingsInterest(
+                    member_id=member.id,
+                    month=selected_month,
+                    opening_balance=opening_balance,
+                    interest_rate=Decimal('15.00'),
+                    interest_amount=interest_amount,
+                    closing_balance=closing_balance
+                )
+
+                db.session.add(entry)
+                savings_total += interest_amount
+
+        loans = Loan.query.filter(Loan.status.in_(['Disbursed', 'Open', 'Applied', 'Approved'])).all()
+
+        for loan in loans:
+            previous_interest = money(
+                db.session.query(db.func.coalesce(db.func.sum(LoanInterest.interest_amount), 0))
+                .filter(LoanInterest.loan_id == loan.id)
+                .scalar()
+            )
+
+            opening_balance = money(loan.balance + previous_interest)
+
+            if opening_balance > 0:
+                interest_amount = money(opening_balance * rate)
+                closing_balance = money(opening_balance + interest_amount)
+
+                entry = LoanInterest(
+                    loan_id=loan.id,
+                    member_id=loan.member_id,
+                    month=selected_month,
+                    opening_balance=opening_balance,
+                    interest_rate=Decimal('15.00'),
+                    interest_amount=interest_amount,
+                    closing_balance=closing_balance
+                )
+
+                db.session.add(entry)
+                loan_interest_total += interest_amount
+
+        user = session.get('user') or {}
+
+        process = MonthEndProcess(
+            month=selected_month,
+            savings_interest_total=savings_total,
+            loan_interest_total=loan_interest_total,
+            processed_by=user.get('full_name') or user.get('username')
+        )
+
+        db.session.add(process)
+        db.session.commit()
+
+        log_audit(
+            'MONTH_END_PROCESS',
+            'MonthEndProcess',
+            process.id,
+            f'Month-end processed for {selected_month}. Savings interest: {kwacha(savings_total)}, Loan interest: {kwacha(loan_interest_total)}'
+        )
+
+        flash(f'Month-end processed for {selected_month}.')
+        return redirect(url_for('month_end', month=selected_month))
+
+    processes = MonthEndProcess.query.order_by(MonthEndProcess.month.desc()).all()
+
+    return render_template(
+        'month_end.html',
+        selected_month=selected_month,
+        processes=processes
+    )
 
 @app.route('/export/<kind>.csv')
 @login_required

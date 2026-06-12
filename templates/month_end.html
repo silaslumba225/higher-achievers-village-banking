@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block page_title %}Month-End Processing{% endblock %}
+{% block subtitle %}Apply 15% compounded interest to member savings and loan balances{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Run Month-End Interest</h2>
+      <p>This applies 15% compound interest to savings balances and outstanding loan balances.</p>
+    </div>
+  </div>
+
+  <form method="post" class="form-grid">
+    <label>Month
+      <input type="month" name="month" value="{{ selected_month }}" required>
+    </label>
+
+    <button type="submit" class="primary" onclick="return confirm('Process month-end interest for this month? This cannot be run twice for the same month.');">
+      Process Month-End
+    </button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Processing History</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Month</th>
+        <th>Savings Interest</th>
+        <th>Loan Interest</th>
+        <th>Processed By</th>
+        <th>Processed On</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in processes %}
+      <tr>
+        <td>{{ p.month }}</td>
+        <td>{{ p.savings_interest_total|kwacha }}</td>
+        <td>{{ p.loan_interest_total|kwacha }}</td>
+        <td>{{ p.processed_by or '-' }}</td>
+        <td>{{ p.processed_on }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="5">No month-end processing has been recorded yet.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
