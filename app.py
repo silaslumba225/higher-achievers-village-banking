@@ -1930,21 +1930,66 @@ def shareout():
         percent = Decimal('0.00') if total_contributions == 0 else (contributed / total_contributions * Decimal('100'))
         payout = Decimal('0.00') if total_contributions == 0 else money(contributed / total_contributions * shareout_fund)
         surplus = money(payout - contributed)
-        rows.append({
-            'member_no': member_no,
-            'full_name': full_name,
-            'group_name': group_name or '-',
-            'contributed': contributed,
-            'percent': percent.quantize(Decimal('0.01')),
-            'payout': payout,
-            'surplus': surplus,
-        })
+        loan_balance = money(
+    db.session.query(db.func.coalesce(db.func.sum(Loan.total_due), 0))
+    .filter(Loan.member_id == member_id)
+    .filter(Loan.status != 'Rejected')
+    .scalar()
+    )
+
+    loan_paid = money(
+    db.session.query(db.func.coalesce(db.func.sum(LoanRepayment.amount), 0))
+    .join(Loan)
+    .filter(Loan.member_id == member_id)
+    .scalar()
+    )   
+
+    outstanding_loans = money(loan_balance - loan_paid)
+
+    fine_balance = money(
+        sum(
+            (f.balance for f in FinePenalty.query.filter_by(member_id=member_id).all() if f.status != 'Waived'),
+            Decimal('0.00')
+        )
+    )
+
+    distributions_received = money(
+        db.session.query(db.func.coalesce(db.func.sum(Distribution.amount), 0))
+        .filter(Distribution.member_id == member_id)
+        .scalar()
+    )
+
+    welfare_support_paid = money(
+        db.session.query(db.func.coalesce(db.func.sum(WelfareClaim.amount_approved), 0))
+        .filter(WelfareClaim.member_id == member_id)
+        .filter(WelfareClaim.status == 'Paid')
+        .scalar()
+    )
+
+    member_equity = money(
+        contributed
+        + distributions_received
+        + welfare_support_paid
+        - outstanding_loans
+        - fine_balance
+    )
+
+    rows.append({
+        'member_no': member_no,
+        'full_name': full_name,
+        'group_name': group_name or '-',
+        'contributed': contributed,
+        'percent': percent.quantize(Decimal('0.01')),
+        'payout': payout,
+        'surplus': surplus,
+        'member_equity': member_equity,
+    })
 
     if request.path.endswith('.csv'):
         output = io.StringIO(); writer = csv.writer(output)
-        writer.writerow(['Member No','Full Name','Group','Contribution','Contribution %','Share-Out Payout','Surplus/Dividend'])
+        writer.writerow(['Member No','Full Name','Group','Contribution','Contribution %','Share-Out Payout','Surplus/Dividend','Member Equity'])
         for r in rows:
-            writer.writerow([r['member_no'], r['full_name'], r['group_name'], r['contributed'], r['percent'], r['payout'], r['surplus']])
+            writer.writerow([r['member_no'], r['full_name'], r['group_name'], r['contributed'], r['percent'], r['payout'], r['surplus'], r['member_equity']])
         log_audit('EXPORT_SHAREOUT', 'ShareOut', None, f'Share-out CSV exported for {start_month} to {end_month}')
         return Response(output.getvalue(), mimetype='text/csv', headers={'Content-Disposition': f'attachment; filename=shareout_{start_month}_to_{end_month}.csv'})
 
