@@ -40,28 +40,41 @@
   <div class="table-wrap">
     <table>
       <thead>
-        <tr>
-          <th>Member</th>
-          <th>Contribution</th>
-          <th>Share %</th>
-          <th>Dividend</th>
-          <th>Total Payout</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in rows %}
-        <tr>
-          <td><strong>{{ row.member_no }}</strong><br>{{ row.full_name }}</td>
-          <td>{{ row.contributed|kwacha }}</td>
-          <td>{{ row.percent }}%</td>
-          <td>{{ row.surplus|kwacha }}</td>
-          <td><strong>{{ row.payout|kwacha }}</strong></td>
-        </tr>
-        {% else %}
-        <tr><td colspan="5">No share-out records found for the selected period.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</section>
+      <tr>
+        <th>Member</th>
+        <th>Contributions</th>
+        <th>Savings Interest</th>
+        <th>Gross Savings</th>
+        <th>Share %</th>
+        <th>Gross Share-Out</th>
+        <th>Loans + Interest</th>
+        <th>Fines</th>
+        <th>Deductions</th>
+        <th>Net Payable</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td><strong>{{ row.member_no }}</strong><br>{{ row.full_name }}</td>
+        <td>{{ row.contributed|kwacha }}</td>
+        <td>{{ row.savings_interest|kwacha }}</td>
+        <td>{{ row.gross_savings_value|kwacha }}</td>
+        <td>{{ row.percent }}%</td>
+        <td>{{ row.gross_shareout|kwacha }}</td>
+        <td>{{ row.outstanding_loans|kwacha }}</td>
+        <td>{{ row.fine_balance|kwacha }}</td>
+        <td>{{ row.total_deductions|kwacha }}</td>
+        <td>
+          <strong class="{% if row.net_status == 'surplus' %}good-text{% else %}bad-text{% endif %}">
+            {{ row.net_payable|kwacha }}
+          </strong>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="10">No share-out records found for the selected period.</td>
+      </tr>
+      {% endfor %}
+</tbody>
 {% endblock %}

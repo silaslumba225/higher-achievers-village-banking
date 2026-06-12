@@ -1932,9 +1932,13 @@ def shareout():
     today_month = date.today().strftime('%Y-%m')
     start_month = request.values.get('start_month') or f'{date.today().year}-01'
     end_month = request.values.get('end_month') or today_month
+
     expenses = money(request.values.get('expenses') or 0)
-    fines = money(request.values.get('fines') or 0)
     other_income = money(request.values.get('other_income') or 0)
+
+    start_date = datetime.strptime(start_month + '-01', '%Y-%m-%d').date()
+    end_year, end_mon = [int(x) for x in end_month.split('-')]
+    end_date = (date(end_year, end_mon, 28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
 
     contrib_rows = db.session.query(
         Member.id,
@@ -1942,266 +1946,189 @@ def shareout():
         Member.full_name,
         Member.group_name,
         db.func.coalesce(db.func.sum(Contribution.amount), 0)
-    ).join(Contribution, Contribution.member_id == Member.id).filter(
+    ).join(
+        Contribution, Contribution.member_id == Member.id
+    ).filter(
         Contribution.month >= start_month,
         Contribution.month <= end_month
-    ).group_by(Member.id).order_by(Member.member_no).all()
+    ).group_by(
+        Member.id,
+        Member.member_no,
+        Member.full_name,
+        Member.group_name
+    ).order_by(
+        Member.member_no
+    ).all()
 
-    total_contributions = money(sum((money(row[4]) for row in contrib_rows), Decimal('0.00')))
+    total_contributions = money(
+        sum((money(row[4]) for row in contrib_rows), Decimal('0.00'))
+    )
 
-    start_date = datetime.strptime(start_month + '-01', '%Y-%m-%d').date()
-    end_year, end_mon = [int(x) for x in end_month.split('-')]
-    end_date = (date(end_year, end_mon, 28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+    total_savings_interest = money(
+        db.session.query(db.func.coalesce(db.func.sum(SavingsInterest.interest_amount), 0))
+        .filter(SavingsInterest.month >= start_month)
+        .filter(SavingsInterest.month <= end_month)
+        .scalar()
+    )
 
-    period_loans = Loan.query.filter(Loan.issued_on >= start_date, Loan.issued_on <= end_date, Loan.status != 'Rejected').all()
-    interest_earned = money(sum((l.interest_amount for l in period_loans), Decimal('0.00')))
-    distributions_total = money(db.session.query(db.func.coalesce(db.func.sum(Distribution.amount), 0)).filter(Distribution.paid_on >= start_date, Distribution.paid_on <= end_date).scalar())
-    fines_paid_total = money(db.session.query(db.func.coalesce(db.func.sum(FinePayment.amount), 0)).filter(FinePayment.paid_on >= start_date, FinePayment.paid_on <= end_date).scalar())
-    total_fines_income = money(fines_paid_total + fines)
+    fines_paid_total = money(
+        db.session.query(db.func.coalesce(db.func.sum(FinePayment.amount), 0))
+        .filter(FinePayment.paid_on >= start_date)
+        .filter(FinePayment.paid_on <= end_date)
+        .scalar()
+    )
 
-    shareout_fund = money(total_contributions + interest_earned + total_fines_income + other_income - expenses - distributions_total)
+    distributions_total = money(
+        db.session.query(db.func.coalesce(db.func.sum(Distribution.amount), 0))
+        .filter(Distribution.paid_on >= start_date)
+        .filter(Distribution.paid_on <= end_date)
+        .scalar()
+    )
+
+    shareout_fund = money(
+        total_contributions
+        + total_savings_interest
+        + fines_paid_total
+        + other_income
+        - expenses
+        - distributions_total
+    )
+
     rows = []
+
     for member_id, member_no, full_name, group_name, contributed in contrib_rows:
         contributed = money(contributed)
-        percent = Decimal('0.00') if total_contributions == 0 else (contributed / total_contributions * Decimal('100'))
-        payout = Decimal('0.00') if total_contributions == 0 else money(contributed / total_contributions * shareout_fund)
-        surplus = money(payout - contributed)
-        loan_balance = money(
-    db.session.query(db.func.coalesce(db.func.sum(Loan.total_due), 0))
-    .filter(Loan.member_id == member_id)
-    .filter(Loan.status != 'Rejected')
-    .scalar()
-    )
 
-    loan_paid = money(
-    db.session.query(db.func.coalesce(db.func.sum(LoanRepayment.amount), 0))
-    .join(Loan)
-    .filter(Loan.member_id == member_id)
-    .scalar()
-    )   
-
-    outstanding_loans = money(loan_balance - loan_paid)
-
-    fine_balance = money(
-        sum(
-            (f.balance for f in FinePenalty.query.filter_by(member_id=member_id).all() if f.status != 'Waived'),
-            Decimal('0.00')
+        savings_interest = money(
+            db.session.query(db.func.coalesce(db.func.sum(SavingsInterest.interest_amount), 0))
+            .filter(SavingsInterest.member_id == member_id)
+            .filter(SavingsInterest.month >= start_month)
+            .filter(SavingsInterest.month <= end_month)
+            .scalar()
         )
-    )
 
-    distributions_received = money(
-        db.session.query(db.func.coalesce(db.func.sum(Distribution.amount), 0))
-        .filter(Distribution.member_id == member_id)
-        .scalar()
-    )
+        gross_savings_value = money(contributed + savings_interest)
 
-    welfare_support_paid = money(
-        db.session.query(db.func.coalesce(db.func.sum(WelfareClaim.amount_approved), 0))
-        .filter(WelfareClaim.member_id == member_id)
-        .filter(WelfareClaim.status == 'Paid')
-        .scalar()
-    )
+        percent = Decimal('0.00') if total_contributions == 0 else (
+            contributed / total_contributions * Decimal('100')
+        )
 
-    member_equity = money(
-        contributed
-        + distributions_received
-        + welfare_support_paid
-        - outstanding_loans
-        - fine_balance
-    )
+        gross_shareout = Decimal('0.00') if total_contributions == 0 else money(
+            contributed / total_contributions * shareout_fund
+        )
 
-    rows.append({
-        'member_no': member_no,
-        'full_name': full_name,
-        'group_name': group_name or '-',
-        'contributed': contributed,
-        'percent': percent.quantize(Decimal('0.01')),
-        'payout': payout,
-        'surplus': surplus,
-        'member_equity': member_equity,
-    })
+        loan_principal_interest = money(
+            sum(
+                (
+                    l.balance
+                    for l in Loan.query.filter_by(member_id=member_id).all()
+                    if l.status != 'Rejected'
+                ),
+                Decimal('0.00')
+            )
+        )
+
+        compounded_loan_interest = money(
+            db.session.query(db.func.coalesce(db.func.sum(LoanInterest.interest_amount), 0))
+            .filter(LoanInterest.member_id == member_id)
+            .filter(LoanInterest.month >= start_month)
+            .filter(LoanInterest.month <= end_month)
+            .scalar()
+        )
+
+        outstanding_loans = money(loan_principal_interest + compounded_loan_interest)
+
+        fine_balance = money(
+            sum(
+                (
+                    f.balance
+                    for f in FinePenalty.query.filter_by(member_id=member_id).all()
+                    if f.status != 'Waived'
+                ),
+                Decimal('0.00')
+            )
+        )
+
+        total_deductions = money(outstanding_loans + fine_balance)
+
+        net_payable = money(gross_shareout - total_deductions)
+        net_status = 'surplus' if net_payable >= 0 else 'loss'
+
+        rows.append({
+            'member_no': member_no,
+            'full_name': full_name,
+            'group_name': group_name or '-',
+            'contributed': contributed,
+            'savings_interest': savings_interest,
+            'gross_savings_value': gross_savings_value,
+            'percent': percent.quantize(Decimal('0.01')),
+            'gross_shareout': gross_shareout,
+            'outstanding_loans': outstanding_loans,
+            'fine_balance': fine_balance,
+            'total_deductions': total_deductions,
+            'net_payable': net_payable,
+            'net_status': net_status,
+        })
 
     if request.path.endswith('.csv'):
-        output = io.StringIO(); writer = csv.writer(output)
-        writer.writerow(['Member No','Full Name','Group','Contribution','Contribution %','Share-Out Payout','Surplus/Dividend','Member Equity'])
+        output = io.StringIO()
+        writer = csv.writer(output)
+
+        writer.writerow([
+            'Member No',
+            'Full Name',
+            'Group',
+            'Contributions',
+            'Savings Interest',
+            'Gross Savings Value',
+            'Contribution %',
+            'Gross Share-Out',
+            'Outstanding Loans',
+            'Outstanding Fines',
+            'Total Deductions',
+            'Net Payable'
+        ])
+
         for r in rows:
-            writer.writerow([r['member_no'], r['full_name'], r['group_name'], r['contributed'], r['percent'], r['payout'], r['surplus'], r['member_equity']])
-        log_audit('EXPORT_SHAREOUT', 'ShareOut', None, f'Share-out CSV exported for {start_month} to {end_month}')
-        return Response(output.getvalue(), mimetype='text/csv', headers={'Content-Disposition': f'attachment; filename=shareout_{start_month}_to_{end_month}.csv'})
-
-    if request.method == 'POST':
-        log_audit('CALCULATE_SHAREOUT', 'ShareOut', None, f'Share-out calculated for {start_month} to {end_month}; fund {kwacha(shareout_fund)}')
-    return render_template('shareout.html', **locals())
-
-@app.route('/shareout.csv')
-@login_required
-@role_required('shareout')
-def shareout_csv():
-    return shareout()
-
-@app.route('/month-end', methods=['GET', 'POST'])
-@login_required
-@role_required('accounting')
-def month_end():
-    selected_month = request.values.get('month') or date.today().strftime('%Y-%m')
-    rate = Decimal('0.15')
-
-    if request.method == 'POST':
-        existing = MonthEndProcess.query.filter_by(month=selected_month).first()
-
-        if existing:
-            flash(f'Month-end interest has already been processed for {selected_month}.', 'error')
-            return redirect(url_for('month_end', month=selected_month))
-
-        savings_total = Decimal('0.00')
-        loan_interest_total = Decimal('0.00')
-
-        members = Member.query.filter_by(status='Active').all()
-
-        for member in members:
-            total_contributions = money(
-                db.session.query(db.func.coalesce(db.func.sum(Contribution.amount), 0))
-                .filter(Contribution.member_id == member.id)
-                .scalar()
-            )
-
-            previous_interest = money(
-                db.session.query(db.func.coalesce(db.func.sum(SavingsInterest.interest_amount), 0))
-                .filter(SavingsInterest.member_id == member.id)
-                .scalar()
-            )
-
-            distributions_total = money(
-                db.session.query(db.func.coalesce(db.func.sum(Distribution.amount), 0))
-                .filter(Distribution.member_id == member.id)
-                .scalar()
-            )
-
-            opening_balance = money(total_contributions + previous_interest - distributions_total)
-
-            if opening_balance > 0:
-                interest_amount = money(opening_balance * rate)
-                closing_balance = money(opening_balance + interest_amount)
-
-                entry = SavingsInterest(
-                    member_id=member.id,
-                    month=selected_month,
-                    opening_balance=opening_balance,
-                    interest_rate=Decimal('15.00'),
-                    interest_amount=interest_amount,
-                    closing_balance=closing_balance
-                )
-
-                db.session.add(entry)
-                savings_total += interest_amount
-
-        loans = Loan.query.filter(Loan.status.in_(['Disbursed', 'Open', 'Applied', 'Approved'])).all()
-
-        for loan in loans:
-            previous_interest = money(
-                db.session.query(db.func.coalesce(db.func.sum(LoanInterest.interest_amount), 0))
-                .filter(LoanInterest.loan_id == loan.id)
-                .scalar()
-            )
-
-            opening_balance = money(loan.balance + previous_interest)
-
-            if opening_balance > 0:
-                interest_amount = money(opening_balance * rate)
-                closing_balance = money(opening_balance + interest_amount)
-
-                entry = LoanInterest(
-                    loan_id=loan.id,
-                    member_id=loan.member_id,
-                    month=selected_month,
-                    opening_balance=opening_balance,
-                    interest_rate=Decimal('15.00'),
-                    interest_amount=interest_amount,
-                    closing_balance=closing_balance
-                )
-
-                db.session.add(entry)
-                loan_interest_total += interest_amount
-
-        user = session.get('user') or {}
-
-        process = MonthEndProcess(
-            month=selected_month,
-            savings_interest_total=savings_total,
-            loan_interest_total=loan_interest_total,
-            processed_by=user.get('full_name') or user.get('username')
-        )
-
-        db.session.add(process)
-        db.session.commit()
+            writer.writerow([
+                r['member_no'],
+                r['full_name'],
+                r['group_name'],
+                r['contributed'],
+                r['savings_interest'],
+                r['gross_savings_value'],
+                r['percent'],
+                r['gross_shareout'],
+                r['outstanding_loans'],
+                r['fine_balance'],
+                r['total_deductions'],
+                r['net_payable']
+            ])
 
         log_audit(
-            'MONTH_END_PROCESS',
-            'MonthEndProcess',
-            process.id,
-            f'Month-end processed for {selected_month}. Savings interest: {kwacha(savings_total)}, Loan interest: {kwacha(loan_interest_total)}'
+            'EXPORT_SHAREOUT',
+            'ShareOut',
+            None,
+            f'Share-out CSV exported for {start_month} to {end_month}'
         )
 
-        flash(f'Month-end processed for {selected_month}.')
-        return redirect(url_for('month_end', month=selected_month))
-
-    page = request.args.get('page', 1, type=int)
-    per_page = 25
-
-    pagination = MonthEndProcess.query.order_by(
-            MonthEndProcess.month.desc()
-        ).paginate(
-            page=page,
-            per_page=per_page,
-            error_out=False
+        return Response(
+            output.getvalue(),
+            mimetype='text/csv',
+            headers={
+                'Content-Disposition': f'attachment; filename=shareout_{start_month}_to_{end_month}.csv'
+            }
         )
 
-    processes = pagination.items
-    return render_template(
-    'month_end.html',
-    selected_month=selected_month,
-    processes=processes,
-    pagination=pagination
-)
+    if request.method == 'POST':
+        log_audit(
+            'CALCULATE_SHAREOUT',
+            'ShareOut',
+            None,
+            f'Share-out calculated for {start_month} to {end_month}; fund {kwacha(shareout_fund)}'
+        )
 
-@app.route('/month-end/<month>')
-@login_required
-@role_required('accounting')
-def month_end_details(month):
-    process = MonthEndProcess.query.filter_by(month=month).first_or_404()
-
-    savings_page = request.args.get('savings_page', 1, type=int)
-    loans_page = request.args.get('loans_page', 1, type=int)
-    per_page = 25
-
-    savings_pagination = SavingsInterest.query.filter_by(
-        month=month
-    ).order_by(
-        SavingsInterest.id.desc()
-    ).paginate(
-        page=savings_page,
-        per_page=per_page,
-        error_out=False
-    )
-
-    loan_pagination = LoanInterest.query.filter_by(
-        month=month
-    ).order_by(
-        LoanInterest.id.desc()
-    ).paginate(
-        page=loans_page,
-        per_page=per_page,
-        error_out=False
-    )
-
-    return render_template(
-        'month_end_details.html',
-        process=process,
-        savings_entries=savings_pagination.items,
-        loan_entries=loan_pagination.items,
-        savings_pagination=savings_pagination,
-        loan_pagination=loan_pagination
-    )
+    return render_template('shareout.html', **locals())
 
 @app.route('/month-end/<month>/reverse', methods=['POST'])
 @login_required
