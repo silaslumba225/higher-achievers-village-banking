@@ -2203,6 +2203,34 @@ def month_end_details(month):
         loan_pagination=loan_pagination
     )
 
+@app.route('/month-end/<month>/reverse', methods=['POST'])
+@login_required
+@role_required('accounting')
+def month_end_reverse(month):
+    reason = request.form.get('reason', '').strip()
+
+    if not reason:
+        flash('Please provide a reason for reversing month-end.', 'error')
+        return redirect(url_for('month_end_details', month=month))
+
+    process = MonthEndProcess.query.filter_by(month=month).first_or_404()
+
+    SavingsInterest.query.filter_by(month=month).delete()
+    LoanInterest.query.filter_by(month=month).delete()
+    db.session.delete(process)
+
+    db.session.commit()
+
+    log_audit(
+        'REVERSE_MONTH_END',
+        'MonthEndProcess',
+        None,
+        f'Month-end reversed for {month}. Reason: {reason}'
+    )
+
+    flash(f'Month-end processing for {month} has been reversed. You can now process it again.')
+    return redirect(url_for('month_end'))
+
 @app.route('/export/<kind>.csv')
 @login_required
 @role_required('exports')

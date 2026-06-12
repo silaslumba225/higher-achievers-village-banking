@@ -7,6 +7,21 @@
 <div class="actions">
   <a class="btn" href="{{ url_for('month_end') }}">← Back to Month-End</a>
 </div>
+<section class="panel">
+  <h2>Reverse Month-End</h2>
+  <p>This will remove the interest entries for this month and allow processing again.</p>
+
+  <form method="post" action="{{ url_for('month_end_reverse', month=process.month) }}">
+    <label>Reason for reversal
+      <input name="reason" required placeholder="Example: Wrong contributions entered before processing">
+    </label>
+
+    <button type="submit" class="primary"
+      onclick="return confirm('Are you sure? This will reverse month-end processing for this month.');">
+      Reverse Month-End
+    </button>
+  </form>
+</section>
 
 <section class="kpi-grid">
   <div class="kpi">
