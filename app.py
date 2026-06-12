@@ -2159,19 +2159,37 @@ def month_end():
 def month_end_details(month):
     process = MonthEndProcess.query.filter_by(month=month).first_or_404()
 
-    savings_entries = SavingsInterest.query.filter_by(
-        month=month
-    ).order_by(SavingsInterest.id.desc()).all()
+    savings_page = request.args.get('savings_page', 1, type=int)
+    loans_page = request.args.get('loans_page', 1, type=int)
+    per_page = 25
 
-    loan_entries = LoanInterest.query.filter_by(
+    savings_pagination = SavingsInterest.query.filter_by(
         month=month
-    ).order_by(LoanInterest.id.desc()).all()
+    ).order_by(
+        SavingsInterest.id.desc()
+    ).paginate(
+        page=savings_page,
+        per_page=per_page,
+        error_out=False
+    )
+
+    loan_pagination = LoanInterest.query.filter_by(
+        month=month
+    ).order_by(
+        LoanInterest.id.desc()
+    ).paginate(
+        page=loans_page,
+        per_page=per_page,
+        error_out=False
+    )
 
     return render_template(
         'month_end_details.html',
         process=process,
-        savings_entries=savings_entries,
-        loan_entries=loan_entries
+        savings_entries=savings_pagination.items,
+        loan_entries=loan_pagination.items,
+        savings_pagination=savings_pagination,
+        loan_pagination=loan_pagination
     )
 
 @app.route('/export/<kind>.csv')
