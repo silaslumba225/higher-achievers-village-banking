@@ -2130,6 +2130,132 @@ def shareout():
 
     return render_template('shareout.html', **locals())
 
+@app.route('/month-end', methods=['GET', 'POST'])
+@login_required
+@role_required('accounting')
+def month_end():
+    selected_month = request.values.get('month') or date.today().strftime('%Y-%m')
+    rate = Decimal('0.15')
+
+    if request.method == 'POST':
+        existing = MonthEndProcess.query.filter_by(month=selected_month).first()
+
+        if existing:
+            flash(f'Month-end interest has already been processed for {selected_month}.', 'error')
+            return redirect(url_for('month_end', month=selected_month))
+
+        savings_total = Decimal('0.00')
+        loan_interest_total = Decimal('0.00')
+
+        members = Member.query.filter_by(status='Active').all()
+
+        for member in members:
+            total_contributions = money(
+                db.session.query(db.func.coalesce(db.func.sum(Contribution.amount), 0))
+                .filter(Contribution.member_id == member.id)
+                .scalar()
+            )
+
+            previous_interest = money(
+                db.session.query(db.func.coalesce(db.func.sum(SavingsInterest.interest_amount), 0))
+                .filter(SavingsInterest.member_id == member.id)
+                .scalar()
+            )
+
+            distributions_total = money(
+                db.session.query(db.func.coalesce(db.func.sum(Distribution.amount), 0))
+                .filter(Distribution.member_id == member.id)
+                .scalar()
+            )
+
+            opening_balance = money(total_contributions + previous_interest - distributions_total)
+
+            if opening_balance > 0:
+                interest_amount = money(opening_balance * rate)
+                closing_balance = money(opening_balance + interest_amount)
+
+                entry = SavingsInterest(
+                    member_id=member.id,
+                    month=selected_month,
+                    opening_balance=opening_balance,
+                    interest_rate=Decimal('15.00'),
+                    interest_amount=interest_amount,
+                    closing_balance=closing_balance
+                )
+
+                db.session.add(entry)
+                savings_total += interest_amount
+
+        loans = Loan.query.filter(Loan.status.in_(['Disbursed', 'Open', 'Applied', 'Approved'])).all()
+
+        for loan in loans:
+            previous_interest = money(
+                db.session.query(db.func.coalesce(db.func.sum(LoanInterest.interest_amount), 0))
+                .filter(LoanInterest.loan_id == loan.id)
+                .scalar()
+            )
+
+            opening_balance = money(loan.balance + previous_interest)
+
+            if opening_balance > 0:
+                interest_amount = money(opening_balance * rate)
+                closing_balance = money(opening_balance + interest_amount)
+
+                entry = LoanInterest(
+                    loan_id=loan.id,
+                    member_id=loan.member_id,
+                    month=selected_month,
+                    opening_balance=opening_balance,
+                    interest_rate=Decimal('15.00'),
+                    interest_amount=interest_amount,
+                    closing_balance=closing_balance
+                )
+
+                db.session.add(entry)
+                loan_interest_total += interest_amount
+
+        user = session.get('user') or {}
+
+        process = MonthEndProcess(
+            month=selected_month,
+            savings_interest_total=savings_total,
+            loan_interest_total=loan_interest_total,
+            processed_by=user.get('full_name') or user.get('username')
+        )
+
+        db.session.add(process)
+        db.session.commit()
+
+        log_audit(
+            'MONTH_END_PROCESS',
+            'MonthEndProcess',
+            process.id,
+            f'Month-end processed for {selected_month}. Savings interest: {kwacha(savings_total)}, Loan interest: {kwacha(loan_interest_total)}'
+        )
+
+        flash(f'Month-end processed for {selected_month}.')
+        return redirect(url_for('month_end', month=selected_month))
+
+    page = request.args.get('page', 1, type=int)
+    per_page = 25
+
+    pagination = MonthEndProcess.query.order_by(
+        MonthEndProcess.month.desc()
+    ).paginate(
+        page=page,
+        per_page=per_page,
+        error_out=False
+    )
+
+    processes = pagination.items
+
+    return render_template(
+        'month_end.html',
+        selected_month=selected_month,
+        processes=processes,
+        pagination=pagination
+    )
+
 @app.route('/month-end/<month>/reverse', methods=['POST'])
 @login_required
 @role_required('accounting')
