@@ -2130,6 +2130,18 @@ def shareout():
 
     return render_template('shareout.html', **locals())
 
+@app.route('/shareout.csv')
+@login_required
+@role_required('shareout')
+def shareout_csv():
+    return shareout()
+
+@app.route('/shareout.csv')
+@login_required
+@role_required('shareout')
+def shareout_csv():
+    return shareout()
+
 @app.route('/month-end', methods=['GET', 'POST'])
 @login_required
 @role_required('accounting')
