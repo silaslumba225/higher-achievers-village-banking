@@ -31,9 +31,10 @@
   <a href="{{ url_for('attendance') }}">✅ Attendance Register</a>
   <a href="{{ url_for('notifications') }}">📱 SMS & WhatsApp</a>
   <a href="{{ url_for('accounting') }}">📚 Accounting</a>
+  <a href="{{ url_for('month_end') }}">Month-End</a>
   <a href="{{ url_for('audit_trail') }}">📝 Audit Trail</a>
   <a href="{{ url_for('backups') }}">💾 Backup & Restore</a>
-  <a href="{{ url_for('month_end') }}">🧮 Month-End Processing</a>
+  
 
   {% if user_can('users') %}<a href="{{ url_for('users') }}">🔐 Users & Roles</a>{% endif %}
 </nav>
