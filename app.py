@@ -2145,13 +2145,24 @@ def month_end():
         flash(f'Month-end processed for {selected_month}.')
         return redirect(url_for('month_end', month=selected_month))
 
-    processes = MonthEndProcess.query.order_by(MonthEndProcess.month.desc()).all()
+    page = request.args.get('page', 1, type=int)
+    per_page = 25
 
+    pagination = MonthEndProcess.query.order_by(
+            MonthEndProcess.month.desc()
+        ).paginate(
+            page=page,
+            per_page=per_page,
+            error_out=False
+        )
+
+    processes = pagination.items
     return render_template(
-        'month_end.html',
-        selected_month=selected_month,
-        processes=processes
-    )
+    'month_end.html',
+    selected_month=selected_month,
+    processes=processes,
+    pagination=pagination
+)
 
 @app.route('/month-end/<month>')
 @login_required
