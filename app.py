@@ -2112,7 +2112,7 @@ def shareout():
             'net_status': net_status,
         })
     page = request.args.get('page', 1, type=int)
-    per_page = 1
+    per_page = 25
 
     total_rows = len(rows)
     total_pages = (total_rows + per_page - 1) // per_page if total_rows else 1
