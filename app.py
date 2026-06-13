@@ -1928,6 +1928,7 @@ def member_statement_pdf(member_id):
         ('FONTNAME', (0,0), (0,-1), 'Helvetica-Bold'),
         ('ALIGN', (1,0), (1,-1), 'RIGHT'),
         ('PADDING', (0,0), (-1,-1), 6),
+        ('TEXTCOLOR', (0, len(summary)-1), (-1, len(summary)-1), equity_color),
     ]))
     story.append(Paragraph('<b>Account Summary</b>', normal))
     story.append(summary_table)
@@ -1943,14 +1944,17 @@ def member_statement_pdf(member_id):
 ]
 
     equity_table = Table(equity_breakdown, colWidths=[95*mm, 65*mm])
+    equity_color = colors.green if member_equity >= 0 else colors.red
+
     equity_table.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#e8f2f6')),
-        ('BACKGROUND', (0,5), (-1,5), colors.HexColor('#f3edf8')),
-        ('GRID', (0,0), (-1,-1), 0.25, colors.HexColor('#cccccc')),
-        ('FONTNAME', (0,0), (0,-1), 'Helvetica-Bold'),
-        ('FONTNAME', (0,5), (-1,5), 'Helvetica-Bold'),
-        ('ALIGN', (1,0), (1,-1), 'RIGHT'),
-        ('PADDING', (0,0), (-1,-1), 6),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e8f2f6')),
+        ('BACKGROUND', (0, 5), (-1, 5), colors.HexColor('#f3edf8')),
+        ('TEXTCOLOR', (0, 5), (-1, 5), equity_color),
+        ('GRID', (0, 0), (-1, -1), 0.25, colors.HexColor('#cccccc')),
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (0, 5), (-1, 5), 'Helvetica-Bold'),
+        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+        ('PADDING', (0, 0), (-1, -1), 6),
     ]))
 
     story.append(Paragraph('<b>Member Equity Breakdown</b>', normal))
