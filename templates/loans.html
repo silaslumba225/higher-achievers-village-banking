@@ -17,4 +17,17 @@
   {% endif %}
 </div>
 {% endif %}
+{% if loan_pagination %}
+<div class="actions">
+  {% if loan_pagination.has_prev %}
+    <a class="btn" href="{{ url_for('month_end_details', month=process.month, savings_page=savings_pagination.page, loans_page=loan_pagination.prev_num) }}">← Previous Loans</a>
+  {% endif %}
+
+  <span class="badge">Loan Page {{ loan_pagination.page }} of {{ loan_pagination.pages }}</span>
+
+  {% if loan_pagination.has_next %}
+    <a class="btn" href="{{ url_for('month_end_details', month=process.month, savings_page=savings_pagination.page, loans_page=loan_pagination.next_num) }}">Next Loans →</a>
+  {% endif %}
+</div>
+{% endif %}
 {% endblock %}

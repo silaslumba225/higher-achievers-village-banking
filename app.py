@@ -1903,7 +1903,7 @@ def member_statement_pdf(member_id):
     ['Gross Savings Value', kwacha(gross_savings_value)],
 
     ['Loan Principal', kwacha(total_principal)],
-    ['Interest Charged', kwacha(total_interest)],
+    ['Intial Loan Charged', kwacha(total_interest)],
     ['Loan Interest Charged', kwacha(total_loan_interest_charged)],
     ['Loan Repayments', kwacha(total_repaid)],
     ['Outstanding Loan Balance', kwacha(total_balance)],
