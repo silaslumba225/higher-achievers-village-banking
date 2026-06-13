@@ -1920,6 +1920,7 @@ def member_statement_pdf(member_id):
 
     [equity_label, kwacha(member_equity)],
 ]
+    equity_color = colors.green if member_equity >= 0 else colors.red
     
     summary_table = Table(summary, colWidths=[95*mm, 65*mm])
     summary_table.setStyle(TableStyle([
@@ -1944,7 +1945,6 @@ def member_statement_pdf(member_id):
 ]
 
     equity_table = Table(equity_breakdown, colWidths=[95*mm, 65*mm])
-    equity_color = colors.green if member_equity >= 0 else colors.red
 
     equity_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e8f2f6')),
