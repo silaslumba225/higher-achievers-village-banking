@@ -2273,9 +2273,7 @@ def month_end_details(month):
     loans_page = request.args.get('loans_page', 1, type=int)
     per_page = 25
 
-    savings_pagination = SavingsInterest.query.filter_by(
-        month=month
-    ).order_by(
+    savings_pagination = SavingsInterest.query.filter_by(month=month).order_by(
         SavingsInterest.id.desc()
     ).paginate(
         page=savings_page,
@@ -2283,9 +2281,7 @@ def month_end_details(month):
         error_out=False
     )
 
-    loan_pagination = LoanInterest.query.filter_by(
-        month=month
-    ).order_by(
+    loan_pagination = LoanInterest.query.filter_by(month=month).order_by(
         LoanInterest.id.desc()
     ).paginate(
         page=loans_page,
