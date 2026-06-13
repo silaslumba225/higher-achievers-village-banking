@@ -1852,32 +1852,74 @@ def member_statement_pdf(member_id):
     total_fine_paid = money(sum((f.total_paid for f in fines), Decimal('0.00')))
     total_fine_balance = money(sum((f.balance for f in fines if f.status != 'Waived'), Decimal('0.00')))
     total_welfare_contrib = money(sum((w.amount for w in welfare_contribs), Decimal('0.00')))
-    total_welfare_paid = money(sum((w.amount_approved for w in welfare_claims if w.status == 'Paid'), Decimal('0.00')))
+    total_welfare_paid = money(
+    sum((w.amount_approved for w in welfare_claims if w.status == 'Paid'),
+    Decimal('0.00'))
+        )
+
+    total_savings_interest = money(
+        db.session.query(
+            db.func.coalesce(db.func.sum(SavingsInterest.interest_amount), 0)
+        )
+        .filter(SavingsInterest.member_id == member.id)
+        .scalar()
+    )
+
+    gross_savings_value = money(
+        total_contrib + total_savings_interest
+    )
+
+    total_loan_interest_charged = money(
+        db.session.query(
+            db.func.coalesce(db.func.sum(LoanInterest.interest_amount), 0)
+        )
+        .filter(LoanInterest.member_id == member.id)
+        .scalar()
+    )
+
+    adjusted_loan_balance = money(
+        total_balance + total_loan_interest_charged
+    )
 
     member_equity = money(
-    total_contrib
-    + total_distrib
-    + total_welfare_paid
-    - total_balance
-    - total_fine_balance
+        gross_savings_value
+        + total_distrib
+        + total_welfare_paid
+        - adjusted_loan_balance
+        - total_fine_balance
+    )
+
+    equity_label = (
+        'Member Equity / Surplus'
+        if member_equity >= 0
+        else 'Member Equity / Deficit'
     )
 
     equity_label = 'Member Equity / Surplus' if member_equity >= 0 else 'Member Equity / Deficit'
 
     summary = [
-        ['Total Contributions', kwacha(total_contrib)],
-        ['Loan Principal', kwacha(total_principal)],
-        ['Interest Charged', kwacha(total_interest)],
-        ['Loan Repayments', kwacha(total_repaid)],
-        ['Outstanding Loan Balance', kwacha(total_balance)],
-        ['Distributions Received', kwacha(total_distrib)],
-        ['Fines Charged', kwacha(total_fines)],
-        ['Fines Paid', kwacha(total_fine_paid)],
-        ['Outstanding Fines', kwacha(total_fine_balance)],
-        ['Welfare Contributions', kwacha(total_welfare_contrib)],
-        ['Welfare Support Paid', kwacha(total_welfare_paid)],
-        [equity_label, kwacha(member_equity)],
-        ]
+    ['Total Contributions', kwacha(total_contrib)],
+    ['Savings Interest Earned', kwacha(total_savings_interest)],
+    ['Gross Savings Value', kwacha(gross_savings_value)],
+
+    ['Loan Principal', kwacha(total_principal)],
+    ['Interest Charged', kwacha(total_interest)],
+    ['Loan Interest Charged', kwacha(total_loan_interest_charged)],
+    ['Loan Repayments', kwacha(total_repaid)],
+    ['Outstanding Loan Balance', kwacha(total_balance)],
+    ['Adjusted Loan Balance', kwacha(adjusted_loan_balance)],
+
+    ['Distributions Received', kwacha(total_distrib)],
+
+    ['Fines Charged', kwacha(total_fines)],
+    ['Fines Paid', kwacha(total_fine_paid)],
+    ['Outstanding Fines', kwacha(total_fine_balance)],
+
+    ['Welfare Contributions', kwacha(total_welfare_contrib)],
+    ['Welfare Support Paid', kwacha(total_welfare_paid)],
+
+    [equity_label, kwacha(member_equity)],
+]
     
     summary_table = Table(summary, colWidths=[95*mm, 65*mm])
     summary_table.setStyle(TableStyle([
