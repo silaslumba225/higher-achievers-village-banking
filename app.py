@@ -1933,21 +1933,45 @@ def member_statement_pdf(member_id):
     story.append(summary_table)
     story.append(Spacer(1, 12))
 
+    equity_breakdown = [
+    ['Gross Savings Value', kwacha(gross_savings_value)],
+    ['+ Distributions Received', kwacha(total_distrib)],
+    ['+ Welfare Support Paid', kwacha(total_welfare_paid)],
+    ['- Adjusted Loan Balance', f'({kwacha(adjusted_loan_balance)})'],
+    ['- Outstanding Fines', f'({kwacha(total_fine_balance)})'],
+    [equity_label, kwacha(member_equity)],
+]
+
+    equity_table = Table(equity_breakdown, colWidths=[95*mm, 65*mm])
+    equity_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#e8f2f6')),
+        ('BACKGROUND', (0,5), (-1,5), colors.HexColor('#f3edf8')),
+        ('GRID', (0,0), (-1,-1), 0.25, colors.HexColor('#cccccc')),
+        ('FONTNAME', (0,0), (0,-1), 'Helvetica-Bold'),
+        ('FONTNAME', (0,5), (-1,5), 'Helvetica-Bold'),
+        ('ALIGN', (1,0), (1,-1), 'RIGHT'),
+        ('PADDING', (0,0), (-1,-1), 6),
+    ]))
+
+    story.append(Paragraph('<b>Member Equity Breakdown</b>', normal))
+    story.append(equity_table)
+    story.append(Spacer(1, 12))
+
     def add_table(title, headers, rows, widths):
-        story.append(Paragraph(f'<b>{title}</b>', normal))
-        data = [headers] + (rows if rows else [['No records found'] + ['']*(len(headers)-1)])
-        table = Table(data, colWidths=widths, repeatRows=1)
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1f4f68')),
-            ('TEXTCOLOR', (0,0), (-1,0), colors.white),
-            ('GRID', (0,0), (-1,-1), 0.25, colors.HexColor('#dddddd')),
-            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0,0), (-1,-1), 8),
-            ('ALIGN', (-1,1), (-1,-1), 'RIGHT'),
-            ('PADDING', (0,0), (-1,-1), 5),
-        ]))
-        story.append(table)
-        story.append(Spacer(1, 10))
+            story.append(Paragraph(f'<b>{title}</b>', normal))
+            data = [headers] + (rows if rows else [['No records found'] + ['']*(len(headers)-1)])
+            table = Table(data, colWidths=widths, repeatRows=1)
+            table.setStyle(TableStyle([
+                ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1f4f68')),
+                ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+                ('GRID', (0,0), (-1,-1), 0.25, colors.HexColor('#dddddd')),
+                ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0,0), (-1,-1), 8),
+                ('ALIGN', (-1,1), (-1,-1), 'RIGHT'),
+                ('PADDING', (0,0), (-1,-1), 5),
+            ]))
+            story.append(table)
+            story.append(Spacer(1, 10))
 
     add_table('Contributions', ['Month','Date','Method','Reference','Amount'], [[c.month, c.paid_on.strftime('%d-%b-%Y'), c.method, c.reference or '-', kwacha(c.amount)] for c in contributions], [24*mm, 28*mm, 30*mm, 48*mm, 30*mm])
     loan_rows = [[l.issued_on.strftime('%d-%b-%Y'), l.due_on.strftime('%d-%b-%Y'), kwacha(l.principal), kwacha(l.interest_amount), kwacha(l.total_due), kwacha(l.total_paid), kwacha(l.balance), l.status] for l in loans]
