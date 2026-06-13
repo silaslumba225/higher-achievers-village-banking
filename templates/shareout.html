@@ -75,9 +75,13 @@
       <tr>
         <td colspan="10">No share-out records found for the selected period.</td>
       </tr>
-      {% endfor %}
-</tbody>
-{% if total_pages > 1 %}
+            {% endfor %}
+    </tbody>
+  </table>
+</div>
+</section>
+
+{% if total_pages and total_pages > 1 %}
 <div class="actions">
   {% if page > 1 %}
     <a class="btn" href="{{ url_for('shareout', page=page-1, start_month=start_month, end_month=end_month, expenses=expenses, other_income=other_income) }}">← Previous</a>
@@ -90,4 +94,5 @@
   {% endif %}
 </div>
 {% endif %}
+
 {% endblock %}
