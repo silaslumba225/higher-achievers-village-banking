@@ -54,7 +54,7 @@
       </tr>
     </thead>
     <tbody>
-      {% for row in rows %}
+      {% for row in paged_rows %}
       <tr>
         <td><strong>{{ row.member_no }}</strong><br>{{ row.full_name }}</td>
         <td>{{ row.contributed|kwacha }}</td>
@@ -77,4 +77,17 @@
       </tr>
       {% endfor %}
 </tbody>
+{% if total_pages > 1 %}
+<div class="actions">
+  {% if page > 1 %}
+    <a class="btn" href="{{ url_for('shareout', page=page-1, start_month=start_month, end_month=end_month, expenses=expenses, other_income=other_income) }}">← Previous</a>
+  {% endif %}
+
+  <span class="badge">Page {{ page }} of {{ total_pages }}</span>
+
+  {% if page < total_pages %}
+    <a class="btn" href="{{ url_for('shareout', page=page+1, start_month=start_month, end_month=end_month, expenses=expenses, other_income=other_income) }}">Next →</a>
+  {% endif %}
+</div>
+{% endif %}
 {% endblock %}
