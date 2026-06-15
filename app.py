@@ -1607,7 +1607,19 @@ def notifications():
     query = NotificationLog.query
     if q:
         query = query.outerjoin(Member).filter((Member.full_name.contains(q)) | (Member.member_no.contains(q)) | (NotificationLog.phone.contains(q)) | (NotificationLog.message.contains(q)) | (NotificationLog.notification_type.contains(q)))
-    logs = query.order_by(NotificationLog.created_at.desc()).limit(200).all()
+        page = request.args.get('page', 1, type=int)
+        per_page = 25
+
+        pagination = query.order_by(
+            NotificationLog.created_at.desc(),
+            NotificationLog.id.desc()
+        ).paginate(
+            page=page,
+            per_page=per_page,
+            error_out=False
+        )
+
+        logs = pagination.items
     templates = {
         'Contribution Reminder': 'Dear {name}, your monthly contribution is due. Please pay through bank transfer, mobile money, or cash. Higher Achievers Village Banking.',
         'Loan Repayment Reminder': 'Dear {name}, this is a reminder to make your loan repayment by the due date. Higher Achievers Village Banking.',
@@ -1616,8 +1628,14 @@ def notifications():
         'Share-Out Notification': 'Dear {name}, your share-out/dividend information is ready. Contact the treasurer for your statement.',
         'General Notice': 'Dear {name}, this is a notice from Higher Achievers Village Banking.'
     }
-    return render_template('notifications.html', members=members, logs=logs, q=q, templates=templates)
-
+    return render_template(
+    'notifications.html',
+    members=members,
+    logs=logs,
+    pagination=pagination,
+    q=q,
+    templates=templates
+    )
 @app.route('/export/notifications.csv')
 @login_required
 @role_required('notifications')

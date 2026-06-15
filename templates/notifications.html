@@ -103,4 +103,17 @@
     </table>
   </div>
 </section>
+{% if pagination %}
+<div class="actions">
+  {% if pagination.has_prev %}
+    <a class="btn" href="{{ url_for('notifications', page=pagination.prev_num, q=q) }}">← Previous</a>
+  {% endif %}
+
+  <span class="badge">Page {{ pagination.page }} of {{ pagination.pages }}</span>
+
+  {% if pagination.has_next %}
+    <a class="btn" href="{{ url_for('notifications', page=pagination.next_num, q=q) }}">Next →</a>
+  {% endif %}
+</div>
+{% endif %}
 {% endblock %}
