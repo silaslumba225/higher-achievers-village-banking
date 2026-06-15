@@ -1203,13 +1203,13 @@ def welfare():
     per_page = 25
 
     pagination = claim_query.order_by(
-    WelfareClaim.requested_on.desc(),
-    WelfareClaim.id.desc()
-).paginate(
-    page=page,
-    per_page=per_page,
-    error_out=False
-)
+        WelfareClaim.requested_on.desc(),
+        WelfareClaim.id.desc()
+    ).paginate(
+        page=page,
+        per_page=per_page,
+        error_out=False
+    )
 
     claims = pagination.items
 
