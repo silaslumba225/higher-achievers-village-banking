@@ -1618,7 +1618,12 @@ def notifications():
         return redirect(url_for('notifications'))
     query = NotificationLog.query
     if q:
-        query = query.outerjoin(Member).filter((Member.full_name.contains(q)) | (Member.member_no.contains(q)) | (NotificationLog.phone.contains(q)) | (NotificationLog.message.contains(q)) | (NotificationLog.notification_type.contains(q)))
+        query = query.outerjoin(Member).filter(
+            (Member.full_name.contains(q)) | 
+            (Member.member_no.contains(q)) | 
+            (NotificationLog.phone.contains(q)) | 
+            (NotificationLog.message.contains(q)) | 
+            (NotificationLog.notification_type.contains(q)))
         page = request.args.get('page', 1, type=int)
         per_page = 25
 
