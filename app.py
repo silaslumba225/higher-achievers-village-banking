@@ -1584,59 +1584,13 @@ def export_accounting_csv():
     log_audit('EXPORT_ACCOUNTING', 'JournalEntry', None, 'General ledger exported to CSV')
     return Response(output.getvalue(), mimetype='text/csv', headers={'Content-Disposition': 'attachment; filename=general_ledger.csv'})
 
-@app.route('/notifications', methods=['GET','POST'])
+@app.route('/notifications', methods=['GET', 'POST'])
 @login_required
 @role_required('notifications')
 def notifications():
     members = Member.query.order_by(Member.member_no).all()
-    q = request.args.get('q','').strip()
-    if request.method == 'POST':
-        notification_type = request.form.get('notification_type') or 'General Notice'
-        channel = request.form.get('channel') or 'SMS'
-        subject = request.form.get('subject') or notification_type
-        message = request.form.get('message') or ''
-        recipient_mode = request.form.get('recipient_mode') or 'selected'
-        selected_ids = request.form.getlist('member_ids')
-        recipients = []
-        if recipient_mode == 'all':
-            recipients = members
-        else:
-            ids = [int(x) for x in selected_ids if x.isdigit()]
-            recipients = Member.query.filter(Member.id.in_(ids)).all() if ids else []
-        if not recipients:
-            flash('Please select at least one recipient or choose all members.', 'error')
-            return redirect(url_for('notifications'))
-        created = 0
-        for m in recipients:
-            personalized = message.replace('{name}', m.full_name).replace('{member_no}', m.member_no).replace('{phone}', m.phone or '')
-            n = NotificationLog(channel=channel, notification_type=notification_type, recipient_type='All Members' if recipient_mode == 'all' else 'Selected Members', member_id=m.id, phone=m.phone, subject=subject, message=personalized, status='Prepared', created_by=(session.get('user') or {}).get('username'))
-            db.session.add(n)
-            created += 1
-        db.session.commit()
-        log_audit('PREPARE_NOTIFICATIONS', 'NotificationLog', None, f'{created} {channel} notification(s) prepared for {notification_type}')
-        flash(f'{created} notification(s) prepared. Provider sending can be connected later.')
-        return redirect(url_for('notifications'))
-    query = NotificationLog.query
-    if q:
-        query = query.outerjoin(Member).filter(
-            (Member.full_name.contains(q)) | 
-            (Member.member_no.contains(q)) | 
-            (NotificationLog.phone.contains(q)) | 
-            (NotificationLog.message.contains(q)) | 
-            (NotificationLog.notification_type.contains(q)))
-        page = request.args.get('page', 1, type=int)
-        per_page = 25
+    q = request.args.get('q', '').strip()
 
-        pagination = query.order_by(
-            NotificationLog.created_at.desc(),
-            NotificationLog.id.desc()
-        ).paginate(
-            page=page,
-            per_page=per_page,
-            error_out=False
-        )
-
-        logs = pagination.items
     templates = {
         'Contribution Reminder': 'Dear {name}, your monthly contribution is due. Please pay through bank transfer, mobile money, or cash. Higher Achievers Village Banking.',
         'Loan Repayment Reminder': 'Dear {name}, this is a reminder to make your loan repayment by the due date. Higher Achievers Village Banking.',
@@ -1645,13 +1599,95 @@ def notifications():
         'Share-Out Notification': 'Dear {name}, your share-out/dividend information is ready. Contact the treasurer for your statement.',
         'General Notice': 'Dear {name}, this is a notice from Higher Achievers Village Banking.'
     }
+
+    if request.method == 'POST':
+        notification_type = request.form.get('notification_type') or 'General Notice'
+        channel = request.form.get('channel') or 'SMS'
+        subject = request.form.get('subject') or notification_type
+        message = request.form.get('message') or ''
+        recipient_mode = request.form.get('recipient_mode') or 'selected'
+        selected_ids = request.form.getlist('member_ids')
+
+        if recipient_mode == 'all':
+            recipients = members
+        else:
+            ids = [int(x) for x in selected_ids if x.isdigit()]
+            recipients = Member.query.filter(Member.id.in_(ids)).all() if ids else []
+
+        if not recipients:
+            flash('Please select at least one recipient or choose all members.', 'error')
+            return redirect(url_for('notifications'))
+
+        created = 0
+        user = session.get('user') or {}
+
+        for m in recipients:
+            personalized = (
+                message
+                .replace('{name}', m.full_name)
+                .replace('{member_no}', m.member_no)
+                .replace('{phone}', m.phone or '')
+            )
+
+            n = NotificationLog(
+                channel=channel,
+                notification_type=notification_type,
+                recipient_type='All Members' if recipient_mode == 'all' else 'Selected Members',
+                member_id=m.id,
+                phone=m.phone,
+                subject=subject,
+                message=personalized,
+                status='Prepared',
+                created_by=user.get('username')
+            )
+
+            db.session.add(n)
+            created += 1
+
+        db.session.commit()
+
+        log_audit(
+            'PREPARE_NOTIFICATIONS',
+            'NotificationLog',
+            None,
+            f'{created} {channel} notification(s) prepared for {notification_type}'
+        )
+
+        flash(f'{created} notification(s) prepared. Provider sending can be connected later.')
+        return redirect(url_for('notifications'))
+
+    query = NotificationLog.query
+
+    if q:
+        query = query.outerjoin(Member).filter(
+            (Member.full_name.contains(q)) |
+            (Member.member_no.contains(q)) |
+            (NotificationLog.phone.contains(q)) |
+            (NotificationLog.message.contains(q)) |
+            (NotificationLog.notification_type.contains(q))
+        )
+
+    page = request.args.get('page', 1, type=int)
+    per_page = 25
+
+    pagination = query.order_by(
+        NotificationLog.created_at.desc(),
+        NotificationLog.id.desc()
+    ).paginate(
+        page=page,
+        per_page=per_page,
+        error_out=False
+    )
+
+    logs = pagination.items
+
     return render_template(
-    'notifications.html',
-    members=members,
-    logs=logs,
-    pagination=pagination,
-    q=q,
-    templates=templates
+        'notifications.html',
+        members=members,
+        logs=logs,
+        pagination=pagination,
+        q=q,
+        templates=templates
     )
 @app.route('/export/notifications.csv')
 @login_required
