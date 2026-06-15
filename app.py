@@ -1545,7 +1545,19 @@ def accounting():
     start_date = parse_date(start) if start else None
     end_date = parse_date(end) if end else None
     accounts = Account.query.order_by(Account.code).all()
-    entries = JournalEntry.query.order_by(JournalEntry.entry_date.desc(), JournalEntry.id.desc()).limit(100).all()
+
+    page = request.args.get('page', 1, type=int)
+    per_page = 25
+
+    pagination = JournalEntry.query.order_by(
+        JournalEntry.entry_date.desc(),
+        JournalEntry.id.desc()
+    ).paginate(
+    page=page,
+    per_page=per_page,
+    error_out=False
+    )
+    entries = pagination.items
     balances = ledger_balances(start_date, end_date)
     total_debits = money(sum((b['debit'] for b in balances), Decimal('0.00')))
     total_credits = money(sum((b['credit'] for b in balances), Decimal('0.00')))
