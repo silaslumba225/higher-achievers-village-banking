@@ -1459,11 +1459,40 @@ def export_attendance_csv():
 @role_required('reports')
 def reports():
     month = request.args.get('month') or date.today().strftime('%Y-%m')
+
     contribs = Contribution.query.filter_by(month=month).all()
     paid_member_ids = {c.member_id for c in contribs}
-    arrears = Member.query.filter(Member.id.notin_(paid_member_ids)).all() if paid_member_ids else Member.query.all()
-    return render_template('reports.html', month=month, contribs=contribs, arrears=arrears, open_loans=Loan.query.filter(Loan.status.in_(['Open', 'Disbursed'])).all())
 
+    arrears_query = Member.query.filter(
+        Member.id.notin_(paid_member_ids)
+    ) if paid_member_ids else Member.query
+
+    page = request.args.get('page', 1, type=int)
+    per_page = 25
+
+    arrears_pagination = arrears_query.order_by(
+        Member.member_no
+    ).paginate(
+        page=page,
+        per_page=per_page,
+        error_out=False
+    )
+
+    open_loans = Loan.query.filter(
+        Loan.status.in_(['Open', 'Disbursed'])
+    ).order_by(
+        Loan.issued_on.desc(),
+        Loan.id.desc()
+    ).all()
+
+    return render_template(
+        'reports.html',
+        month=month,
+        contribs=contribs,
+        arrears=arrears_pagination.items,
+        arrears_pagination=arrears_pagination,
+        open_loans=open_loans
+    )
 
 
 @app.route('/accounting', methods=['GET', 'POST'])
