@@ -2463,7 +2463,15 @@ def shareout_csv():
 @role_required('accounting')
 def month_end():
     selected_month = request.values.get('month') or date.today().strftime('%Y-%m')
-    rate = Decimal('0.15')
+    setting = SystemSetting.query.first()
+
+    if not setting:
+        setting = SystemSetting()
+        db.session.add(setting)
+        db.session.commit()
+
+    rate = Decimal(setting.savings_interest_rate or 15) / Decimal('100')
+    loan_rate = Decimal(setting.loan_interest_rate or 15) / Decimal('100')
 
     if request.method == 'POST':
         existing = MonthEndProcess.query.filter_by(month=selected_month).first()
@@ -2513,7 +2521,7 @@ def month_end():
                     member_id=member.id,
                     month=selected_month,
                     opening_balance=opening_balance,
-                    interest_rate=Decimal('15.00'),
+                    interest_rate=setting.savings_interest_rate,
                     interest_amount=interest_amount,
                     closing_balance=closing_balance
                 ))
@@ -2536,7 +2544,7 @@ def month_end():
             opening_balance = money(loan.balance + previous_interest)
 
             if opening_balance > 0:
-                interest_amount = money(opening_balance * rate)
+                interest_amount = money(opening_balance * loan_rate)
                 closing_balance = money(opening_balance + interest_amount)
 
                 db.session.add(LoanInterest(
@@ -2544,7 +2552,7 @@ def month_end():
                     member_id=loan.member_id,
                     month=selected_month,
                     opening_balance=opening_balance,
-                    interest_rate=Decimal('15.00'),
+                    interest_rate=setting.loan_interest_rate,
                     interest_amount=interest_amount,
                     closing_balance=closing_balance
                 ))
