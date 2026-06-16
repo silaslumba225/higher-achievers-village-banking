@@ -2368,6 +2368,14 @@ def month_end():
             flash(f'Month-end interest has already been processed for {selected_month}.', 'error')
             return redirect(url_for('month_end', month=selected_month))
     old_processes = MonthEndProcess.query.filter_by(month=selected_month).all()
+    SavingsInterest.query.filter_by(month=selected_month).delete()
+    LoanInterest.query.filter_by(month=selected_month).delete()
+
+    old_processes = MonthEndProcess.query.filter_by(month=selected_month).all()
+    for old in old_processes:
+        db.session.delete(old)
+
+    db.session.commit()
 
     for old in old_processes:
         db.session.delete(old)
@@ -2391,6 +2399,7 @@ def month_end():
             previous_interest = money(
                 db.session.query(db.func.coalesce(db.func.sum(SavingsInterest.interest_amount), 0))
                 .filter(SavingsInterest.member_id == member.id)
+                .filter(SavingsInterest.month < selected_month)
                 .scalar()
             )
 
@@ -2427,6 +2436,7 @@ def month_end():
             previous_interest = money(
                 db.session.query(db.func.coalesce(db.func.sum(LoanInterest.interest_amount), 0))
                 .filter(LoanInterest.loan_id == loan.id)
+                .filter(LoanInterest.month < selected_month)
                 .scalar()
             )
 
