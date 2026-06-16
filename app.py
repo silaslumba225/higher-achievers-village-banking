@@ -2484,18 +2484,27 @@ def month_end():
 
     processes = pagination.items
 
-    reversal_logs = AuditLog.query.filter_by(
+    reversal_page = request.args.get('reversal_page', 1, type=int)
+
+    reversal_pagination = AuditLog.query.filter_by(
         action='REVERSE_MONTH_END'
     ).order_by(
         AuditLog.created_at.desc()
-    ).limit(10).all()
+    ).paginate(
+        page=reversal_page,
+        per_page=10,
+        error_out=False
+    )
+
+    reversal_logs = reversal_pagination.items
 
     return render_template(
         'month_end.html',
         selected_month=selected_month,
         processes=processes,
         pagination=pagination,
-        reversal_logs=reversal_logs
+        reversal_logs=reversal_logs,
+        reversal_pagination=reversal_pagination
     )
 
 @app.route('/month-end/<month>')

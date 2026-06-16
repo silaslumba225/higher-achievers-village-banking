@@ -101,4 +101,32 @@
     </tbody>
   </table>
 </section>
+{% if reversal_pagination %}
+<div class="actions">
+
+  {% if reversal_pagination.has_prev %}
+    <a class="btn"
+       href="{{ url_for('month_end',
+                        page=pagination.page,
+                        reversal_page=reversal_pagination.prev_num) }}">
+       ← Previous Reversals
+    </a>
+  {% endif %}
+
+  <span class="badge">
+    Reversal Page {{ reversal_pagination.page }}
+    of {{ reversal_pagination.pages }}
+  </span>
+
+  {% if reversal_pagination.has_next %}
+    <a class="btn"
+       href="{{ url_for('month_end',
+                        page=pagination.page,
+                        reversal_page=reversal_pagination.next_num) }}">
+       Next Reversals →
+    </a>
+  {% endif %}
+
+</div>
+{% endif %}
 {% endblock %}
