@@ -639,13 +639,26 @@ def create_database_backup(prefix='backup', notes=None):
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        user = User.query.filter_by(username=request.form.get('username','').strip(), active=True).first()
-        if user and check_password_hash(user.password_hash, request.form.get('password','')):
-            session['user'] = {'id': user.id, 'username': user.username, 'full_name': user.full_name, 'role': user.role}
+        user = User.query.filter_by(
+            username=request.form.get('username', '').strip(),
+            active=True
+        ).first()
+
+        if user and check_password_hash(user.password_hash, request.form.get('password', '')):
+            session['user'] = {
+                'id': user.id,
+                'username': user.username,
+                'full_name': user.full_name,
+                'role': user.role
+            }
+
             log_audit('LOGIN_SUCCESS', 'User', user.id, f'{user.full_name} logged in')
             flash('Welcome back. You are logged in securely.')
-            return redirect(request.args.get('next') or url_for('dashboard'))
+
+            return redirect(request.args.get('next') or url_for('home'))
+
         flash('Invalid username or password.', 'error')
+
     return render_template('login.html')
 
 @app.route('/logout')
