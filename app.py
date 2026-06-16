@@ -2367,6 +2367,12 @@ def month_end():
         if existing:
             flash(f'Month-end interest has already been processed for {selected_month}.', 'error')
             return redirect(url_for('month_end', month=selected_month))
+    old_processes = MonthEndProcess.query.filter_by(month=selected_month).all()
+
+    for old in old_processes:
+        db.session.delete(old)
+
+        db.session.commit()
 
         savings_total = Decimal('0.00')
         loan_interest_total = Decimal('0.00')
