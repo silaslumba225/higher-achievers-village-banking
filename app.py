@@ -2359,6 +2359,9 @@ def month_end():
     rate = Decimal('0.15')
 
     if request.method == 'POST':
+        flash(f'DEBUG: POST received for {selected_month}', 'success')
+
+    if request.method == 'POST':
         existing = MonthEndProcess.query.filter_by(
             month=selected_month,
             reversed=False
@@ -2475,6 +2478,8 @@ def month_end():
         db.session.add(process)
         db.session.commit()
 
+        flash('DEBUG: Month-End committed successfully', 'success')
+        
         log_audit(
             'MONTH_END_PROCESS',
             'MonthEndProcess',

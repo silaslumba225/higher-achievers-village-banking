@@ -65,7 +65,7 @@
   {% endif %}
 
   <span class="badge">
-    Page {{ pagination.page }} of {{ pagination.pages }}
+    Page {{ pagination.page }} of {{ pagination.pages or 1 }}
   </span>
 
   {% if pagination.has_next %}
