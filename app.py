@@ -2535,18 +2535,27 @@ def month_end_reverse(month):
         flash('Please provide a reason for reversing month-end.', 'error')
         return redirect(url_for('month_end_details', month=month))
 
-    process = MonthEndProcess.query.filter_by(month=month).first_or_404()
+    process = MonthEndProcess.query.filter_by(
+        month=month,
+        reversed=False
+    ).first_or_404()
 
     SavingsInterest.query.filter_by(month=month).delete()
     LoanInterest.query.filter_by(month=month).delete()
-    db.session.delete(process)
+
+    user = session.get('user') or {}
+
+    process.reversed = True
+    process.reversed_by = user.get('full_name') or user.get('username')
+    process.reversed_on = date.today()
+    process.reversal_reason = reason
 
     db.session.commit()
 
     log_audit(
         'REVERSE_MONTH_END',
         'MonthEndProcess',
-        None,
+        process.id,
         f'Month-end reversed for {month}. Reason: {reason}'
     )
 
