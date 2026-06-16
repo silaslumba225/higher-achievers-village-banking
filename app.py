@@ -2474,20 +2474,30 @@ def month_end():
     per_page = 25
 
     pagination = MonthEndProcess.query.order_by(
-        MonthEndProcess.month.desc(),
-        MonthEndProcess.id.desc()
+    MonthEndProcess.month.desc(),
+    MonthEndProcess.id.desc()
     ).paginate(
-        page=page,
-        per_page=per_page,
-        error_out=False
+    page=page,
+    per_page=per_page,
+    error_out=False
     )
+
+    processes = pagination.items
+
+    reversal_logs = AuditLog.query.filter_by(
+        action='REVERSE_MONTH_END'
+    ).order_by(
+        AuditLog.created_at.desc()
+    ).limit(10).all()
 
     return render_template(
         'month_end.html',
         selected_month=selected_month,
-        processes=pagination.items,
-        pagination=pagination
+        processes=processes,
+        pagination=pagination,
+        reversal_logs=reversal_logs
     )
+
 @app.route('/month-end/<month>')
 @login_required
 @role_required('accounting')
