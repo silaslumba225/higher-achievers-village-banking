@@ -82,6 +82,25 @@ def user_can(permission):
     user = session.get('user') or {}
     return permission in ROLE_PERMISSIONS.get(user.get('role'), [])
 
+def ensure_month_end_columns():
+    columns = {
+        'members_processed': 'INTEGER DEFAULT 0',
+        'loans_processed': 'INTEGER DEFAULT 0',
+        'reversed': 'BOOLEAN DEFAULT FALSE',
+        'reversed_by': 'VARCHAR(120)',
+        'reversed_on': 'DATE',
+        'reversal_reason': 'VARCHAR(250)',
+    }
+
+    for column, definition in columns.items():
+        try:
+            db.session.execute(
+                db.text(f'ALTER TABLE month_end_process ADD COLUMN IF NOT EXISTS {column} {definition}')
+            )
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
@@ -371,12 +390,21 @@ class LoanInterest(db.Model):
 
 class MonthEndProcess(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    month = db.Column(db.String(7), unique=True, nullable=False)  # YYYY-MM
+    month = db.Column(db.String(7), nullable=False)  # YYYY-MM
+
     savings_interest_total = db.Column(db.Numeric(12, 2), default=0)
     loan_interest_total = db.Column(db.Numeric(12, 2), default=0)
+
+    members_processed = db.Column(db.Integer, default=0)
+    loans_processed = db.Column(db.Integer, default=0)
+
     processed_by = db.Column(db.String(120))
     processed_on = db.Column(db.Date, default=date.today)
 
+    reversed = db.Column(db.Boolean, default=False)
+    reversed_by = db.Column(db.String(120))
+    reversed_on = db.Column(db.Date)
+    reversal_reason = db.Column(db.String(250))
 
 def money(value):
     return Decimal(value or 0).quantize(Decimal('0.01'))
@@ -2093,6 +2121,7 @@ def member_statement_pdf(member_id):
     filename = f'{member.member_no}_{member.full_name.replace(" ", "_")}_statement.pdf'
     return send_file(buffer, as_attachment=True, download_name=secure_filename(filename), mimetype='application/pdf')
 
+    
 
 
 @app.route('/shareout', methods=['GET', 'POST'])
@@ -2330,7 +2359,10 @@ def month_end():
     rate = Decimal('0.15')
 
     if request.method == 'POST':
-        existing = MonthEndProcess.query.filter_by(month=selected_month).first()
+        existing = MonthEndProcess.query.filter_by(
+            month=selected_month,
+            reversed=False
+        ).first()
 
         if existing:
             flash(f'Month-end interest has already been processed for {selected_month}.', 'error')
@@ -2338,6 +2370,8 @@ def month_end():
 
         savings_total = Decimal('0.00')
         loan_interest_total = Decimal('0.00')
+        members_processed = 0
+        loans_processed = 0
 
         members = Member.query.filter_by(status='Active').all()
 
@@ -2377,8 +2411,11 @@ def month_end():
 
                 db.session.add(entry)
                 savings_total += interest_amount
+                members_processed += 1
 
-        loans = Loan.query.filter(Loan.status.in_(['Disbursed', 'Open', 'Applied', 'Approved'])).all()
+        loans = Loan.query.filter(
+            Loan.status.in_(['Disbursed', 'Open', 'Applied', 'Approved'])
+        ).all()
 
         for loan in loans:
             previous_interest = money(
@@ -2405,6 +2442,7 @@ def month_end():
 
                 db.session.add(entry)
                 loan_interest_total += interest_amount
+                loans_processed += 1
 
         user = session.get('user') or {}
 
@@ -2412,6 +2450,9 @@ def month_end():
             month=selected_month,
             savings_interest_total=savings_total,
             loan_interest_total=loan_interest_total,
+            members_processed=members_processed,
+            loans_processed=loans_processed,
+            reversed=False,
             processed_by=user.get('full_name') or user.get('username')
         )
 
@@ -2422,17 +2463,18 @@ def month_end():
             'MONTH_END_PROCESS',
             'MonthEndProcess',
             process.id,
-            f'Month-end processed for {selected_month}. Savings interest: {kwacha(savings_total)}, Loan interest: {kwacha(loan_interest_total)}'
+            f'Month-end processed for {selected_month}. Savings interest: {kwacha(savings_total)}, Loan interest: {kwacha(loan_interest_total)}, Members processed: {members_processed}, Loans processed: {loans_processed}'
         )
 
-        flash(f'Month-end processed for {selected_month}.')
+        flash(f'Month-end processed for {selected_month}. Members: {members_processed}, Loans: {loans_processed}.')
         return redirect(url_for('month_end', month=selected_month))
 
     page = request.args.get('page', 1, type=int)
     per_page = 25
 
     pagination = MonthEndProcess.query.order_by(
-        MonthEndProcess.month.desc()
+        MonthEndProcess.month.desc(),
+        MonthEndProcess.id.desc()
     ).paginate(
         page=page,
         per_page=per_page,
@@ -2592,6 +2634,7 @@ def init_demo_db():
 def initialize_database():
     with app.app_context():
         db.create_all()
+        ensure_month_end_columns()
         ensure_schema()
         ensure_admin()
 
