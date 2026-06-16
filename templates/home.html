@@ -4,16 +4,57 @@
 
 {% block content %}
 <section class="panel">
-  <h2>Welcome to the Village Banking System</h2>
-  <p>Select a module from the menu to continue.</p>
+  <div class="panel-head">
+    <div>
+      <h2>Welcome to {{ client_name }}</h2>
+      <p>Manage members, savings, loans, welfare, fines, statements, accounting and share-out from one secure system.</p>
+    </div>
+  </div>
+
+  <section class="kpi-grid">
+    <div class="kpi">
+      <span>Members</span>
+      <strong>Register</strong>
+      <em>Manage member records</em>
+    </div>
+
+    <div class="kpi">
+      <span>Finance</span>
+      <strong>Savings & Loans</strong>
+      <em>Track contributions and repayments</em>
+    </div>
+
+    <div class="kpi accent">
+      <span>Reports</span>
+      <strong>Statements</strong>
+      <em>Generate member statements</em>
+    </div>
+  </section>
 
   <div class="actions">
     {% if user_can('dashboard') %}
       <a class="btn primary" href="{{ url_for('dashboard') }}">Open Dashboard</a>
     {% endif %}
-    <a class="btn" href="{{ url_for('members') }}">Members</a>
-    <a class="btn" href="{{ url_for('contributions') }}">Contributions</a>
-    <a class="btn" href="{{ url_for('loans') }}">Loans</a>
+
+    {% if user_can('members') %}
+      <a class="btn" href="{{ url_for('members') }}">Members</a>
+    {% endif %}
+
+    {% if user_can('contributions') %}
+      <a class="btn" href="{{ url_for('contributions') }}">Contributions</a>
+    {% endif %}
+
+    {% if user_can('loans') %}
+      <a class="btn" href="{{ url_for('loans') }}">Loans</a>
+    {% endif %}
+
+    <a class="btn" href="{{ url_for('statements') }}">Statements</a>
+    <a class="btn" href="{{ url_for('shareout') }}">Share-Out</a>
   </div>
+</section>
+
+<section class="panel">
+  <h2>Quick Start</h2>
+  <p>Use the menu on the left to access each module. For financial controls, use Month-End Processing before generating final statements or share-out schedules.</p>
 </section>
 {% endblock %}
