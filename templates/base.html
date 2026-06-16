@@ -23,7 +23,7 @@
   {% if user_can('distributions') %}<a href="{{ url_for('distributions') }}">📤 Distributions</a>{% endif %}
   {% if user_can('meetings') %}<a href="{{ url_for('meetings') }}">📅 Meetings</a>{% endif %}
   {% if user_can('reports') %}<a href="{{ url_for('reports') }}">📈 Reports</a>{% endif %}
-
+  
   <a href="{{ url_for('statements') }}">📄 Member Statements</a>
   <a href="{{ url_for('shareout') }}">🧮 Share-Out Calculator</a>
   <a href="{{ url_for('fines') }}">⚠️ Fines & Penalties</a>
@@ -36,8 +36,9 @@
   {% endif %}
   <a href="{{ url_for('audit_trail') }}">📝 Audit Trail</a>
   <a href="{{ url_for('backups') }}">💾 Backup & Restore</a>
-  
-
+  {% if user_can('settings') %}
+    <a href="{{ url_for('settings') }}">⚙️ Settings</a>
+  {% endif %}
   {% if user_can('users') %}<a href="{{ url_for('users') }}">🔐 Users & Roles</a>{% endif %}
 </nav>
     <div class="sidebar-footer">

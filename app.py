@@ -70,7 +70,28 @@ ACCOUNT_TYPES = ['Asset', 'Liability', 'Equity', 'Income', 'Expense']
 
 ROLES = ['Administrator', 'Chairperson', 'Treasurer', 'Secretary', 'Auditor', 'Data Clerk']
 ROLE_PERMISSIONS = {
-    'Administrator': ['dashboard', 'members', 'contributions', 'loans', 'repayments', 'distributions', 'meetings', 'attendance', 'reports', 'statements', 'shareout', 'fines', 'welfare', 'users', 'audit', 'backups', 'notifications', 'accounting', 'exports'],
+    'Administrator': [
+    'dashboard',
+    'members',
+    'contributions',
+    'loans',
+    'repayments',
+    'distributions',
+    'meetings',
+    'attendance',
+    'reports',
+    'statements',
+    'shareout',
+    'fines',
+    'welfare',
+    'users',
+    'audit',
+    'backups',
+    'notifications',
+    'accounting',
+    'exports',
+    'settings'
+],
     'Chairperson': ['dashboard', 'loans', 'distributions', 'meetings', 'attendance', 'reports', 'statements', 'shareout', 'fines', 'welfare', 'audit', 'notifications', 'accounting', 'exports'],
     'Treasurer': ['dashboard', 'contributions', 'loans', 'repayments', 'distributions', 'reports', 'statements', 'shareout', 'fines', 'welfare', 'notifications', 'accounting', 'exports'],
     'Secretary': ['dashboard', 'members', 'meetings', 'attendance', 'reports', 'statements', 'welfare', 'notifications', 'accounting', 'exports'],
@@ -406,6 +427,17 @@ class MonthEndProcess(db.Model):
     reversed_on = db.Column(db.Date)
     reversal_reason = db.Column(db.String(250))
 
+class SystemSetting(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    organization_name = db.Column(db.String(200), default='Higher Achievers Village Banking')
+    contribution_amount = db.Column(db.Numeric(12, 2), default=100)
+    savings_interest_rate = db.Column(db.Numeric(5, 2), default=15)
+    loan_interest_rate = db.Column(db.Numeric(5, 2), default=15)
+    welfare_contribution_amount = db.Column(db.Numeric(12, 2), default=0)
+
+    updated_on = db.Column(db.DateTime, default=datetime.utcnow)
+
 def money(value):
     return Decimal(value or 0).quantize(Decimal('0.01'))
 
@@ -672,6 +704,38 @@ def logout():
 @login_required
 def home():
     return render_template('home.html')
+
+@app.route('/settings', methods=['GET', 'POST'])
+@login_required
+@role_required('settings')
+def settings():
+    setting = SystemSetting.query.first()
+
+    if not setting:
+        setting = SystemSetting()
+        db.session.add(setting)
+        db.session.commit()
+
+    if request.method == 'POST':
+        setting.organization_name = request.form['organization_name']
+        setting.contribution_amount = money(request.form['contribution_amount'])
+        setting.savings_interest_rate = money(request.form['savings_interest_rate'])
+        setting.loan_interest_rate = money(request.form['loan_interest_rate'])
+        setting.welfare_contribution_amount = money(request.form['welfare_contribution_amount'])
+
+        db.session.commit()
+
+        log_audit(
+            'UPDATE_SETTINGS',
+            'SystemSetting',
+            setting.id,
+            'System settings updated'
+        )
+
+        flash('Settings updated successfully.')
+        return redirect(url_for('settings'))
+
+    return render_template('settings.html', setting=setting)
 
 @app.route('/dashboard')
 @login_required
