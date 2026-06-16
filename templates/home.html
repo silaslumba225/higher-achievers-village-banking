@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block page_title %}Welcome{% endblock %}
+{% block subtitle %}Higher Achievers Village Banking System{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <h2>Welcome to the Village Banking System</h2>
+  <p>Select a module from the menu to continue.</p>
+
+  <div class="actions">
+    {% if user_can('dashboard') %}
+      <a class="btn primary" href="{{ url_for('dashboard') }}">Open Dashboard</a>
+    {% endif %}
+    <a class="btn" href="{{ url_for('members') }}">Members</a>
+    <a class="btn" href="{{ url_for('contributions') }}">Contributions</a>
+    <a class="btn" href="{{ url_for('loans') }}">Loans</a>
+  </div>
+</section>
+{% endblock %}

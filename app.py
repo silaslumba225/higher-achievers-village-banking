@@ -657,6 +657,11 @@ def logout():
 
 @app.route('/')
 @login_required
+def home():
+    return render_template('home.html')
+
+@app.route('/dashboard')
+@login_required
 @role_required('dashboard')
 def dashboard():
     members = Member.query.count()
