@@ -39,4 +39,23 @@
     </tbody></table>
   </div>
 </section>
+<div class="kpi">
+  <span>Savings Interest Earned</span>
+  <strong>{{ savings_interest_total|kwacha }}</strong>
+</div>
+
+<div class="kpi">
+  <span>Loan Interest Charged</span>
+  <strong>{{ loan_interest_charged|kwacha }}</strong>
+</div>
+
+<div class="kpi">
+  <span>Outstanding Fines</span>
+  <strong>{{ outstanding_fines|kwacha }}</strong>
+</div>
+
+<div class="kpi accent">
+  <span>Net Surplus</span>
+  <strong>{{ net_surplus|kwacha }}</strong>
+</div>
 {% endblock %}

@@ -682,6 +682,31 @@ def dashboard():
     recent_contribs = Contribution.query.order_by(Contribution.paid_on.desc()).limit(5).all()
     recent_loans = Loan.query.order_by(Loan.issued_on.desc()).limit(5).all()
     overdue_loans = [l for l in open_loans if l.overdue]
+    savings_interest_total = money(
+    db.session.query(db.func.coalesce(db.func.sum(SavingsInterest.interest_amount), 0)).scalar()
+    )
+
+    loan_interest_charged = money(
+        db.session.query(db.func.coalesce(db.func.sum(LoanInterest.interest_amount), 0)).scalar()
+    )
+
+    outstanding_fines = money(
+        sum(
+            (f.balance for f in FinePenalty.query.all() if f.status != 'Waived'),
+            Decimal('0.00')
+        )
+    )
+
+    net_surplus = money(
+        contribution_total
+        + savings_interest_total
+        + repayment_total
+        + fine_paid_total
+        + welfare_contribution_total
+        - loans_total
+        - distribution_total
+        - welfare_paid_total
+    )
     return render_template('dashboard.html', **locals())
 
 @app.route('/members')
