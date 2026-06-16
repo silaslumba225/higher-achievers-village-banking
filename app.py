@@ -2359,36 +2359,20 @@ def month_end():
     rate = Decimal('0.15')
 
     if request.method == 'POST':
-        flash(f'DEBUG: POST received for {selected_month}', 'success')
-
-    if request.method == 'POST':
-        existing = MonthEndProcess.query.filter_by(
-            month=selected_month,
-            reversed=False
-        ).first()
+        existing = MonthEndProcess.query.filter_by(month=selected_month).first()
 
         if existing:
-            flash(f'Month-end interest has already been processed for {selected_month}.', 'error')
+            flash(f'Month-end interest has already been processed for {selected_month}. Reverse it first if you want to reprocess.', 'error')
             return redirect(url_for('month_end', month=selected_month))
-    old_processes = MonthEndProcess.query.filter_by(month=selected_month).all()
-    SavingsInterest.query.filter_by(month=selected_month).delete()
-    LoanInterest.query.filter_by(month=selected_month).delete()
-
-    old_processes = MonthEndProcess.query.filter_by(month=selected_month).all()
-    for old in old_processes:
-        db.session.delete(old)
-
-    db.session.commit()
-
-    for old in old_processes:
-        db.session.delete(old)
-
-        db.session.commit()
 
         savings_total = Decimal('0.00')
         loan_interest_total = Decimal('0.00')
         members_processed = 0
         loans_processed = 0
+
+        SavingsInterest.query.filter_by(month=selected_month).delete()
+        LoanInterest.query.filter_by(month=selected_month).delete()
+        db.session.commit()
 
         members = Member.query.filter_by(status='Active').all()
 
@@ -2418,16 +2402,15 @@ def month_end():
                 interest_amount = money(opening_balance * rate)
                 closing_balance = money(opening_balance + interest_amount)
 
-                entry = SavingsInterest(
+                db.session.add(SavingsInterest(
                     member_id=member.id,
                     month=selected_month,
                     opening_balance=opening_balance,
                     interest_rate=Decimal('15.00'),
                     interest_amount=interest_amount,
                     closing_balance=closing_balance
-                )
+                ))
 
-                db.session.add(entry)
                 savings_total += interest_amount
                 members_processed += 1
 
@@ -2449,7 +2432,7 @@ def month_end():
                 interest_amount = money(opening_balance * rate)
                 closing_balance = money(opening_balance + interest_amount)
 
-                entry = LoanInterest(
+                db.session.add(LoanInterest(
                     loan_id=loan.id,
                     member_id=loan.member_id,
                     month=selected_month,
@@ -2457,9 +2440,8 @@ def month_end():
                     interest_rate=Decimal('15.00'),
                     interest_amount=interest_amount,
                     closing_balance=closing_balance
-                )
+                ))
 
-                db.session.add(entry)
                 loan_interest_total += interest_amount
                 loans_processed += 1
 
@@ -2478,8 +2460,6 @@ def month_end():
         db.session.add(process)
         db.session.commit()
 
-        flash('DEBUG: Month-End committed successfully', 'success')
-        
         log_audit(
             'MONTH_END_PROCESS',
             'MonthEndProcess',
@@ -2502,15 +2482,12 @@ def month_end():
         error_out=False
     )
 
-    processes = pagination.items
-
     return render_template(
         'month_end.html',
         selected_month=selected_month,
-        processes=processes,
+        processes=pagination.items,
         pagination=pagination
     )
-
 @app.route('/month-end/<month>')
 @login_required
 @role_required('accounting')
