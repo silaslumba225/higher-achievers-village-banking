@@ -3,6 +3,12 @@
 {% block subtitle %}Manage system-wide configuration{% endblock %}
 
 {% block content %}
+<label>Logo URL
+  <input
+    type="text"
+    name="logo_url"
+    value="{{ setting.logo_url or '' }}">
+</label>
 
 <section class="panel">
   <h2>System Settings</h2>

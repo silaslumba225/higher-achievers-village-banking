@@ -437,6 +437,7 @@ class SystemSetting(db.Model):
     welfare_contribution_amount = db.Column(db.Numeric(12, 2), default=0)
 
     updated_on = db.Column(db.DateTime, default=datetime.utcnow)
+    logo_url = db.Column(db.String(500))
 
 def money(value):
     return Decimal(value or 0).quantize(Decimal('0.01'))
@@ -460,6 +461,7 @@ def inject_globals():
         payment_methods=PAYMENT_METHODS,
         interest_percent=int(INTEREST_RATE * 100),
         client_name=client_name,
+        setting=setting,
         producer_name=PRODUCER_NAME,
         current_year=date.today().year,
         current_user=session.get('user'),
@@ -1760,15 +1762,17 @@ def notifications():
     members = Member.query.order_by(Member.member_no).all()
     q = request.args.get('q', '').strip()
 
-    templates = {
-        'Contribution Reminder': 'Dear {name}, your monthly contribution is due. Please pay through bank transfer, mobile money, or cash. Higher Achievers Village Banking.',
-        'Loan Repayment Reminder': 'Dear {name}, this is a reminder to make your loan repayment by the due date. Higher Achievers Village Banking.',
-        'Meeting Reminder': 'Dear {name}, please remember the upcoming Village Banking meeting. Your attendance is important.',
-        'Welfare Notification': 'Dear {name}, your welfare fund update has been recorded. Contact the committee for details.',
-        'Share-Out Notification': 'Dear {name}, your share-out/dividend information is ready. Contact the treasurer for your statement.',
-        'General Notice': 'Dear {name}, this is a notice from Higher Achievers Village Banking.'
-    }
+    setting = SystemSetting.query.first()
+    organization_name = setting.organization_name if setting and setting.organization_name else CLIENT_NAME
 
+    templates = {
+    'Contribution Reminder': f'Dear {{name}}, your monthly contribution is due. Please pay through bank transfer, mobile money, or cash. {organization_name}.',
+    'Loan Repayment Reminder': f'Dear {{name}}, this is a reminder to make your loan repayment by the due date. {organization_name}.',
+    'Meeting Reminder': f'Dear {{name}}, please remember the upcoming Village Banking meeting. Your attendance is important. {organization_name}.',
+    'Welfare Notification': f'Dear {{name}}, your welfare fund update has been recorded. Contact the committee for details. {organization_name}.',
+    'Share-Out Notification': f'Dear {{name}}, your share-out/dividend information is ready. Contact the treasurer for your statement. {organization_name}.',
+    'General Notice': f'Dear {{name}}, this is a notice from {organization_name}.'
+}
     if request.method == 'POST':
         notification_type = request.form.get('notification_type') or 'General Notice'
         channel = request.form.get('channel') or 'SMS'
@@ -2261,7 +2265,12 @@ def member_statement_pdf(member_id):
     add_table('Welfare Claims', ['Date','Category','Requested','Approved','Status','Paid On'], [[w.requested_on.strftime('%d-%b-%Y'), w.category, kwacha(w.amount_requested), kwacha(w.amount_approved), w.status, w.paid_on.strftime('%d-%b-%Y') if w.paid_on else '-'] for w in welfare_claims], [28*mm, 40*mm, 25*mm, 25*mm, 25*mm, 30*mm])
 
     story.append(Spacer(1, 10))
-    story.append(Paragraph('This statement was generated from the Higher Achievers Village Banking System.', small_style))
+    story.append(
+    Paragraph(
+        f'This statement was generated from the {organization_name} system.',
+        small_style
+    )
+        )
     doc.build(story)
     buffer.seek(0)
     log_audit('GENERATE_MEMBER_STATEMENT', 'Member', member.id, f'Member statement PDF generated for {member.member_no} - {member.full_name}')

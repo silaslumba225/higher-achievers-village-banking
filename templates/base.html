@@ -9,7 +9,11 @@
 <body>
   <aside class="sidebar">
     <div class="brand">
-      <img src="{{ url_for('static', filename='higher-achievers-logo.jpeg') }}" alt="Higher Achievers logo">
+      {% if setting and setting.logo_url %}
+        <img src="{{ setting.logo_url }}" alt="{{ client_name }} logo">
+        {% else %}
+        <img src="{{ url_for('static', filename='higher-achievers-logo.jpeg') }}" alt="{{ client_name }} logo">
+        {% endif %}
       <div>
         <strong>{{ client_name }}</strong>
         <span>Village Banking</span>
@@ -36,9 +40,6 @@
   {% endif %}
   <a href="{{ url_for('audit_trail') }}">📝 Audit Trail</a>
   <a href="{{ url_for('backups') }}">💾 Backup & Restore</a>
-  <!-- {% if user_can('settings') %}
-    <a href="{{ url_for('settings') }}">⚙️ Settings</a>
-  {% endif %} -->
   {% if user_can('users') %}<a href="{{ url_for('users') }}">🔐 Users & Roles</a>{% endif %}
   {% if user_can('settings') %}
   <a href="{{ url_for('settings') }}">⚙️ Settings</a>
