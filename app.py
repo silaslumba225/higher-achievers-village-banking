@@ -447,8 +447,42 @@ def kwacha(value):
 
 @app.context_processor
 def inject_globals():
-    return dict(payment_methods=PAYMENT_METHODS, interest_percent=int(INTEREST_RATE * 100), client_name=CLIENT_NAME, producer_name=PRODUCER_NAME, current_year=date.today().year, current_user=session.get('user'), user_can=user_can, roles=ROLES, fine_categories=FINE_CATEGORIES, fine_statuses=FINE_STATUSES, welfare_categories=WELFARE_CATEGORIES, welfare_statuses=WELFARE_STATUSES, attendance_statuses=ATTENDANCE_STATUSES, notification_channels=NOTIFICATION_CHANNELS, notification_types=NOTIFICATION_TYPES, account_types=ACCOUNT_TYPES)
 
+    setting = SystemSetting.query.first()
+
+    client_name = (
+        setting.organization_name
+        if setting and setting.organization_name
+        else CLIENT_NAME
+    )
+
+    return dict(
+        payment_methods=PAYMENT_METHODS,
+        interest_percent=int(INTEREST_RATE * 100),
+        client_name=client_name,
+        producer_name=PRODUCER_NAME,
+        current_year=date.today().year,
+        current_user=session.get('user'),
+        user_can=user_can,
+        roles=ROLES,
+        fine_categories=FINE_CATEGORIES,
+        fine_statuses=FINE_STATUSES,
+        welfare_categories=WELFARE_CATEGORIES,
+        welfare_statuses=WELFARE_STATUSES,
+        attendance_statuses=ATTENDANCE_STATUSES,
+        notification_channels=NOTIFICATION_CHANNELS,
+        notification_types=NOTIFICATION_TYPES,
+        account_types=ACCOUNT_TYPES
+    )
+def get_settings():
+    setting = SystemSetting.query.first()
+
+    if not setting:
+        setting = SystemSetting()
+        db.session.add(setting)
+        db.session.commit()
+
+    return setting
 
 def log_audit(action, entity=None, entity_id=None, details=None):
     user = session.get('user') or {}
