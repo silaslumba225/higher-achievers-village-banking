@@ -439,6 +439,20 @@ class SystemSetting(db.Model):
     updated_on = db.Column(db.DateTime, default=datetime.utcnow)
     logo_url = db.Column(db.String(500))
 
+def ensure_settings_columns():
+    columns = {
+        'logo_url': 'VARCHAR(500)',
+    }
+
+    for column, definition in columns.items():
+        try:
+            db.session.execute(
+                db.text(f'ALTER TABLE system_setting ADD COLUMN IF NOT EXISTS {column} {definition}')
+            )
+            db.session.commit()
+        except Exception:
+            db.session.rollback()    
+
 def money(value):
     return Decimal(value or 0).quantize(Decimal('0.01'))
 
@@ -2816,6 +2830,7 @@ def initialize_database():
     with app.app_context():
         db.create_all()
         ensure_month_end_columns()
+        ensure_settings_columns()
         ensure_schema()
         ensure_admin()
 
