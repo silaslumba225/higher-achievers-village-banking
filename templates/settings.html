@@ -32,6 +32,34 @@
         required>
     </label>
 
+    <label>Organization Address
+    <input
+        type="text"
+        name="organization_address"
+        value="{{ setting.organization_address or '' }}">
+    </label>
+
+    <label>Organization Phone
+    <input
+        type="text"
+        name="organization_phone"
+        value="{{ setting.organization_phone or '' }}">
+    </label>
+
+    <label>Organization Email
+    <input
+        type="email"
+        name="organization_email"
+        value="{{ setting.organization_email or '' }}">
+    </label>
+
+    <label>Registration Number
+    <input
+        type="text"
+        name="registration_number"
+        value="{{ setting.registration_number or '' }}">
+    </label>
+
     <label>Savings Interest Rate (%)
       <input
         type="number"

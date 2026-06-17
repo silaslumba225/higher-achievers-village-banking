@@ -2152,6 +2152,22 @@ def member_statement_pdf(member_id):
     story.append(Paragraph(f'<b>Status:</b> {member.status} &nbsp;&nbsp; <b>Generated:</b> {datetime.now().strftime("%d-%b-%Y %H:%M")}', normal))
     story.append(Spacer(1, 10))
 
+    if registration_number:
+        story.append(Paragraph(f'Registration No: {registration_number}', small_style))
+
+    contact_line = ' | '.join(
+        x for x in [organization_address, organization_phone, organization_email]
+        if x
+    )
+
+    if contact_line:
+        story.append(Paragraph(contact_line, small_style))
+
+    organization_address = setting.organization_address if setting and setting.organization_address else ''
+    organization_phone = setting.organization_phone if setting and setting.organization_phone else ''
+    organization_email = setting.organization_email if setting and setting.organization_email else ''
+    registration_number = setting.registration_number if setting and setting.registration_number else ''
+
     contributions = Contribution.query.filter_by(member_id=member.id).order_by(Contribution.paid_on.desc()).all()
     loans = Loan.query.filter_by(member_id=member.id).order_by(Loan.issued_on.desc()).all()
     distributions = Distribution.query.filter_by(member_id=member.id).order_by(Distribution.paid_on.desc()).all()
