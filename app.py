@@ -437,7 +437,10 @@ class SystemSetting(db.Model):
     welfare_contribution_amount = db.Column(db.Numeric(12, 2), default=0)
 
     updated_on = db.Column(db.DateTime, default=datetime.utcnow)
-    logo_url = db.Column(db.String(500))
+    organization_address = db.Column(db.String(250))
+    organization_phone = db.Column(db.String(50))
+    organization_email = db.Column(db.String(120))
+    registration_number = db.Column(db.String(100))
 
 def ensure_settings_columns():
     columns = {
@@ -451,7 +454,23 @@ def ensure_settings_columns():
             )
             db.session.commit()
         except Exception:
-            db.session.rollback()    
+            db.session.rollback() 
+def ensure_settings_columns():
+    columns = {
+        'organization_address': 'VARCHAR(250)',
+        'organization_phone': 'VARCHAR(50)',
+        'organization_email': 'VARCHAR(120)',
+        'registration_number': 'VARCHAR(100)',
+    }
+
+    for column, definition in columns.items():
+        try:
+            db.session.execute(
+                db.text(f'ALTER TABLE system_setting ADD COLUMN IF NOT EXISTS {column} {definition}')
+            )
+            db.session.commit()
+        except Exception:
+            db.session.rollback()   
 
 def money(value):
     return Decimal(value or 0).quantize(Decimal('0.01'))
@@ -772,6 +791,10 @@ def settings():
         setting.savings_interest_rate = money(request.form['savings_interest_rate'])
         setting.loan_interest_rate = money(request.form['loan_interest_rate'])
         setting.welfare_contribution_amount = money(request.form['welfare_contribution_amount'])
+        setting.organization_address = request.form.get('organization_address')
+        setting.organization_phone = request.form.get('organization_phone')
+        setting.organization_email = request.form.get('organization_email')
+        setting.registration_number = request.form.get('registration_number')
 
         db.session.commit()
 

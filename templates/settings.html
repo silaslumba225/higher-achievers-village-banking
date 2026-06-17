@@ -3,12 +3,12 @@
 {% block subtitle %}Manage system-wide configuration{% endblock %}
 
 {% block content %}
-<label>Logo URL
+<!-- <label>Logo URL
   <input
     type="text"
     name="logo_url"
     value="{{ setting.logo_url or '' }}">
-</label>
+</label> -->
 
 <section class="panel">
   <h2>System Settings</h2>
@@ -57,6 +57,21 @@
         name="welfare_contribution_amount"
         value="{{ setting.welfare_contribution_amount }}"
         required>
+    </label>
+    <label>Organization Address
+        <input type="text" name="organization_address" value="{{ setting.organization_address or '' }}">
+    </label>
+
+    <label>Organization Phone
+        <input type="text" name="organization_phone" value="{{ setting.organization_phone or '' }}">
+    </label>
+
+    <label>Organization Email
+        <input type="email" name="organization_email" value="{{ setting.organization_email or '' }}">
+    </label>
+
+    <label>Registration Number
+        <input type="text" name="registration_number" value="{{ setting.registration_number or '' }}">
     </label>
 
     <button type="submit" class="primary">
