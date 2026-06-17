@@ -2334,6 +2334,9 @@ def member_statement_pdf(member_id):
 @login_required
 @role_required('shareout')
 def shareout():
+    setting = SystemSetting.query.first()
+    organization_name = setting.organization_name if setting and setting.organization_name else CLIENT_NAME
+
     today_month = date.today().strftime('%Y-%m')
     start_month = request.values.get('start_month') or f'{date.today().year}-01'
     end_month = request.values.get('end_month') or today_month
@@ -2493,6 +2496,10 @@ def shareout():
     if request.path.endswith('.csv'):
         output = io.StringIO()
         writer = csv.writer(output)
+
+        writer.writerow([organization_name])
+        writer.writerow([f'Share-Out Report: {start_month} to {end_month}'])
+        writer.writerow([])
 
         writer.writerow([
             'Member No',
