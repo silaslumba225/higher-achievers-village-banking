@@ -2140,35 +2140,12 @@ def member_statement_pdf(member_id):
 
     setting = SystemSetting.query.first()
 
-    organization_name = (
-        setting.organization_name
-        if setting and setting.organization_name
-        else CLIENT_NAME
-    )
+    organization_name = setting.organization_name if setting and setting.organization_name else CLIENT_NAME
+    organization_address = setting.organization_address if setting and setting.organization_address else ''
+    organization_phone = setting.organization_phone if setting and setting.organization_phone else ''
+    organization_email = setting.organization_email if setting and setting.organization_email else ''
+    registration_number = setting.registration_number if setting and setting.registration_number else ''
 
-    organization_address = (
-        setting.organization_address
-        if setting and setting.organization_address
-        else ''
-    )
-
-    organization_phone = (
-        setting.organization_phone
-        if setting and setting.organization_phone
-        else ''
-    )
-
-    organization_email = (
-        setting.organization_email
-        if setting and setting.organization_email
-        else ''
-    )
-
-    registration_number = (
-        setting.registration_number
-        if setting and setting.registration_number
-        else ''
-    )
     story.append(Paragraph(organization_name, title_style))
     story.append(Paragraph(f'Member Statement | Produced by {PRODUCER_NAME}', small_style))
     story.append(Spacer(1, 8))
@@ -2187,11 +2164,6 @@ def member_statement_pdf(member_id):
 
     if contact_line:
         story.append(Paragraph(contact_line, small_style))
-
-    organization_address = setting.organization_address if setting and setting.organization_address else ''
-    organization_phone = setting.organization_phone if setting and setting.organization_phone else ''
-    organization_email = setting.organization_email if setting and setting.organization_email else ''
-    registration_number = setting.registration_number if setting and setting.registration_number else ''
 
     contributions = Contribution.query.filter_by(member_id=member.id).order_by(Contribution.paid_on.desc()).all()
     loans = Loan.query.filter_by(member_id=member.id).order_by(Loan.issued_on.desc()).all()
