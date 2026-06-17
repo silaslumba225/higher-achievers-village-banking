@@ -2147,12 +2147,6 @@ def member_statement_pdf(member_id):
     registration_number = setting.registration_number if setting and setting.registration_number else ''
 
     story.append(Paragraph(organization_name, title_style))
-    story.append(Paragraph(f'Member Statement | Produced by {PRODUCER_NAME}', small_style))
-    story.append(Spacer(1, 8))
-    story.append(Paragraph(f'<b>Member:</b> {member.full_name} &nbsp;&nbsp; <b>Member No:</b> {member.member_no}', normal))
-    story.append(Paragraph(f'<b>Phone:</b> {member.phone or "-"} &nbsp;&nbsp; <b>NRC/ID:</b> {member.national_id or "-"} &nbsp;&nbsp; <b>Group:</b> {member.group_name or "-"}', normal))
-    story.append(Paragraph(f'<b>Status:</b> {member.status} &nbsp;&nbsp; <b>Generated:</b> {datetime.now().strftime("%d-%b-%Y %H:%M")}', normal))
-    story.append(Spacer(1, 10))
 
     if registration_number:
         story.append(Paragraph(f'Registration No: {registration_number}', small_style))
@@ -2164,6 +2158,15 @@ def member_statement_pdf(member_id):
 
     if contact_line:
         story.append(Paragraph(contact_line, small_style))
+
+    story.append(Paragraph(f'Member Statement | Produced by {PRODUCER_NAME}', small_style))
+    story.append(Spacer(1, 8))
+    story.append(Paragraph(f'<b>Member:</b> {member.full_name} &nbsp;&nbsp; <b>Member No:</b> {member.member_no}', normal))
+    story.append(Paragraph(f'<b>Phone:</b> {member.phone or "-"} &nbsp;&nbsp; <b>NRC/ID:</b> {member.national_id or "-"} &nbsp;&nbsp; <b>Group:</b> {member.group_name or "-"}', normal))
+    story.append(Paragraph(f'<b>Status:</b> {member.status} &nbsp;&nbsp; <b>Generated:</b> {datetime.now().strftime("%d-%b-%Y %H:%M")}', normal))
+    story.append(Spacer(1, 10))
+
+    
 
     contributions = Contribution.query.filter_by(member_id=member.id).order_by(Contribution.paid_on.desc()).all()
     loans = Loan.query.filter_by(member_id=member.id).order_by(Loan.issued_on.desc()).all()
