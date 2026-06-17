@@ -36,10 +36,13 @@
   {% endif %}
   <a href="{{ url_for('audit_trail') }}">📝 Audit Trail</a>
   <a href="{{ url_for('backups') }}">💾 Backup & Restore</a>
-  {% if user_can('settings') %}
+  <!-- {% if user_can('settings') %}
     <a href="{{ url_for('settings') }}">⚙️ Settings</a>
-  {% endif %}
+  {% endif %} -->
   {% if user_can('users') %}<a href="{{ url_for('users') }}">🔐 Users & Roles</a>{% endif %}
+  {% if user_can('settings') %}
+  <a href="{{ url_for('settings') }}">⚙️ Settings</a>
+  {% endif %}
 </nav>
     <div class="sidebar-footer">
       <small>Produced by</small>

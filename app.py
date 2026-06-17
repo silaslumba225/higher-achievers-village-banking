@@ -2097,7 +2097,13 @@ def member_statement_pdf(member_id):
     normal = styles['Normal']
     story = []
 
-    story.append(Paragraph(f'{CLIENT_NAME} Village Banking', title_style))
+    setting = SystemSetting.query.first()
+
+    organization_name = (
+        setting.organization_name
+        if setting and setting.organization_name
+        else CLIENT_NAME)
+    story.append(Paragraph(organization_name, title_style))
     story.append(Paragraph(f'Member Statement | Produced by {PRODUCER_NAME}', small_style))
     story.append(Spacer(1, 8))
     story.append(Paragraph(f'<b>Member:</b> {member.full_name} &nbsp;&nbsp; <b>Member No:</b> {member.member_no}', normal))
