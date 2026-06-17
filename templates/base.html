@@ -9,15 +9,13 @@
 <body>
   <aside class="sidebar">
     <div class="brand">
-      {% if setting and setting.logo_url %}
-        <img src="{{ setting.logo_url }}" alt="{{ client_name }} logo">
-        {% else %}
-        <img src="{{ url_for('static', filename='higher-achievers-logo.jpeg') }}" alt="{{ client_name }} logo">
-        {% endif %}
-      <div>
+      <div class="brand">
+    <img src="{{ url_for('static', filename='higher-achievers-logo.jpeg') }}" alt="{{ client_name }} logo">
+    <div>
         <strong>{{ client_name }}</strong>
         <span>Village Banking</span>
-      </div>
+    </div>
+</div>
     </div>
   <nav>
   {% if user_can('dashboard') %}<a href="{{ url_for('dashboard') }}">▣ Dashboard</a>{% endif %}

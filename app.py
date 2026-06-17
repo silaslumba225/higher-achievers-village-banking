@@ -2557,6 +2557,19 @@ def shareout():
 
     return render_template('shareout.html', **locals())
 
+@app.route('/shareout.pdf')
+@login_required
+@role_required('shareout')
+def shareout_pdf():
+    with app.test_request_context(
+        '/shareout',
+        method='GET',
+        query_string=request.args
+    ):
+        response = shareout()
+
+    # We will build this properly next.
+
 @app.route('/shareout.csv')
 @login_required
 @role_required('shareout')
