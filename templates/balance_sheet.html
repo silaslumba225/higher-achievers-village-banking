@@ -10,13 +10,17 @@
 <h2>Balance Sheet</h2>
 
 <table>
-
   <tbody>
 
     <tr>
-      <th colspan="2">Assets</th>
+      <th colspan="2">ASSETS</th>
     </tr>
-    
+
+    <tr>
+      <td>Cash / Bank Balance</td>
+      <td>{{ cash_balance|kwacha }}</td>
+    </tr>
+
     <tr>
       <td>Loans Outstanding</td>
       <td>{{ loans_outstanding|kwacha }}</td>
@@ -26,22 +30,16 @@
       <td>Fines Outstanding</td>
       <td>{{ fines_outstanding|kwacha }}</td>
     </tr>
-    <tr>
-        <td>Cash / Bank Balance</td>
-        <td>{{ cash_balance|kwacha }}</td>
-    </tr>
 
     <tr>
       <th>Total Assets</th>
       <th>{{ total_assets|kwacha }}</th>
     </tr>
 
-    <tr>
-      <td colspan="2">&nbsp;</td>
-    </tr>
+    <tr><td colspan="2">&nbsp;</td></tr>
 
     <tr>
-      <th colspan="2">Liabilities & Equity</th>
+      <th colspan="2">LIABILITIES & EQUITY</th>
     </tr>
 
     <tr>
@@ -61,13 +59,11 @@
 
     <tr>
       <th>Total Liabilities & Equity</th>
-      <th>{{ total_liabilities_equity|kwacha }}</th>
+      <th>{{ liabilities_equity|kwacha }}</th>
     </tr>
 
   </tbody>
-
 </table>
-
 </section>
 
 {% endblock %}

@@ -1882,7 +1882,7 @@ def balance_sheet():
         ).scalar()
     )
 
-    welfare_fund = money(
+    welfare_contributions = money(
         db.session.query(
             db.func.coalesce(db.func.sum(WelfareContribution.amount), 0)
         ).scalar()
@@ -1896,56 +1896,59 @@ def balance_sheet():
         .scalar()
     )
 
-    welfare_balance = money(welfare_fund - welfare_paid)
+    welfare_balance = money(
+        welfare_contributions - welfare_paid
+    )
 
     loans_outstanding = money(
-    sum(
-        (l.balance for l in Loan.query.all()),
-        Decimal('0.00')
+        sum(
+            (loan.balance for loan in Loan.query.all()),
+            Decimal('0.00')
         )
     )
 
-    cash_balance = money(
-        total_savings
-        + savings_interest
-        + welfare_balance
-        + fines_outstanding
-        - loans_outstanding
-    )
-
     fines_outstanding = money(
-    sum(
-        (f.balance for f in FinePenalty.query.all() if f.status != 'Waived'),
-        Decimal('0.00')
-    )
-    )
-
-    total_assets = money(
-        cash_balance +
-        loans_outstanding +
-        fines_outstanding
+        sum(
+            (
+                fine.balance
+                for fine in FinePenalty.query.all()
+                if fine.status != 'Waived'
+            ),
+            Decimal('0.00')
+        )
     )
 
     member_equity = money(
-        total_savings +
-        savings_interest
+        total_savings + savings_interest
     )
 
-    total_liabilities_equity = money(
-        member_equity +
-        welfare_balance
+    liabilities_equity = money(
+        member_equity + welfare_balance
+    )
+
+    cash_balance = money(
+        liabilities_equity
+        - loans_outstanding
+        - fines_outstanding
+    )
+
+    total_assets = money(
+        cash_balance
+        + loans_outstanding
+        + fines_outstanding
     )
 
     return render_template(
         'balance_sheet.html',
-        total_savings=total_savings,
-        savings_interest=savings_interest,
-        welfare_balance=welfare_balance,
+        cash_balance=cash_balance,
         loans_outstanding=loans_outstanding,
         fines_outstanding=fines_outstanding,
         total_assets=total_assets,
+        total_savings=total_savings,
+        savings_interest=savings_interest,
+        welfare_balance=welfare_balance,
         member_equity=member_equity,
-        total_liabilities_equity=total_liabilities_equity
+        liabilities_equity=liabilities_equity
     )
 
 @app.route('/export/accounting.csv')
