@@ -1780,6 +1780,30 @@ def accounting():
     log_audit('VIEW_ACCOUNTING', 'Accounting', None, 'General Ledger and Accounting viewed')
     return render_template('accounting.html', **locals())
 
+@app.route('/accounting/trial-balance')
+@login_required
+@role_required('accounting')
+def trial_balance():
+    start = request.args.get('start')
+    end = request.args.get('end')
+
+    start_date = parse_date(start) if start else None
+    end_date = parse_date(end) if end else None
+
+    balances = ledger_balances(start_date, end_date)
+
+    total_debits = money(sum((b['debit'] for b in balances), Decimal('0.00')))
+    total_credits = money(sum((b['credit'] for b in balances), Decimal('0.00')))
+
+    return render_template(
+        'trial_balance.html',
+        balances=balances,
+        total_debits=total_debits,
+        total_credits=total_credits,
+        start=start,
+        end=end
+    )
+
 @app.route('/export/accounting.csv')
 @login_required
 @role_required('accounting')

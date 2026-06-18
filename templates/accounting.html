@@ -10,6 +10,7 @@
       <p>Manage accounts and review financial position.</p>
     </div>
     <a class="btn" href="{{ url_for('export_accounting_csv') }}">Export CSV</a>
+    <a class="btn" href="{{ url_for('trial_balance', start=start, end=end) }}">Trial Balance</a>
   </div>
 
   <form method="post" class="actions">
