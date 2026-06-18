@@ -1865,6 +1865,78 @@ def income_statement():
         net_surplus=net_surplus
     )
 
+@app.route('/accounting/balance-sheet')
+@login_required
+@role_required('accounting')
+def balance_sheet():
+
+    total_savings = money(
+        db.session.query(
+            db.func.coalesce(db.func.sum(Contribution.amount), 0)
+        ).scalar()
+    )
+
+    savings_interest = money(
+        db.session.query(
+            db.func.coalesce(db.func.sum(SavingsInterest.interest_amount), 0)
+        ).scalar()
+    )
+
+    welfare_fund = money(
+        db.session.query(
+            db.func.coalesce(db.func.sum(WelfareContribution.amount), 0)
+        ).scalar()
+    )
+
+    welfare_paid = money(
+        db.session.query(
+            db.func.coalesce(db.func.sum(WelfareClaim.amount_approved), 0)
+        )
+        .filter(WelfareClaim.status == 'Paid')
+        .scalar()
+    )
+
+    welfare_balance = money(welfare_fund - welfare_paid)
+
+    loans_outstanding = money(
+        db.session.query(
+            db.func.coalesce(db.func.sum(Loan.balance), 0)
+        ).scalar()
+    )
+
+    fines_outstanding = money(
+        db.session.query(
+            db.func.coalesce(db.func.sum(FinePenalty.balance), 0)
+        ).scalar()
+    )
+
+    total_assets = money(
+        loans_outstanding +
+        fines_outstanding
+    )
+
+    member_equity = money(
+        total_savings +
+        savings_interest
+    )
+
+    total_liabilities_equity = money(
+        member_equity +
+        welfare_balance
+    )
+
+    return render_template(
+        'balance_sheet.html',
+        total_savings=total_savings,
+        savings_interest=savings_interest,
+        welfare_balance=welfare_balance,
+        loans_outstanding=loans_outstanding,
+        fines_outstanding=fines_outstanding,
+        total_assets=total_assets,
+        member_equity=member_equity,
+        total_liabilities_equity=total_liabilities_equity
+    )
+
 @app.route('/export/accounting.csv')
 @login_required
 @role_required('accounting')

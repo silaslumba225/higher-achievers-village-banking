@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Balance Sheet{% endblock %}
+{% block subtitle %}Assets, liabilities and member equity{% endblock %}
+
+{% block content %}
+
+<section class="panel">
+
+<h2>Balance Sheet</h2>
+
+<table>
+
+  <tbody>
+
+    <tr>
+      <th colspan="2">Assets</th>
+    </tr>
+
+    <tr>
+      <td>Loans Outstanding</td>
+      <td>{{ loans_outstanding|kwacha }}</td>
+    </tr>
+
+    <tr>
+      <td>Fines Outstanding</td>
+      <td>{{ fines_outstanding|kwacha }}</td>
+    </tr>
+
+    <tr>
+      <th>Total Assets</th>
+      <th>{{ total_assets|kwacha }}</th>
+    </tr>
+
+    <tr>
+      <td colspan="2">&nbsp;</td>
+    </tr>
+
+    <tr>
+      <th colspan="2">Liabilities & Equity</th>
+    </tr>
+
+    <tr>
+      <td>Member Savings</td>
+      <td>{{ total_savings|kwacha }}</td>
+    </tr>
+
+    <tr>
+      <td>Savings Interest</td>
+      <td>{{ savings_interest|kwacha }}</td>
+    </tr>
+
+    <tr>
+      <td>Welfare Fund Balance</td>
+      <td>{{ welfare_balance|kwacha }}</td>
+    </tr>
+
+    <tr>
+      <th>Total Liabilities & Equity</th>
+      <th>{{ total_liabilities_equity|kwacha }}</th>
+    </tr>
+
+  </tbody>
+
+</table>
+
+</section>
+
+{% endblock %}
