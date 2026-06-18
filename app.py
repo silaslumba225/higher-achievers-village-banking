@@ -2113,7 +2113,6 @@ def backup_export_json():
                 'member_id': f.member_id,
                 'category': f.category,
                 'amount': str(f.amount),
-                'paid': str(f.paid),
                 'balance': str(f.balance),
                 'status': f.status,
                 'date_issued': str(f.date_issued),
