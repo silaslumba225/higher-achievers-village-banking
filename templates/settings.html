@@ -119,6 +119,9 @@
       <input type="checkbox" name="whatsapp_enabled" {% if setting.whatsapp_enabled %}checked{% endif %}>
       Enable WhatsApp Messaging
     </label>
+    <label>Africa's Talking Username
+      <input type="text" name="sms_username" value="{{ setting.sms_username or '' }}">
+    </label>
 
     <button type="submit" class="primary">
       Save Settings

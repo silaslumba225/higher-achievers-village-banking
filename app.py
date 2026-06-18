@@ -447,6 +447,7 @@ class SystemSetting(db.Model):
     sms_api_key = db.Column(db.String(500))
     sms_sender_id = db.Column(db.String(100))
     whatsapp_enabled = db.Column(db.Boolean, default=False)
+    sms_username = db.Column(db.String(100))
 
 def ensure_settings_columns():
     columns = {
@@ -460,6 +461,7 @@ def ensure_settings_columns():
         'sms_api_key': 'VARCHAR(500)',
         'sms_sender_id': 'VARCHAR(100)',
         'whatsapp_enabled': 'BOOLEAN DEFAULT FALSE',
+        'sms_username': 'VARCHAR(100)',
     }
 
     for column, definition in columns.items():
@@ -809,6 +811,7 @@ def settings():
         setting.sms_api_key = request.form.get('sms_api_key')
         setting.sms_sender_id = request.form.get('sms_sender_id')
         setting.whatsapp_enabled = 'whatsapp_enabled' in request.form
+        setting.sms_username = request.form.get('sms_username')
         db.session.commit()
 
         log_audit(
