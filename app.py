@@ -1902,7 +1902,15 @@ def balance_sheet():
     sum(
         (l.balance for l in Loan.query.all()),
         Decimal('0.00')
+        )
     )
+
+    cash_balance = money(
+        total_savings
+        + savings_interest
+        + welfare_balance
+        + fines_outstanding
+        - loans_outstanding
     )
 
     fines_outstanding = money(
@@ -1913,6 +1921,7 @@ def balance_sheet():
     )
 
     total_assets = money(
+        cash_balance +
         loans_outstanding +
         fines_outstanding
     )
