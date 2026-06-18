@@ -15,6 +15,9 @@
     <button type="submit" class="primary">Create Backup</button>
   </form>
 </section>
+<a class="btn primary" href="{{ url_for('backup_export_json') }}">
+  Download Cloud JSON Backup
+</a>
 
 <section class="panel">
   <h2>Backup History</h2>

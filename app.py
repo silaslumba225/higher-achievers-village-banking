@@ -10,6 +10,7 @@ import csv
 import io
 import os
 import shutil
+import json
 from pathlib import Path
 from werkzeug.utils import secure_filename
 from reportlab.lib import colors
@@ -2029,6 +2030,184 @@ def backup_restore():
     except Exception as exc:
         flash(f'Restore failed: {exc}', 'error')
     return redirect(url_for('backups'))
+
+@app.route('/backups/export-json')
+@login_required
+@role_required('backups')
+def backup_export_json():
+    setting = SystemSetting.query.first()
+    organization_name = setting.organization_name if setting and setting.organization_name else CLIENT_NAME
+
+    data = {
+        'created_at': datetime.utcnow().isoformat(),
+        'organization': organization_name,
+
+        'members': [
+            {
+                'id': m.id,
+                'member_no': m.member_no,
+                'full_name': m.full_name,
+                'phone': m.phone,
+                'national_id': m.national_id,
+                'group_name': m.group_name,
+                'status': m.status,
+            }
+            for m in Member.query.order_by(Member.id).all()
+        ],
+
+        'contributions': [
+            {
+                'id': c.id,
+                'member_id': c.member_id,
+                'month': c.month,
+                'amount': str(c.amount),
+                'method': c.method,
+                'reference': c.reference,
+                'paid_on': str(c.paid_on),
+            }
+            for c in Contribution.query.order_by(Contribution.id).all()
+        ],
+
+        'loans': [
+            {
+                'id': l.id,
+                'member_id': l.member_id,
+                'principal': str(l.principal),
+                'interest_amount': str(l.interest_amount),
+                'total_due': str(l.total_due),
+                'balance': str(l.balance),
+                'status': l.status,
+                'issued_on': str(l.issued_on),
+                'due_on': str(l.due_on),
+            }
+            for l in Loan.query.order_by(Loan.id).all()
+        ],
+
+        'repayments': [
+            {
+                'id': r.id,
+                'loan_id': r.loan_id,
+                'amount': str(r.amount),
+                'method': r.method,
+                'reference': r.reference,
+                'paid_on': str(r.paid_on),
+            }
+            for r in Repayment.query.order_by(Repayment.id).all()
+        ],
+
+        'distributions': [
+            {
+                'id': d.id,
+                'member_id': d.member_id,
+                'amount': str(d.amount),
+                'method': d.method,
+                'reference': d.reference,
+                'paid_on': str(d.paid_on),
+            }
+            for d in Distribution.query.order_by(Distribution.id).all()
+        ],
+
+        'fines': [
+            {
+                'id': f.id,
+                'member_id': f.member_id,
+                'category': f.category,
+                'amount': str(f.amount),
+                'paid': str(f.paid),
+                'balance': str(f.balance),
+                'status': f.status,
+                'date_issued': str(f.date_issued),
+            }
+            for f in FinePenalty.query.order_by(FinePenalty.id).all()
+        ],
+
+        'fine_payments': [
+            {
+                'id': fp.id,
+                'fine_id': fp.fine_id,
+                'amount': str(fp.amount),
+                'method': fp.method,
+                'reference': fp.reference,
+                'paid_on': str(fp.paid_on),
+            }
+            for fp in FinePayment.query.order_by(FinePayment.id).all()
+        ],
+
+        'welfare_contributions': [
+            {
+                'id': w.id,
+                'member_id': w.member_id,
+                'month': w.month,
+                'amount': str(w.amount),
+                'method': w.method,
+                'reference': w.reference,
+                'paid_on': str(w.paid_on),
+            }
+            for w in WelfareContribution.query.order_by(WelfareContribution.id).all()
+        ],
+
+        'welfare_claims': [
+            {
+                'id': wc.id,
+                'member_id': wc.member_id,
+                'category': wc.category,
+                'amount_requested': str(wc.amount_requested),
+                'amount_approved': str(wc.amount_approved),
+                'status': wc.status,
+                'reason': wc.reason,
+                'requested_on': str(wc.requested_on),
+                'paid_on': str(wc.paid_on),
+            }
+            for wc in WelfareClaim.query.order_by(WelfareClaim.id).all()
+        ],
+
+        'savings_interest': [
+            {
+                'id': s.id,
+                'member_id': s.member_id,
+                'month': s.month,
+                'opening_balance': str(s.opening_balance),
+                'interest_rate': str(s.interest_rate),
+                'interest_amount': str(s.interest_amount),
+                'closing_balance': str(s.closing_balance),
+            }
+            for s in SavingsInterest.query.order_by(SavingsInterest.id).all()
+        ],
+
+        'loan_interest': [
+            {
+                'id': li.id,
+                'loan_id': li.loan_id,
+                'member_id': li.member_id,
+                'month': li.month,
+                'opening_balance': str(li.opening_balance),
+                'interest_rate': str(li.interest_rate),
+                'interest_amount': str(li.interest_amount),
+                'closing_balance': str(li.closing_balance),
+            }
+            for li in LoanInterest.query.order_by(LoanInterest.id).all()
+        ],
+    }
+
+    buffer = io.BytesIO()
+    buffer.write(json.dumps(data, indent=2).encode('utf-8'))
+    buffer.seek(0)
+
+    filename = f'cloud_backup_{datetime.utcnow().strftime("%Y%m%d_%H%M%S")}.json'
+
+    log_audit(
+        'EXPORT_JSON_BACKUP',
+        'Backup',
+        None,
+        f'JSON backup exported: {filename}'
+    )
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=filename,
+        mimetype='application/json'
+    )
 
 @app.route('/audit')
 @login_required
