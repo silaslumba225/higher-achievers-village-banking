@@ -1899,9 +1899,10 @@ def balance_sheet():
     welfare_balance = money(welfare_fund - welfare_paid)
 
     loans_outstanding = money(
-        db.session.query(
-            db.func.coalesce(db.func.sum(Loan.balance), 0)
-        ).scalar()
+    sum(
+        (l.balance for l in Loan.query.all()),
+        Decimal('0.00')
+    )
     )
 
     fines_outstanding = money(
