@@ -2115,7 +2115,6 @@ def backup_export_json():
                 'amount': str(f.amount),
                 'balance': str(f.balance),
                 'status': f.status,
-                'date_issued': str(f.date_issued),
             }
             for f in FinePenalty.query.order_by(FinePenalty.id).all()
         ],
