@@ -2564,15 +2564,258 @@ def shareout():
 @login_required
 @role_required('shareout')
 def shareout_pdf():
-    with app.test_request_context(
-        '/shareout',
-        method='GET',
-        query_string=request.args
-    ):
-        response = shareout()
+    setting = SystemSetting.query.first()
+    organization_name = setting.organization_name if setting and setting.organization_name else CLIENT_NAME
+    organization_address = setting.organization_address if setting and setting.organization_address else ''
+    organization_phone = setting.organization_phone if setting and setting.organization_phone else ''
+    organization_email = setting.organization_email if setting and setting.organization_email else ''
+    registration_number = setting.registration_number if setting and setting.registration_number else ''
 
-    # We will build this properly next.
+    today_month = date.today().strftime('%Y-%m')
+    start_month = request.args.get('start_month') or f'{date.today().year}-01'
+    end_month = request.args.get('end_month') or today_month
+    expenses = money(request.args.get('expenses') or 0)
+    other_income = money(request.args.get('other_income') or 0)
 
+    start_date = datetime.strptime(start_month + '-01', '%Y-%m-%d').date()
+    end_year, end_mon = [int(x) for x in end_month.split('-')]
+    end_date = (date(end_year, end_mon, 28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+
+    contrib_rows = db.session.query(
+        Member.id,
+        Member.member_no,
+        Member.full_name,
+        Member.group_name,
+        db.func.coalesce(db.func.sum(Contribution.amount), 0)
+    ).join(
+        Contribution, Contribution.member_id == Member.id
+    ).filter(
+        Contribution.month >= start_month,
+        Contribution.month <= end_month
+    ).group_by(
+        Member.id,
+        Member.member_no,
+        Member.full_name,
+        Member.group_name
+    ).order_by(
+        Member.member_no
+    ).all()
+
+    total_contributions = money(sum((money(row[4]) for row in contrib_rows), Decimal('0.00')))
+
+    total_savings_interest = money(
+        db.session.query(db.func.coalesce(db.func.sum(SavingsInterest.interest_amount), 0))
+        .filter(SavingsInterest.month >= start_month)
+        .filter(SavingsInterest.month <= end_month)
+        .scalar()
+    )
+
+    fines_paid_total = money(
+        db.session.query(db.func.coalesce(db.func.sum(FinePayment.amount), 0))
+        .filter(FinePayment.paid_on >= start_date)
+        .filter(FinePayment.paid_on <= end_date)
+        .scalar()
+    )
+
+    distributions_total = money(
+        db.session.query(db.func.coalesce(db.func.sum(Distribution.amount), 0))
+        .filter(Distribution.paid_on >= start_date)
+        .filter(Distribution.paid_on <= end_date)
+        .scalar()
+    )
+
+    shareout_fund = money(
+        total_contributions
+        + total_savings_interest
+        + fines_paid_total
+        + other_income
+        - expenses
+        - distributions_total
+    )
+
+    rows = []
+
+    for member_id, member_no, full_name, group_name, contributed in contrib_rows:
+        contributed = money(contributed)
+
+        savings_interest = money(
+            db.session.query(db.func.coalesce(db.func.sum(SavingsInterest.interest_amount), 0))
+            .filter(SavingsInterest.member_id == member_id)
+            .filter(SavingsInterest.month >= start_month)
+            .filter(SavingsInterest.month <= end_month)
+            .scalar()
+        )
+
+        gross_shareout = Decimal('0.00') if total_contributions == 0 else money(
+            contributed / total_contributions * shareout_fund
+        )
+
+        loan_principal_interest = money(
+            sum(
+                (
+                    l.balance
+                    for l in Loan.query.filter_by(member_id=member_id).all()
+                    if l.status != 'Rejected'
+                ),
+                Decimal('0.00')
+            )
+        )
+
+        compounded_loan_interest = money(
+            db.session.query(db.func.coalesce(db.func.sum(LoanInterest.interest_amount), 0))
+            .filter(LoanInterest.member_id == member_id)
+            .filter(LoanInterest.month >= start_month)
+            .filter(LoanInterest.month <= end_month)
+            .scalar()
+        )
+
+        outstanding_loans = money(loan_principal_interest + compounded_loan_interest)
+
+        fine_balance = money(
+            sum(
+                (
+                    f.balance
+                    for f in FinePenalty.query.filter_by(member_id=member_id).all()
+                    if f.status != 'Waived'
+                ),
+                Decimal('0.00')
+            )
+        )
+
+        total_deductions = money(outstanding_loans + fine_balance)
+        net_payable = money(gross_shareout - total_deductions)
+
+        rows.append([
+            member_no,
+            full_name,
+            kwacha(contributed),
+            kwacha(savings_interest),
+            kwacha(gross_shareout),
+            kwacha(outstanding_loans),
+            kwacha(fine_balance),
+            kwacha(total_deductions),
+            kwacha(net_payable)
+        ])
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=12*mm,
+        leftMargin=12*mm,
+        topMargin=14*mm,
+        bottomMargin=14*mm
+    )
+
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        'ShareOutTitle',
+        parent=styles['Title'],
+        fontSize=18,
+        leading=22,
+        textColor=colors.HexColor('#1f4f68')
+    )
+    small_style = ParagraphStyle(
+        'Small',
+        parent=styles['Normal'],
+        fontSize=8,
+        leading=10,
+        textColor=colors.HexColor('#555555')
+    )
+    normal = styles['Normal']
+
+    story = []
+
+    story.append(Paragraph(organization_name, title_style))
+
+    if registration_number:
+        story.append(Paragraph(f'Registration No: {registration_number}', small_style))
+
+    contact_line = ' | '.join(
+        x for x in [organization_address, organization_phone, organization_email]
+        if x
+    )
+
+    if contact_line:
+        story.append(Paragraph(contact_line, small_style))
+
+    story.append(Spacer(1, 8))
+    story.append(Paragraph(f'<b>Share-Out Report</b> | Period: {start_month} to {end_month}', normal))
+    story.append(Paragraph(f'Produced by {PRODUCER_NAME}', small_style))
+    story.append(Spacer(1, 10))
+
+    summary = [
+        ['Total Contributions', kwacha(total_contributions)],
+        ['Savings Interest', kwacha(total_savings_interest)],
+        ['Fines Paid', kwacha(fines_paid_total)],
+        ['Other Income', kwacha(other_income)],
+        ['Expenses', kwacha(expenses)],
+        ['Distributions', kwacha(distributions_total)],
+        ['Share-Out Fund', kwacha(shareout_fund)],
+    ]
+
+    summary_table = Table(summary, colWidths=[90*mm, 70*mm])
+    summary_table.setStyle(TableStyle([
+        ('GRID', (0, 0), (-1, -1), 0.25, colors.HexColor('#cccccc')),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e8f2f6')),
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+        ('PADDING', (0, 0), (-1, -1), 6),
+    ]))
+
+    story.append(summary_table)
+    story.append(Spacer(1, 12))
+
+    data = [[
+        'Member No',
+        'Name',
+        'Contrib.',
+        'Interest',
+        'Gross Share',
+        'Loans',
+        'Fines',
+        'Deductions',
+        'Net Payable'
+    ]] + rows
+
+    table = Table(
+        data,
+        repeatRows=1,
+        colWidths=[18*mm, 34*mm, 22*mm, 22*mm, 24*mm, 22*mm, 20*mm, 24*mm, 24*mm]
+    )
+
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1f4f68')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('GRID', (0, 0), (-1, -1), 0.25, colors.HexColor('#cccccc')),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 7),
+        ('ALIGN', (2, 1), (-1, -1), 'RIGHT'),
+        ('PADDING', (0, 0), (-1, -1), 4),
+    ]))
+
+    story.append(table)
+    story.append(Spacer(1, 10))
+    story.append(Paragraph(f'This report was generated from the {organization_name} system.', small_style))
+
+    doc.build(story)
+
+    buffer.seek(0)
+
+    log_audit(
+        'EXPORT_SHAREOUT_PDF',
+        'ShareOut',
+        None,
+        f'Share-out PDF exported for {start_month} to {end_month}'
+    )
+
+    return Response(
+        buffer.getvalue(),
+        mimetype='application/pdf',
+        headers={
+            'Content-Disposition': f'attachment; filename=shareout_{start_month}_to_{end_month}.pdf'
+        }
+    )
 @app.route('/shareout.csv')
 @login_required
 @role_required('shareout')
