@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% block page_title %}Cash Flow Statement{% endblock %}
+{% block subtitle %}Cash inflows, cash outflows and net cash movement{% endblock %}
+
+{% block content %}
+
+<section class="panel">
+  <div class="actions">
+    <a class="btn" href="{{ url_for('accounting') }}">← Back to Accounting</a>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Cash Flow Statement</h2>
+
+  <table>
+    <tbody>
+      <tr>
+        <th colspan="2">Cash Inflows</th>
+      </tr>
+
+      <tr>
+        <td>Member Contributions</td>
+        <td>{{ contributions_cash|kwacha }}</td>
+      </tr>
+
+      <tr>
+        <td>Loan Repayments</td>
+        <td>{{ loan_repayments_cash|kwacha }}</td>
+      </tr>
+
+      <tr>
+        <td>Fine Payments</td>
+        <td>{{ fine_payments_cash|kwacha }}</td>
+      </tr>
+
+      <tr>
+        <td>Welfare Contributions</td>
+        <td>{{ welfare_contributions_cash|kwacha }}</td>
+      </tr>
+
+      <tr>
+        <th>Total Cash In</th>
+        <th>{{ total_cash_in|kwacha }}</th>
+      </tr>
+
+      <tr>
+        <td colspan="2">&nbsp;</td>
+      </tr>
+
+      <tr>
+        <th colspan="2">Cash Outflows</th>
+      </tr>
+
+      <tr>
+        <td>Loan Disbursements</td>
+        <td>{{ loan_disbursements_cash|kwacha }}</td>
+      </tr>
+
+      <tr>
+        <td>Distributions / Share-Out Payments</td>
+        <td>{{ distributions_cash|kwacha }}</td>
+      </tr>
+
+      <tr>
+        <td>Welfare Payments</td>
+        <td>{{ welfare_payments_cash|kwacha }}</td>
+      </tr>
+
+      <tr>
+        <th>Total Cash Out</th>
+        <th>{{ total_cash_out|kwacha }}</th>
+      </tr>
+
+      <tr>
+        <td colspan="2">&nbsp;</td>
+      </tr>
+
+      <tr>
+        <th>Net Cash Flow</th>
+        <th>
+          <span class="{% if net_cash_flow >= 0 %}good-text{% else %}bad-text{% endif %}">
+            {{ net_cash_flow|kwacha }}
+          </span>
+        </th>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+{% endblock %}

@@ -1950,6 +1950,69 @@ def balance_sheet():
         member_equity=member_equity,
         liabilities_equity=liabilities_equity
     )
+@app.route('/accounting/cash-flow')
+@login_required
+@role_required('accounting')
+def cash_flow_statement():
+
+    contributions_cash = money(
+        db.session.query(db.func.coalesce(db.func.sum(Contribution.amount), 0)).scalar()
+    )
+
+    loan_repayments_cash = money(
+        db.session.query(db.func.coalesce(db.func.sum(Repayment.amount), 0)).scalar()
+    )
+
+    fine_payments_cash = money(
+        db.session.query(db.func.coalesce(db.func.sum(FinePayment.amount), 0)).scalar()
+    )
+
+    welfare_contributions_cash = money(
+        db.session.query(db.func.coalesce(db.func.sum(WelfareContribution.amount), 0)).scalar()
+    )
+
+    loan_disbursements_cash = money(
+        db.session.query(db.func.coalesce(db.func.sum(Loan.principal), 0)).scalar()
+    )
+
+    distributions_cash = money(
+        db.session.query(db.func.coalesce(db.func.sum(Distribution.amount), 0)).scalar()
+    )
+
+    welfare_payments_cash = money(
+        db.session.query(db.func.coalesce(db.func.sum(WelfareClaim.amount_approved), 0))
+        .filter(WelfareClaim.status == 'Paid')
+        .scalar()
+    )
+
+    total_cash_in = money(
+        contributions_cash
+        + loan_repayments_cash
+        + fine_payments_cash
+        + welfare_contributions_cash
+    )
+
+    total_cash_out = money(
+        loan_disbursements_cash
+        + distributions_cash
+        + welfare_payments_cash
+    )
+
+    net_cash_flow = money(total_cash_in - total_cash_out)
+
+    return render_template(
+        'cash_flow.html',
+        contributions_cash=contributions_cash,
+        loan_repayments_cash=loan_repayments_cash,
+        fine_payments_cash=fine_payments_cash,
+        welfare_contributions_cash=welfare_contributions_cash,
+        loan_disbursements_cash=loan_disbursements_cash,
+        distributions_cash=distributions_cash,
+        welfare_payments_cash=welfare_payments_cash,
+        total_cash_in=total_cash_in,
+        total_cash_out=total_cash_out,
+        net_cash_flow=net_cash_flow
+    )
 
 @app.route('/export/accounting.csv')
 @login_required
