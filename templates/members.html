@@ -64,11 +64,11 @@
 <div class="actions">
 
   {% if pagination.page > 1 %}
-    <a class="btn" href="{{ url_for('audit_trail', page=1, q=q, action=action) }}">« First</a>
+    <a class="btn" href="{{ url_for('members', page=1, q=q) }}">« First</a>
   {% endif %}
 
   {% if pagination.has_prev %}
-    <a class="btn" href="{{ url_for('audit_trail', page=pagination.prev_num, q=q, action=action) }}">← Previous</a>
+    <a class="btn" href="{{ url_for('members', page=pagination.prev_num, q=q) }}">← Previous</a>
   {% endif %}
 
   <span class="badge">
@@ -76,11 +76,11 @@
   </span>
 
   {% if pagination.has_next %}
-    <a class="btn" href="{{ url_for('audit_trail', page=pagination.next_num, q=q, action=action) }}">Next →</a>
+    <a class="btn" href="{{ url_for('members', page=pagination.next_num, q=q) }}">Next →</a>
   {% endif %}
 
   {% if pagination.page < pagination.pages %}
-    <a class="btn" href="{{ url_for('audit_trail', page=pagination.pages, q=q, action=action) }}">Last »</a>
+    <a class="btn" href="{{ url_for('members', page=pagination.pages, q=q) }}">Last »</a>
   {% endif %}
 
 </div>
