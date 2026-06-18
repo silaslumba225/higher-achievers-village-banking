@@ -1804,6 +1804,67 @@ def trial_balance():
         end=end
     )
 
+@app.route('/accounting/income-statement')
+@login_required
+@role_required('accounting')
+def income_statement():
+    start = request.args.get('start')
+    end = request.args.get('end')
+
+    start_date = parse_date(start) if start else None
+    end_date = parse_date(end) if end else None
+
+    loan_interest_income = money(
+        db.session.query(
+            db.func.coalesce(db.func.sum(LoanInterest.interest_amount), 0)
+        ).scalar()
+    )
+
+    fines_income = money(
+        db.session.query(
+            db.func.coalesce(db.func.sum(FinePayment.amount), 0)
+        ).scalar()
+    )
+
+    welfare_expense = money(
+        db.session.query(
+            db.func.coalesce(db.func.sum(WelfareClaim.amount_approved), 0)
+        )
+        .filter(WelfareClaim.status == 'Paid')
+        .scalar()
+    )
+
+    shareout_expense = money(
+        db.session.query(
+            db.func.coalesce(db.func.sum(Distribution.amount), 0)
+        ).scalar()
+    )
+
+    total_income = money(
+        loan_interest_income +
+        fines_income
+    )
+
+    total_expenses = money(
+        welfare_expense +
+        shareout_expense
+    )
+
+    net_surplus = money(total_income - total_expenses)
+
+    return render_template(
+        'income_statement.html',
+        start=start,
+        end=end,
+        loan_interest_income=loan_interest_income,
+        fines_income=fines_income,
+        welfare_expense=welfare_expense,
+        shareout_expense=shareout_expense,
+        total_income=total_income,
+        total_expenses=total_expenses,
+        net_surplus=net_surplus
+    )
+
 @app.route('/export/accounting.csv')
 @login_required
 @role_required('accounting')
