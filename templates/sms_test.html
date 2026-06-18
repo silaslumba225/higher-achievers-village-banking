@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block page_title %}SMS Test{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <h2>Test Africa's Talking SMS</h2>
+
+  <form method="post" class="form-grid">
+
+    <label>Phone Number
+      <input name="phone" placeholder="097xxxxxxx or +26097xxxxxxx" required>
+    </label>
+
+    <label class="wide">Message
+      <textarea name="message" rows="5" required>
+Test message from Higher Achievers Village Banking.
+      </textarea>
+    </label>
+
+    <button type="submit" class="primary">
+      Send Test SMS
+    </button>
+
+  </form>
+</section>
+{% endblock %}

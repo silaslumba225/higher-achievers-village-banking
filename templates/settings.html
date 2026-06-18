@@ -122,6 +122,9 @@
     <label>Africa's Talking Username
       <input type="text" name="sms_username" value="{{ setting.sms_username or '' }}">
     </label>
+    <a class="btn" href="{{ url_for('sms_test') }}">
+      Test SMS
+    </a>
 
     <button type="submit" class="primary">
       Save Settings

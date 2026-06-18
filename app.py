@@ -11,6 +11,7 @@ import io
 import os
 import shutil
 import json
+import africastalking
 from pathlib import Path
 from werkzeug.utils import secure_filename
 from reportlab.lib import colors
@@ -748,6 +749,41 @@ def create_database_backup(prefix='backup', notes=None):
     db.session.commit()
     prune_old_backups()
     return record
+
+def send_sms_via_africas_talking(phone, message):
+    setting = get_settings()
+
+    if not setting.sms_api_key:
+        return False, 'SMS API key not configured'
+
+    if not setting.sms_username:
+        return False, 'SMS username not configured'
+
+    if not phone:
+        return False, 'No phone number'
+
+    try:
+        phone = phone.strip()
+
+        if not phone.startswith('+'):
+            phone = '+260' + phone.lstrip('0')
+
+        africastalking.initialize(
+            setting.sms_username,
+            setting.sms_api_key
+        )
+
+        sms = africastalking.SMS
+
+        response = sms.send(
+            message,
+            [phone]
+        )
+
+        return True, str(response)
+
+    except Exception as exc:
+        return False, str(exc)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -2081,28 +2117,46 @@ def notifications():
         created = 0
         user = session.get('user') or {}
 
-        for m in recipients:
-            personalized = (
-                message
-                .replace('{name}', m.full_name)
-                .replace('{member_no}', m.member_no)
-                .replace('{phone}', m.phone or '')
-            )
+    sent = 0
+    failed = 0
 
-            n = NotificationLog(
-                channel=channel,
-                notification_type=notification_type,
-                recipient_type='All Members' if recipient_mode == 'all' else 'Selected Members',
-                member_id=m.id,
-                phone=m.phone,
-                subject=subject,
-                message=personalized,
-                status='Prepared',
-                created_by=user.get('username')
-            )
+    for m in recipients:
+        personalized = (
+            message
+            .replace('{name}', m.full_name)
+            .replace('{member_no}', m.member_no)
+            .replace('{phone}', m.phone or '')
+        )
 
-            db.session.add(n)
-            created += 1
+        status = 'Prepared'
+        provider_response = ''
+
+        if channel == 'SMS':
+            ok, provider_response = send_sms_via_africas_talking(
+                m.phone,
+                personalized
+            )
+            if ok:
+                status = 'Sent'
+                sent += 1
+            else:
+                status = 'Failed'
+                failed += 1
+
+        n = NotificationLog(
+            channel=channel,
+            notification_type=notification_type,
+            recipient_type='All Members' if recipient_mode == 'all' else 'Selected Members',
+            member_id=m.id,
+            phone=m.phone,
+            subject=subject,
+            message=personalized,
+            status=status,
+            created_by=user.get('username')
+        )
+
+        db.session.add(n)
+        created += 1
 
         db.session.commit()
 
@@ -2149,6 +2203,23 @@ def notifications():
         q=q,
         templates=templates
     )
+@app.route('/sms-test', methods=['GET', 'POST'])
+@login_required
+@role_required('settings')
+def sms_test():
+    if request.method == 'POST':
+        phone = request.form.get('phone')
+        message = request.form.get('message')
+
+        ok, response = send_sms_via_africas_talking(phone, message)
+
+        if ok:
+            flash(f'SMS sent successfully. {response}')
+        else:
+            flash(f'SMS failed: {response}', 'error')
+
+    return render_template('sms_test.html')
+
 @app.route('/export/notifications.csv')
 @login_required
 @role_required('notifications')
