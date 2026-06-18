@@ -1,13 +1,13 @@
 {% extends 'base.html' %}
 {% block page_title %}Month-End Processing{% endblock %}
-{% block subtitle %}Apply 15% compounded interest to member savings and loan balances{% endblock %}
+{% block subtitle %}Apply configured compounded interest to member savings and loan balances{% endblock %}
 
 {% block content %}
 <section class="panel">
   <div class="panel-head">
     <div>
       <h2>Run Month-End Interest</h2>
-      <p>This applies 15% compound interest to savings balances and outstanding loan balances.</p>
+      <p>This applies the configured compound interest rates to savings balances and outstanding loan balances.</p>
     </div>
   </div>
 
@@ -103,29 +103,25 @@
 </section>
 {% if reversal_pagination %}
 <div class="actions">
+  {% if reversal_pagination.page > 1 %}
+    <a class="btn" href="{{ url_for('month_end', page=pagination.page, month=selected_month, reversal_page=1) }}">« First Reversals</a>
+  {% endif %}
 
   {% if reversal_pagination.has_prev %}
-    <a class="btn"
-       href="{{ url_for('month_end',
-                        page=pagination.page,
-                        reversal_page=reversal_pagination.prev_num) }}">
-       ← Previous Reversals
-    </a>
+    <a class="btn" href="{{ url_for('month_end', page=pagination.page, month=selected_month, reversal_page=reversal_pagination.prev_num) }}">← Previous Reversals</a>
   {% endif %}
 
-  <span class="badge">
-    Reversal Page {{ reversal_pagination.page }}
-    of {{ reversal_pagination.pages }}
-  </span>
+  <span class="badge">Reversal Page {{ reversal_pagination.page }} of {{ reversal_pagination.pages or 1 }}</span>
 
   {% if reversal_pagination.has_next %}
-    <a class="btn"
-       href="{{ url_for('month_end',
-                        page=pagination.page,
-                        reversal_page=reversal_pagination.next_num) }}">
-       Next Reversals →
-    </a>
+    <a class="btn" href="{{ url_for('month_end', page=pagination.page, month=selected_month, reversal_page=reversal_pagination.next_num) }}">Next Reversals →</a>
   {% endif %}
+
+  {% if reversal_pagination.page < reversal_pagination.pages %}
+    <a class="btn" href="{{ url_for('month_end', page=pagination.page, month=selected_month, reversal_page=reversal_pagination.pages) }}">Last Reversals »</a>
+  {% endif %}
+</div>
+{% endif %}
 
 </div>
 {% endif %}

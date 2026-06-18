@@ -7,15 +7,27 @@
 <div class="panel"><div class="panel-head"><h2>Open Loans</h2><span class="badge">{{ open_loans|length }} active</span></div><table><thead><tr><th>Member</th><th>Total Due</th><th>Paid</th><th>Balance</th><th>Due Date</th></tr></thead><tbody>{% for l in open_loans %}<tr><td>{{ l.member.full_name }}</td><td>{{ l.total_due|kwacha }}</td><td>{{ l.total_paid|kwacha }}</td><td>{{ l.balance|kwacha }}</td><td>{{ l.due_on }}</td></tr>{% endfor %}</tbody></table></div>
 {% if arrears_pagination %}
 <div class="actions">
+
+  {% if arrears_pagination.page > 1 %}
+    <a class="btn" href="{{ url_for('reports', page=1, month=month) }}">« First</a>
+  {% endif %}
+
   {% if arrears_pagination.has_prev %}
     <a class="btn" href="{{ url_for('reports', page=arrears_pagination.prev_num, month=month) }}">← Previous</a>
   {% endif %}
 
-  <span class="badge">Page {{ arrears_pagination.page }} of {{ arrears_pagination.pages }}</span>
+  <span class="badge">
+    Page {{ arrears_pagination.page }} of {{ arrears_pagination.pages or 1 }}
+  </span>
 
   {% if arrears_pagination.has_next %}
     <a class="btn" href="{{ url_for('reports', page=arrears_pagination.next_num, month=month) }}">Next →</a>
   {% endif %}
+
+  {% if arrears_pagination.page < arrears_pagination.pages %}
+    <a class="btn" href="{{ url_for('reports', page=arrears_pagination.pages, month=month) }}">Last »</a>
+  {% endif %}
+
 </div>
 {% endif %}
 {% endblock %}

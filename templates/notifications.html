@@ -105,15 +105,27 @@
 </section>
 {% if pagination %}
 <div class="actions">
+
+  {% if pagination.page > 1 %}
+    <a class="btn" href="{{ url_for('notifications', page=1, q=q) }}">« First</a>
+  {% endif %}
+
   {% if pagination.has_prev %}
     <a class="btn" href="{{ url_for('notifications', page=pagination.prev_num, q=q) }}">← Previous</a>
   {% endif %}
 
-  <span class="badge">Page {{ pagination.page }} of {{ pagination.pages }}</span>
+  <span class="badge">
+    Page {{ pagination.page }} of {{ pagination.pages }}
+  </span>
 
   {% if pagination.has_next %}
     <a class="btn" href="{{ url_for('notifications', page=pagination.next_num, q=q) }}">Next →</a>
   {% endif %}
+
+  {% if pagination.page < pagination.pages %}
+    <a class="btn" href="{{ url_for('notifications', page=pagination.pages, q=q) }}">Last »</a>
+  {% endif %}
+
 </div>
 {% endif %}
 {% endblock %}
