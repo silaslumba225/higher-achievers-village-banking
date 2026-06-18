@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Income & Expenditure Statement{% endblock %}
+{% block subtitle %}Income, expenses and surplus/deficit report{% endblock %}
+
+{% block content %}
+
+<section class="panel">
+  <form method="get" class="actions">
+    <input type="date" name="start" value="{{ start or '' }}">
+    <input type="date" name="end" value="{{ end or '' }}">
+
+    <button class="btn primary" type="submit">
+      Run Report
+    </button>
+
+    <a class="btn"
+       href="{{ url_for('accounting') }}">
+       Back to Accounting
+    </a>
+  </form>
+</section>
+
+<section class="panel">
+
+  <h2>Income & Expenditure Statement</h2>
+
+  <table>
+    <tbody>
+
+      <tr>
+        <th colspan="2">Income</th>
+      </tr>
+
+      <tr>
+        <td>Loan Interest Income</td>
+        <td>{{ loan_interest_income|kwacha }}</td>
+      </tr>
+
+      <tr>
+        <td>Fines Collected</td>
+        <td>{{ fines_income|kwacha }}</td>
+      </tr>
+
+      <tr>
+        <th>Total Income</th>
+        <th>{{ total_income|kwacha }}</th>
+      </tr>
+
+      <tr>
+        <td colspan="2">&nbsp;</td>
+      </tr>
+
+      <tr>
+        <th colspan="2">Expenses</th>
+      </tr>
+
+      <tr>
+        <td>Welfare Payments</td>
+        <td>{{ welfare_expense|kwacha }}</td>
+      </tr>
+
+      <tr>
+        <td>Share-Out Distributions</td>
+        <td>{{ shareout_expense|kwacha }}</td>
+      </tr>
+
+      <tr>
+        <th>Total Expenses</th>
+        <th>{{ total_expenses|kwacha }}</th>
+      </tr>
+
+      <tr>
+        <td colspan="2">&nbsp;</td>
+      </tr>
+
+      <tr>
+        <th>Net Result</th>
+
+        <th>
+          <span class="{% if net_surplus >= 0 %}good-text{% else %}bad-text{% endif %}">
+            {{ net_surplus|kwacha }}
+          </span>
+        </th>
+      </tr>
+
+      <tr>
+        <td>Status</td>
+
+        <td>
+          {% if net_surplus >= 0 %}
+            Surplus
+          {% else %}
+            Deficit
+          {% endif %}
+        </td>
+      </tr>
+
+    </tbody>
+  </table>
+
+</section>
+
+{% endblock %}
