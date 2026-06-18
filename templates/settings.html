@@ -101,6 +101,24 @@
     <label>Registration Number
         <input type="text" name="registration_number" value="{{ setting.registration_number or '' }}">
     </label>
+    <h3>SMS & WhatsApp Settings</h3>
+
+    <label>SMS Provider
+      <input type="text" name="sms_provider" value="{{ setting.sms_provider or 'Manual' }}">
+    </label>
+
+    <label>SMS API Key
+      <input type="text" name="sms_api_key" value="{{ setting.sms_api_key or '' }}">
+    </label>
+
+    <label>SMS Sender ID
+      <input type="text" name="sms_sender_id" value="{{ setting.sms_sender_id or '' }}">
+    </label>
+
+    <label>
+      <input type="checkbox" name="whatsapp_enabled" {% if setting.whatsapp_enabled %}checked{% endif %}>
+      Enable WhatsApp Messaging
+    </label>
 
     <button type="submit" class="primary">
       Save Settings

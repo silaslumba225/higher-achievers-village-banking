@@ -443,26 +443,35 @@ class SystemSetting(db.Model):
     organization_email = db.Column(db.String(120))
     registration_number = db.Column(db.String(100))
 
+    sms_provider = db.Column(db.String(50), default='Manual')
+    sms_api_key = db.Column(db.String(500))
+    sms_sender_id = db.Column(db.String(100))
+    whatsapp_enabled = db.Column(db.Boolean, default=False)
+
 def ensure_settings_columns():
     columns = {
         'logo_url': 'VARCHAR(500)',
+        'organization_address': 'VARCHAR(250)',
+        'organization_phone': 'VARCHAR(50)',
+        'organization_email': 'VARCHAR(120)',
+        'registration_number': 'VARCHAR(100)',
+
+        'sms_provider': 'VARCHAR(50)',
+        'sms_api_key': 'VARCHAR(500)',
+        'sms_sender_id': 'VARCHAR(100)',
+        'whatsapp_enabled': 'BOOLEAN DEFAULT FALSE',
     }
 
     for column, definition in columns.items():
         try:
             db.session.execute(
-                db.text(f'ALTER TABLE system_setting ADD COLUMN IF NOT EXISTS {column} {definition}')
+                db.text(
+                    f'ALTER TABLE system_setting ADD COLUMN IF NOT EXISTS {column} {definition}'
+                )
             )
             db.session.commit()
         except Exception:
-            db.session.rollback() 
-def ensure_settings_columns():
-    columns = {
-        'organization_address': 'VARCHAR(250)',
-        'organization_phone': 'VARCHAR(50)',
-        'organization_email': 'VARCHAR(120)',
-        'registration_number': 'VARCHAR(100)',
-    }
+            db.session.rollback()
 
     for column, definition in columns.items():
         try:
@@ -796,7 +805,10 @@ def settings():
         setting.organization_phone = request.form.get('organization_phone')
         setting.organization_email = request.form.get('organization_email')
         setting.registration_number = request.form.get('registration_number')
-
+        setting.sms_provider = request.form.get('sms_provider') or 'Manual'
+        setting.sms_api_key = request.form.get('sms_api_key')
+        setting.sms_sender_id = request.form.get('sms_sender_id')
+        setting.whatsapp_enabled = 'whatsapp_enabled' in request.form
         db.session.commit()
 
         log_audit(
