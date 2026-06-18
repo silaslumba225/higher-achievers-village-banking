@@ -91,15 +91,27 @@
 
 {% if total_pages and total_pages > 1 %}
 <div class="actions">
-  {% if page > 1 %}
-    <a class="btn" href="{{ url_for('shareout', page=page-1, start_month=start_month, end_month=end_month, expenses=expenses, other_income=other_income) }}">← Previous</a>
+
+  {% if pagination.page > 1 %}
+    <a class="btn" href="{{ url_for('audit_trail', page=1, q=q, action=action) }}">« First</a>
   {% endif %}
 
-  <span class="badge">Page {{ page }} of {{ total_pages }}</span>
-
-  {% if page < total_pages %}
-    <a class="btn" href="{{ url_for('shareout', page=page+1, start_month=start_month, end_month=end_month, expenses=expenses, other_income=other_income) }}">Next →</a>
+  {% if pagination.has_prev %}
+    <a class="btn" href="{{ url_for('audit_trail', page=pagination.prev_num, q=q, action=action) }}">← Previous</a>
   {% endif %}
+
+  <span class="badge">
+    Page {{ pagination.page }} of {{ pagination.pages }}
+  </span>
+
+  {% if pagination.has_next %}
+    <a class="btn" href="{{ url_for('audit_trail', page=pagination.next_num, q=q, action=action) }}">Next →</a>
+  {% endif %}
+
+  {% if pagination.page < pagination.pages %}
+    <a class="btn" href="{{ url_for('audit_trail', page=pagination.pages, q=q, action=action) }}">Last »</a>
+  {% endif %}
+
 </div>
 {% endif %}
 
