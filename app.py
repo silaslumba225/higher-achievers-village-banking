@@ -1906,9 +1906,10 @@ def balance_sheet():
     )
 
     fines_outstanding = money(
-        db.session.query(
-            db.func.coalesce(db.func.sum(FinePenalty.balance), 0)
-        ).scalar()
+    sum(
+        (f.balance for f in FinePenalty.query.all() if f.status != 'Waived'),
+        Decimal('0.00')
+    )
     )
 
     total_assets = money(
