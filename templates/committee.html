@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Committee Register{% endblock %}
+{% block subtitle %}List of committee members and their positions{% endblock %}
+
+{% block content %}
+
+<div class="actions">
+  <a class="btn" href="{{ url_for('members') }}">← Back to Members</a>
+</div>
+
+<section class="panel">
+  <h2>Committee Members</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Position</th>
+        <th>Member No</th>
+        <th>Full Name</th>
+        <th>Phone</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for m in committee_members %}
+      <tr>
+        <td>{{ m.committee_position or 'Committee Member' }}</td>
+        <td><strong>{{ m.member_no }}</strong></td>
+        <td>{{ m.full_name }}</td>
+        <td>{{ m.phone or '-' }}</td>
+        <td>{{ m.status }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="5">No committee members found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% endblock %}
