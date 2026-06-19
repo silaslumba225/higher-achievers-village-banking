@@ -58,4 +58,27 @@
   <span>Net Surplus</span>
   <strong>{{ net_surplus|kwacha }}</strong>
 </div>
+<div class="kpi">
+  <span>Total Savings Value</span>
+  <strong>{{ total_savings_value|kwacha }}</strong>
+  <em>Contributions plus savings interest</em>
+</div>
+
+<div class="kpi">
+  <span>Outstanding Loans</span>
+  <strong>{{ loan_balance|kwacha }}</strong>
+  <em>Open and disbursed loan balances</em>
+</div>
+
+<div class="kpi">
+  <span>Outstanding Fines</span>
+  <strong>{{ outstanding_fines|kwacha }}</strong>
+  <em>Unpaid fines and penalties</em>
+</div>
+
+<div class="kpi accent">
+  <span>Net Cash Flow</span>
+  <strong>{{ net_cash_flow|kwacha }}</strong>
+  <em>Cash in less cash out</em>
+</div>
 {% endblock %}

@@ -914,6 +914,21 @@ def dashboard():
         - distribution_total
         - welfare_paid_total
     )
+    net_cash_flow = money(
+        contribution_total
+        + repayment_total
+        + fine_paid_total
+        + welfare_contribution_total
+        - loans_total
+        - distribution_total
+        - welfare_paid_total
+    )
+
+    total_savings_value = money(
+        contribution_total + savings_interest_total
+    )
+
+    dashboard_health = 'Surplus' if net_surplus >= 0 else 'Deficit'
     return render_template('dashboard.html', **locals())
 
 @app.route('/members')
