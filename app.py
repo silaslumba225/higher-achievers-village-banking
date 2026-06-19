@@ -929,6 +929,9 @@ def dashboard():
     )
 
     dashboard_health = 'Surplus' if net_surplus >= 0 else 'Deficit'
+    recent_audit_logs = AuditLog.query.order_by(
+        AuditLog.created_at.desc()
+    ).limit(8).all()
     return render_template('dashboard.html', **locals())
 
 @app.route('/members')
