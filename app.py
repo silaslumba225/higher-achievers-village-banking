@@ -11,7 +11,7 @@ import io
 import os
 import shutil
 import json
-import africastalking
+# import africastalking
 from pathlib import Path
 from werkzeug.utils import secure_filename
 from reportlab.lib import colors
@@ -752,40 +752,6 @@ def create_database_backup(prefix='backup', notes=None):
     prune_old_backups()
     return record
 
-def send_sms_via_africas_talking(phone, message):
-    setting = get_settings()
-
-    if not setting.sms_api_key:
-        return False, 'SMS API key not configured'
-
-    if not setting.sms_username:
-        return False, 'SMS username not configured'
-
-    if not phone:
-        return False, 'No phone number'
-
-    try:
-        phone = phone.strip()
-
-        if not phone.startswith('+'):
-            phone = '+260' + phone.lstrip('0')
-
-        africastalking.initialize(
-            setting.sms_username,
-            setting.sms_api_key
-        )
-
-        sms = africastalking.SMS
-
-        response = sms.send(
-            message,
-            [phone]
-        )
-
-        return True, str(response)
-
-    except Exception as exc:
-        return False, str(exc)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
