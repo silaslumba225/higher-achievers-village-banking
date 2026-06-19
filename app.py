@@ -999,6 +999,30 @@ def dashboard():
         ).order_by(
             db.desc('total_saved')
         ).limit(10).all()
+    
+    overdue_loans_count = len(overdue_loans)
+
+    pending_welfare_claims = WelfareClaim.query.filter(
+            WelfareClaim.status.in_(['Requested', 'Reviewed', 'Approved'])
+        ).count()
+
+    unpaid_fines_count = FinePenalty.query.filter(
+            FinePenalty.status != 'Paid'
+        ).count()
+
+    current_month = date.today().strftime('%Y-%m')
+
+    paid_member_ids = [
+        c.member_id
+        for c in Contribution.query.filter(
+            Contribution.month == current_month
+        ).all()
+    ]
+
+    arrears_count = Member.query.filter(
+        Member.status == 'Active',
+        ~Member.id.in_(paid_member_ids)
+    ).count()
 
     return render_template('dashboard.html', **locals())
 
