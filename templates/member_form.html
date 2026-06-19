@@ -37,9 +37,25 @@
         {% endfor %}
       </select>
     </label>
+    <label>Member Type
+    <select name="member_type">
+      <option value="Ordinary Member" {% if member and member.member_type == 'Ordinary Member' %}selected{% endif %}>Ordinary Member</option>
+      <option value="Committee Member" {% if member and member.member_type == 'Committee Member' %}selected{% endif %}>Committee Member</option>
+    </select>
+  </label>
 
-    <!-- <button type="submit" class="primary">Save Member</button>   
-    <a class="btn" href="{{ url_for('members') }}">Cancel</a> -->
+  <label>Committee Position
+    <select name="committee_position">
+      <option value="">None</option>
+      <option value="Chairperson" {% if member and member.committee_position == 'Chairperson' %}selected{% endif %}>Chairperson</option>
+      <option value="Vice Chairperson" {% if member and member.committee_position == 'Vice Chairperson' %}selected{% endif %}>Vice Chairperson</option>
+      <option value="Treasurer" {% if member and member.committee_position == 'Treasurer' %}selected{% endif %}>Treasurer</option>
+      <option value="Secretary" {% if member and member.committee_position == 'Secretary' %}selected{% endif %}>Secretary</option>
+      <option value="Auditor" {% if member and member.committee_position == 'Auditor' %}selected{% endif %}>Auditor</option>
+      <option value="Committee Member" {% if member and member.committee_position == 'Committee Member' %}selected{% endif %}>Committee Member</option>
+    </select>
+  </label>
+
     <div class="actions">
         <button type="submit" class="primary">
             Save Member

@@ -182,6 +182,8 @@ class Member(db.Model):
     group_name = db.Column(db.String(80))
     status = db.Column(db.String(20), default='Active')
     created_at = db.Column(db.Date, default=date.today)
+    member_type = db.Column(db.String(50), default='Ordinary Member')
+    committee_position = db.Column(db.String(100))
 
 class Contribution(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -1072,8 +1074,30 @@ def members():
 @role_required('members')
 def member_new():
     if request.method == 'POST':
-        m = Member(member_no=request.form['member_no'], full_name=request.form['full_name'], phone=request.form.get('phone'), national_id=request.form.get('national_id'), group_name=request.form.get('group_name'))
-        db.session.add(m); db.session.commit(); log_audit('CREATE_MEMBER', 'Member', m.id, f'{m.member_no} - {m.full_name}'); flash('Member added successfully.'); return redirect(url_for('members'))
+        m = Member(
+            member_no=request.form['member_no'],
+            full_name=request.form['full_name'],
+            phone=request.form.get('phone'),
+            national_id=request.form.get('national_id'),
+            group_name=request.form.get('group_name'),
+            member_type=request.form.get('member_type') or 'Ordinary Member',
+            committee_position=request.form.get('committee_position') or None
+            
+        )
+
+        db.session.add(m)
+        db.session.commit()
+
+        log_audit(
+            'CREATE_MEMBER',
+            'Member',
+            m.id,
+            f'{m.member_no} - {m.full_name}'
+        )
+
+        flash('Member added successfully.')
+        return redirect(url_for('members'))
+
     return render_template('member_form.html')
 
 @app.route('/members/<int:member_id>/edit', methods=['GET', 'POST'])
@@ -1090,6 +1114,9 @@ def member_edit(member_id):
         member.group_name = request.form.get('group_name')
         member.status = request.form.get('status') or 'Active'
 
+        member.member_type = request.form.get('member_type') or 'Ordinary Member'
+        member.committee_position = request.form.get('committee_position') or None
+        
         db.session.commit()
         log_audit('UPDATE_MEMBER', 'Member', member.id, f'{member.member_no} - {member.full_name}')
         flash('Member updated successfully.')
@@ -3745,12 +3772,29 @@ def init_demo_db():
     db.session.commit()
     print('Demo database initialized with 250 members and default admin user: admin / admin123')
 
+def ensure_member_columns():
+    columns = {
+        'member_type': 'VARCHAR(50)',
+        'committee_position': 'VARCHAR(100)',
+    }
+
+    for column, definition in columns.items():
+        try:
+            db.session.execute(
+                db.text(
+                    f'ALTER TABLE member ADD COLUMN IF NOT EXISTS {column} {definition}'
+                )
+            )
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
 
 def initialize_database():
     with app.app_context():
         db.create_all()
         ensure_month_end_columns()
         ensure_settings_columns()
+        ensure_member_columns()
         ensure_schema()
         ensure_admin()
 
