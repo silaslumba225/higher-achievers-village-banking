@@ -66,6 +66,11 @@
   </div>
 </section>
 <section class="panel">
+  <h2>Loans vs Repayments</h2>
+  <canvas id="loansRepaymentsChart" height="100"></canvas>
+</section>
+<section class="panel">
+
   <h2>Dashboard Analytics</h2>
 
   <div class="table-wrap">
@@ -194,61 +199,60 @@
   const contributionValues = {{ monthly_contribution_values|tojson }};
 </script>
 <script>
-  const ctx = document.getElementById('contributionsChart');
+const contributionsCtx = document.getElementById('contributionsChart');
 
-  if (ctx) {
-    new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: contributionLabels,
-        datasets: [{
-          label: 'Monthly Contributions',
-          data: contributionValues
-        }]
+if (contributionsCtx) {
+  new Chart(contributionsCtx, {
+    type: 'bar',
+    data: {
+      labels: contributionLabels,
+      datasets: [{
+        label: 'Monthly Contributions',
+        data: contributionValues
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          display: true
+        }
       },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: {
-            display: true
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true
-          }
+      scales: {
+        y: {
+          beginAtZero: true
         }
       }
-    });
-  }
+    }
+  });
+}
 </script>
 <script>
-  const ctx = document.getElementById('contributionsChart');
+const loansCtx = document.getElementById('loansRepaymentsChart');
 
-  if (ctx) {
-    new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: contributionLabels,
-        datasets: [{
-          label: 'Monthly Contributions',
-          data: contributionValues
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: {
-            display: true
-          }
+if (loansCtx) {
+  new Chart(loansCtx, {
+    type: 'bar',
+    data: {
+      labels: loanLabels,
+      datasets: [
+        {
+          label: 'Loans Disbursed',
+          data: loanValues
         },
-        scales: {
-          y: {
-            beginAtZero: true
-          }
+        {
+          label: 'Repayments Received',
+          data: repaymentValues
         }
-      }
-    });
-  }
+      ]
+    }
+  });
+}
 </script>
+<script>
+  const loanLabels = {{ monthly_loan_labels|tojson }};
+  const loanValues = {{ monthly_loan_values|tojson }};
+  const repaymentValues = {{ monthly_repayment_values|tojson }};
+</script>
+
 {% endblock %}
