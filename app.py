@@ -1078,8 +1078,11 @@ def member_new():
 
         existing = Member.query.filter_by(member_no=member_no).first()
         if existing:
-            flash('Member number already exists. Please use a different member number.', 'error')
-            return redirect(url_for('member_new'))
+            flash(f'Member number {member_no} already exists in the database.', 'error')
+            return render_template(
+                'member_form.html',
+                member=None
+            )
 
         m = Member(
             member_no=member_no,
@@ -1094,13 +1097,7 @@ def member_new():
         db.session.add(m)
         db.session.commit()
 
-        log_audit(
-            'CREATE_MEMBER',
-            'Member',
-            m.id,
-            f'{m.member_no} - {m.full_name}'
-        )
-
+        log_audit('CREATE_MEMBER', 'Member', m.id, f'{m.member_no} - {m.full_name}')
         flash('Member added successfully.')
         return redirect(url_for('members'))
 
