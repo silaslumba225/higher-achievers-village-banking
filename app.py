@@ -932,6 +932,18 @@ def dashboard():
     recent_audit_logs = AuditLog.query.order_by(
         AuditLog.created_at.desc()
     ).limit(8).all()
+    monthly_contribution_rows = db.session.query(
+    Contribution.month,
+    db.func.coalesce(db.func.sum(Contribution.amount), 0)
+        ).group_by(
+            Contribution.month
+        ).order_by(
+            Contribution.month
+        ).limit(12).all()
+
+    monthly_contribution_labels = [row[0] for row in monthly_contribution_rows]
+    monthly_contribution_values = [float(row[1]) for row in monthly_contribution_rows]
+
     return render_template('dashboard.html', **locals())
 
 @app.route('/members')
