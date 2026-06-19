@@ -25,6 +25,32 @@
     <div class="calendar-item warning"><strong>Overdue Loans</strong><span>{{ overdue_loans|length }}</span><small>Requires follow-up</small></div>
   </div>
 </section>
+<section class="panel">
+  <h2>Monthly Contributions Trend</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th>Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for i in range(monthly_contribution_labels|length) %}
+        <tr>
+          <td>{{ monthly_contribution_labels[i] }}</td>
+          <td>{{ monthly_contribution_values[i]|kwacha }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="2">No contribution trend data found.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
 <section class="two-col">
   <div class="panel">
     <div class="panel-head"><h2>Recent Contributions</h2><a href="{{ url_for('contributions') }}">View all</a></div>
