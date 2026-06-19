@@ -23,6 +23,8 @@
         <th>Phone</th>
         <th>NRC/ID</th>
         <th>Group</th>
+        <th>Type</th>
+        <th>Position</th>
         <th>Status</th>
         <th>Actions</th>
       </tr>
@@ -36,6 +38,8 @@
         <td>{{ m.phone or '-' }}</td>
         <td>{{ m.national_id or '-' }}</td>
         <td>{{ m.group_name or '-' }}</td>
+        <td>{{ m.member_type or 'Ordinary Member' }}</td>
+        <td>{{ m.committee_position or '-' }}</td>
         <td>
           <span class="status {% if m.status == 'Active' %}active{% endif %}">
             {{ m.status }}
@@ -53,7 +57,7 @@
       </tr>
       {% else %}
       <tr>
-        <td colspan="7">No members found.</td>
+        <td colspan="9">No members found.</td>
       </tr>
       {% endfor %}
     </tbody>

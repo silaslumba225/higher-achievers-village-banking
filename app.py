@@ -1074,15 +1074,21 @@ def members():
 @role_required('members')
 def member_new():
     if request.method == 'POST':
+        member_no = request.form['member_no'].strip()
+
+        existing = Member.query.filter_by(member_no=member_no).first()
+        if existing:
+            flash('Member number already exists. Please use a different member number.', 'error')
+            return redirect(url_for('member_new'))
+
         m = Member(
-            member_no=request.form['member_no'],
-            full_name=request.form['full_name'],
+            member_no=member_no,
+            full_name=request.form['full_name'].strip(),
             phone=request.form.get('phone'),
             national_id=request.form.get('national_id'),
             group_name=request.form.get('group_name'),
             member_type=request.form.get('member_type') or 'Ordinary Member',
             committee_position=request.form.get('committee_position') or None
-            
         )
 
         db.session.add(m)
