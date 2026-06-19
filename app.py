@@ -3680,7 +3680,7 @@ def export_csv(kind):
     'Committee Position',
     'Status'
         ])
-        for m in Member.query.order_by(Member.member_no): writer.writer.writerow([
+        for m in Member.query.order_by(Member.member_no): writer.writerow([
     m.member_no,
     m.full_name,
     m.phone or '',
