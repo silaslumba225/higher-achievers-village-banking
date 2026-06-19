@@ -65,6 +65,55 @@
     </tbody></table>
   </div>
 </section>
+<section class="panel">
+  <h2>Dashboard Analytics</h2>
+
+  <div class="table-wrap">
+    <h3>Monthly Contributions Trend</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th>Total Contributions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for i in range(monthly_contribution_labels|length) %}
+        <tr>
+          <td>{{ monthly_contribution_labels[i] }}</td>
+          <td>{{ monthly_contribution_values[i]|kwacha }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="2">No contribution trend data found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="table-wrap">
+    <h3>Top 10 Savers</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Member No</th>
+          <th>Name</th>
+          <th>Total Saved</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in top_savers %}
+        <tr>
+          <td>{{ s.member_no }}</td>
+          <td>{{ s.full_name }}</td>
+          <td>{{ s.total_saved|kwacha }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3">No saver data found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
 <div class="kpi">
   <span>Savings Interest Earned</span>
   <strong>{{ savings_interest_total|kwacha }}</strong>

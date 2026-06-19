@@ -944,6 +944,58 @@ def dashboard():
     monthly_contribution_labels = [row[0] for row in monthly_contribution_rows]
     monthly_contribution_values = [float(row[1]) for row in monthly_contribution_rows]
 
+    monthly_contribution_rows = db.session.query(
+    Contribution.month,
+    db.func.coalesce(db.func.sum(Contribution.amount), 0)
+        ).group_by(
+            Contribution.month
+        ).order_by(
+            Contribution.month
+        ).limit(12).all()
+
+    monthly_contribution_labels = [row[0] for row in monthly_contribution_rows]
+    monthly_contribution_values = [float(row[1]) for row in monthly_contribution_rows]
+
+
+    monthly_loan_rows = db.session.query(
+            db.func.to_char(Loan.issued_on, 'YYYY-MM'),
+            db.func.coalesce(db.func.sum(Loan.principal), 0)
+        ).group_by(
+            db.func.to_char(Loan.issued_on, 'YYYY-MM')
+        ).order_by(
+            db.func.to_char(Loan.issued_on, 'YYYY-MM')
+        ).limit(12).all()
+
+    monthly_loan_labels = [row[0] for row in monthly_loan_rows]
+    monthly_loan_values = [float(row[1]) for row in monthly_loan_rows]
+
+
+    monthly_repayment_rows = db.session.query(
+            db.func.to_char(Repayment.paid_on, 'YYYY-MM'),
+            db.func.coalesce(db.func.sum(Repayment.amount), 0)
+        ).group_by(
+            db.func.to_char(Repayment.paid_on, 'YYYY-MM')
+        ).order_by(
+            db.func.to_char(Repayment.paid_on, 'YYYY-MM')
+        ).limit(12).all()
+
+    monthly_repayment_labels = [row[0] for row in monthly_repayment_rows]
+    monthly_repayment_values = [float(row[1]) for row in monthly_repayment_rows]
+
+
+    top_savers = db.session.query(
+            Member.member_no,
+            Member.full_name,
+            db.func.coalesce(db.func.sum(Contribution.amount), 0).label('total_saved')
+        ).join(
+            Contribution, Contribution.member_id == Member.id
+        ).group_by(
+            Member.member_no,
+            Member.full_name
+        ).order_by(
+            db.desc('total_saved')
+        ).limit(10).all()
+
     return render_template('dashboard.html', **locals())
 
 @app.route('/members')
