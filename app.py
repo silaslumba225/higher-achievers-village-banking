@@ -3704,8 +3704,26 @@ def month_end_reverse(month):
 def export_csv(kind):
     output = io.StringIO(); writer = csv.writer(output)
     if kind == 'members':
-        writer.writerow(['Member No','Full Name','Phone','National ID','Group','Status'])
-        for m in Member.query.order_by(Member.member_no): writer.writerow([m.member_no,m.full_name,m.phone,m.national_id,m.group_name,m.status])
+        writer.writerow([
+    'Member No',
+    'Full Name',
+    'Phone',
+    'NRC/ID',
+    'Group',
+    'Member Type',
+    'Committee Position',
+    'Status'
+        ])
+        for m in Member.query.order_by(Member.member_no): writer.writer.writerow([
+    m.member_no,
+    m.full_name,
+    m.phone or '',
+    m.national_id or '',
+    m.group_name or '',
+    m.member_type or 'Ordinary Member',
+    m.committee_position or '',
+    m.status
+        ])
     elif kind == 'loans':
         writer.writerow(['Member','Principal','Interest','Total Due','Paid','Balance','Status'])
         for l in Loan.query.all(): writer.writerow([l.member.full_name,l.principal,l.interest_amount,l.total_due,l.total_paid,l.balance,l.status])
