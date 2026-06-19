@@ -1035,6 +1035,61 @@ def members():
         q=q
     )
 
+@app.route('/member/<int:member_id>')
+@login_required
+@role_required('members')
+def member_profile(member_id):
+    member = Member.query.get_or_404(member_id)
+
+    total_contributions = money(
+        db.session.query(db.func.coalesce(db.func.sum(Contribution.amount), 0))
+        .filter(Contribution.member_id == member.id)
+        .scalar()
+    )
+
+    savings_interest = money(
+        db.session.query(db.func.coalesce(db.func.sum(SavingsInterest.interest_amount), 0))
+        .filter(SavingsInterest.member_id == member.id)
+        .scalar()
+    )
+
+    loans = Loan.query.filter_by(member_id=member.id).all()
+    loan_balance = money(sum((l.balance for l in loans), Decimal('0.00')))
+
+    fines = FinePenalty.query.filter_by(member_id=member.id).all()
+    fine_balance = money(sum((f.balance for f in fines if f.status != 'Waived'), Decimal('0.00')))
+
+    welfare_contributions = money(
+        db.session.query(db.func.coalesce(db.func.sum(WelfareContribution.amount), 0))
+        .filter(WelfareContribution.member_id == member.id)
+        .scalar()
+    )
+
+    welfare_paid = money(
+        db.session.query(db.func.coalesce(db.func.sum(WelfareClaim.amount_approved), 0))
+        .filter(WelfareClaim.member_id == member.id)
+        .filter(WelfareClaim.status == 'Paid')
+        .scalar()
+    )
+
+    recent_contributions = Contribution.query.filter_by(member_id=member.id).order_by(Contribution.paid_on.desc()).limit(5).all()
+    recent_loans = Loan.query.filter_by(member_id=member.id).order_by(Loan.issued_on.desc()).limit(5).all()
+    recent_fines = FinePenalty.query.filter_by(member_id=member.id).order_by(FinePenalty.id.desc()).limit(5).all()
+
+    return render_template(
+        'member_profile.html',
+        member=member,
+        total_contributions=total_contributions,
+        savings_interest=savings_interest,
+        loan_balance=loan_balance,
+        fine_balance=fine_balance,
+        welfare_contributions=welfare_contributions,
+        welfare_paid=welfare_paid,
+        recent_contributions=recent_contributions,
+        recent_loans=recent_loans,
+        recent_fines=recent_fines
+    )
+
 @app.route('/members/new', methods=['GET','POST'])
 @login_required
 @role_required('members')
@@ -3663,6 +3718,24 @@ def month_end_reverse(month):
 
     flash(f'Month-end processing for {month} has been reversed. You can now process it again.')
     return redirect(url_for('month_end'))
+
+@app.route('/committee')
+@login_required
+@role_required('members')
+def committee_register():
+    committee_members = Member.query.filter(
+        Member.member_type == 'Committee Member'
+    ).order_by(
+        Member.committee_position,
+        Member.member_no
+    ).all()
+
+    return render_template(
+        'committee.html',
+        committee_members=committee_members
+    )
+
+
 
 @app.route('/export/<kind>.csv')
 @login_required

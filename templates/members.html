@@ -12,6 +12,7 @@
   <a class="btn primary" href="{{ url_for('member_new') }}">+ New Member</a>
   <a class="btn primary" href="{{ url_for('members_import') }}">Import Members</a>
   <a class="btn" href="{{ url_for('export_csv', kind='members') }}">Export CSV</a>
+  <a class="btn" href="{{ url_for('committee_register') }}">Committee Register</a>
 </div>
 
 <div class="panel">
@@ -47,6 +48,7 @@
         </td>
         <td>
           <a class="btn small" href="{{ url_for('member_edit', member_id=m.id) }}">Edit</a>
+          <a class="btn small" href="{{ url_for('member_profile', member_id=m.id) }}">View</a>
 
           <form method="post" action="{{ url_for('member_toggle', member_id=m.id) }}" style="display:inline;">
             <button type="submit" class="btn small">

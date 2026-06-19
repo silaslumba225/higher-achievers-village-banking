@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block page_title %}Member Profile{% endblock %}
+{% block subtitle %}Detailed member account summary{% endblock %}
+
+{% block content %}
+
+<div class="actions">
+  <a class="btn" href="{{ url_for('members') }}">← Back to Members</a>
+  <a class="btn" href="{{ url_for('member_edit', member_id=member.id) }}">Edit Member</a>
+  <a class="btn" href="{{ url_for('member_statement_pdf', member_id=member.id) }}">Download Statement</a>
+</div>
+
+<section class="panel">
+  <h2>{{ member.full_name }}</h2>
+  <p><strong>Member No:</strong> {{ member.member_no }}</p>
+  <p><strong>Phone:</strong> {{ member.phone or '-' }}</p>
+  <p><strong>NRC/ID:</strong> {{ member.national_id or '-' }}</p>
+  <p><strong>Group:</strong> {{ member.group_name or '-' }}</p>
+  <p><strong>Status:</strong> {{ member.status }}</p>
+  <p><strong>Type:</strong> {{ member.member_type or 'Ordinary Member' }}</p>
+  <p><strong>Committee Position:</strong> {{ member.committee_position or '-' }}</p>
+</section>
+
+<section class="kpi-grid">
+  <div class="kpi"><span>Total Contributions</span><strong>{{ total_contributions|kwacha }}</strong></div>
+  <div class="kpi"><span>Savings Interest</span><strong>{{ savings_interest|kwacha }}</strong></div>
+  <div class="kpi"><span>Loan Balance</span><strong>{{ loan_balance|kwacha }}</strong></div>
+  <div class="kpi"><span>Fine Balance</span><strong>{{ fine_balance|kwacha }}</strong></div>
+  <div class="kpi"><span>Welfare Contributions</span><strong>{{ welfare_contributions|kwacha }}</strong></div>
+  <div class="kpi accent"><span>Welfare Paid</span><strong>{{ welfare_paid|kwacha }}</strong></div>
+</section>
+
+<section class="panel">
+  <h2>Recent Contributions</h2>
+  <table>
+    <thead><tr><th>Date</th><th>Month</th><th>Method</th><th>Reference</th><th>Amount</th></tr></thead>
+    <tbody>
+      {% for c in recent_contributions %}
+      <tr>
+        <td>{{ c.paid_on }}</td>
+        <td>{{ c.month }}</td>
+        <td>{{ c.method }}</td>
+        <td>{{ c.reference or '-' }}</td>
+        <td>{{ c.amount|kwacha }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5">No recent contributions.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="panel">
+  <h2>Recent Loans</h2>
+  <table>
+    <thead><tr><th>Issued</th><th>Principal</th><th>Total Due</th><th>Balance</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for l in recent_loans %}
+      <tr>
+        <td>{{ l.issued_on }}</td>
+        <td>{{ l.principal|kwacha }}</td>
+        <td>{{ l.total_due|kwacha }}</td>
+        <td>{{ l.balance|kwacha }}</td>
+        <td>{{ l.status }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5">No recent loans.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="panel">
+  <h2>Recent Fines</h2>
+  <table>
+    <thead><tr><th>Category</th><th>Amount</th><th>Balance</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for f in recent_fines %}
+      <tr>
+        <td>{{ f.category }}</td>
+        <td>{{ f.amount|kwacha }}</td>
+        <td>{{ f.balance|kwacha }}</td>
+        <td>{{ f.status }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4">No recent fines.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% endblock %}
