@@ -70,6 +70,10 @@
   <canvas id="loansRepaymentsChart" height="100"></canvas>
 </section>
 <section class="panel">
+  <h2>Welfare Fund Contributions Trend</h2>
+  <canvas id="welfareChart" height="100"></canvas>
+</section>
+<section class="panel">
 
   <h2>Dashboard Analytics</h2>
 
@@ -199,6 +203,10 @@
   const contributionValues = {{ monthly_contribution_values|tojson }};
 </script>
 <script>
+const welfareLabels = {{ monthly_welfare_labels|tojson }};
+const welfareValues = {{ monthly_welfare_values|tojson }};
+</script>
+<script>
 const contributionsCtx = document.getElementById('contributionsChart');
 
 if (contributionsCtx) {
@@ -253,6 +261,31 @@ if (loansCtx) {
   const loanLabels = {{ monthly_loan_labels|tojson }};
   const loanValues = {{ monthly_loan_values|tojson }};
   const repaymentValues = {{ monthly_repayment_values|tojson }};
+</script>
+<script>
+const welfareCtx = document.getElementById('welfareChart');
+
+if (welfareCtx) {
+  new Chart(welfareCtx, {
+    type: 'line',
+    data: {
+      labels: welfareLabels,
+      datasets: [{
+        label: 'Welfare Contributions',
+        data: welfareValues,
+        tension: 0.3
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+}
 </script>
 
 {% endblock %}

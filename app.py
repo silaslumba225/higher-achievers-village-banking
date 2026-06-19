@@ -1023,6 +1023,17 @@ def dashboard():
         Member.status == 'Active',
         ~Member.id.in_(paid_member_ids)
     ).count()
+    monthly_welfare_rows = db.session.query(
+    WelfareContribution.month,
+        db.func.coalesce(db.func.sum(WelfareContribution.amount), 0)
+    ).group_by(
+        WelfareContribution.month
+    ).order_by(
+        WelfareContribution.month
+    ).limit(12).all()
+
+    monthly_welfare_labels = [row[0] for row in monthly_welfare_rows]
+    monthly_welfare_values = [float(row[1]) for row in monthly_welfare_rows]
 
     return render_template('dashboard.html', **locals())
 
