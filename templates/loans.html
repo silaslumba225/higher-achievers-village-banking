@@ -81,23 +81,25 @@
         </td>
 
         <td>
-          {% if l.status == 'Applied' %}
-            <form method="post"
-                  action="{{ url_for('loan_approve', loan_id=l.id) }}"
-                  class="inline-form">
-              <button class="btn small" type="submit">Approve</button>
-            </form>
-          {% elif l.status == 'Approved' %}
-            <form method="post"
-                  action="{{ url_for('loan_disburse', loan_id=l.id) }}"
-                  class="inline-form">
-              <button class="btn small" type="submit">Disburse</button>
-            </form>
-          {% else %}
-            <small>-</small>
-          {% endif %}
-        </td>
+        {% if l.status == 'Applied' %}
+          <form method="post" action="{{ url_for('loan_review', loan_id=l.id) }}" class="inline-form">
+            <button class="btn small" type="submit">Review</button>
+          </form>
 
+        {% elif l.status == 'Reviewed' %}
+          <form method="post" action="{{ url_for('loan_approve', loan_id=l.id) }}" class="inline-form">
+            <button class="btn small" type="submit">Approve</button>
+          </form>
+
+        {% elif l.status == 'Approved' %}
+          <form method="post" action="{{ url_for('loan_disburse', loan_id=l.id) }}" class="inline-form">
+            <button class="btn small" type="submit">Disburse</button>
+          </form>
+
+        {% else %}
+          <small>-</small>
+        {% endif %}
+      </td>
         <td>
           {% if l.status in ['Disbursed', 'Partially Paid'] and l.balance > 0 %}
             <form method="post"

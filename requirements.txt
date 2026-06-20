@@ -5,4 +5,4 @@ gunicorn
 psycopg[binary]==3.2.13
 reportlab
 openpyxl
-africastalking
+

@@ -11,7 +11,6 @@ import io
 import os
 import shutil
 import json
-# import africastalking
 from pathlib import Path
 from werkzeug.utils import secure_filename
 from reportlab.lib import colors
@@ -1367,8 +1366,9 @@ def loans():
 @role_required('loans')
 def loan_review(loan_id):
     loan = Loan.query.get_or_404(loan_id)
-    if loan.status != 'Applied':
-        flash('Only Applied loans can be marked as reviewed.', 'error')
+    if loan.status != 'Reviewed':
+        flash('Only reviewed loans can be approved.', 'error')
+        return redirect(url_for('loans'))
     else:
         user = session.get('user') or {}
         loan.status = 'Reviewed'
@@ -1392,20 +1392,6 @@ def loan_reject(loan_id):
         db.session.commit(); log_audit('LOAN_REJECTED', 'Loan', loan.id, f'{loan.member.full_name} loan rejected. Reason: {loan.rejection_reason}'); flash('Loan application rejected.')
     return redirect(url_for('loans'))
 
-""" @app.route('/loans/<int:loan_id>/disburse', methods=['POST'])
-@login_required
-@role_required('loans')
-def loan_disburse(loan_id):
-    loan = Loan.query.get_or_404(loan_id)
-    if loan.status != 'Approved':
-        flash('Only Approved loans can be disbursed.', 'error')
-    else:
-        user = session.get('user') or {}
-        loan.status = 'Disbursed'
-        loan.disbursed_by = user.get('full_name') or user.get('username')
-        loan.disbursed_on = date.today()
-        db.session.commit(); log_audit('LOAN_DISBURSED', 'Loan', loan.id, f'{loan.member.full_name} loan of {kwacha(loan.principal)} disbursed by {loan.disbursed_by}'); flash('Loan disbursed. Repayments can now be recorded.')
-    return redirect(url_for('loans')) """
 
 @app.route('/repayments', methods=['POST'])
 @login_required
@@ -1481,12 +1467,11 @@ def loan_approve(loan_id):
     db.session.commit()
 
     log_audit(
-        'APPROVE_LOAN',
+        'LOAN_APPROVED',
         'Loan',
         loan.id,
-        f'Loan for {loan.member.full_name} approved'
+        f'{loan.member.full_name} loan approved by {loan.approved_by}'
     )
-
     flash('Loan approved successfully.')
     return redirect(url_for('loans'))
 
