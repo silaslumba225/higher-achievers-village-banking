@@ -1426,15 +1426,113 @@ def loan_disburse(loan_id):
 @role_required('repayments')
 def repayments():
     loan = Loan.query.get_or_404(int(request.form['loan_id']))
-    if loan.status not in ['Open', 'Disbursed']:
+
+    if loan.status not in ['Disbursed', 'Partially Paid']:
         flash('Repayment can only be recorded for disbursed loans.', 'error')
         return redirect(url_for('loans'))
-    r = Repayment(loan_id=loan.id, amount=money(request.form['amount']), method=request.form['method'], reference=request.form.get('reference'), paid_on=parse_date(request.form.get('paid_on')))
-    db.session.add(r); db.session.commit(); log_audit('RECORD_REPAYMENT', 'Repayment', r.id, f'{loan.member.full_name} paid {kwacha(r.amount)} on loan #{loan.id} via {r.method}')
+
+    amount = money(request.form['amount'])
+
+    if amount <= 0:
+        flash('Repayment amount must be greater than zero.', 'error')
+        return redirect(url_for('loans'))
+
+    if amount > loan.balance:
+        flash('Repayment amount cannot exceed the outstanding loan balance.', 'error')
+        return redirect(url_for('loans'))
+
+    r = Repayment(
+        loan_id=loan.id,
+        amount=amount,
+        method=request.form['method'],
+        reference=request.form.get('reference'),
+        paid_on=parse_date(request.form.get('paid_on'))
+    )
+
+    db.session.add(r)
+    db.session.commit()
+
+    log_audit(
+        'RECORD_REPAYMENT',
+        'Repayment',
+        r.id,
+        f'{loan.member.full_name} paid {kwacha(r.amount)} on loan #{loan.id} via {r.method}'
+    )
+
     if loan.balance <= 0:
-        loan.status = 'Closed'; db.session.commit(); log_audit('CLOSE_LOAN', 'Loan', loan.id, f'Loan for {loan.member.full_name} fully repaid')
+        loan.status = 'Paid'
+        db.session.commit()
+
+        log_audit(
+            'CLOSE_LOAN',
+            'Loan',
+            loan.id,
+            f'Loan for {loan.member.full_name} fully repaid'
+        )
+    else:
+        loan.status = 'Partially Paid'
+        db.session.commit()
+
     flash('Repayment recorded.')
     return redirect(url_for('loans'))
+
+@app.route('/loans/<int:loan_id>/approve', methods=['POST'])
+@login_required
+@role_required('loans')
+def loan_approve(loan_id):
+    loan = Loan.query.get_or_404(loan_id)
+
+    if loan.status != 'Applied':
+        flash('Only applied loans can be approved.', 'error')
+        return redirect(url_for('loans'))
+
+    loan.status = 'Approved'
+    loan.approved_on = date.today()
+
+    user = session.get('user') or {}
+    loan.approved_by = user.get('full_name') or user.get('username')
+
+    db.session.commit()
+
+    log_audit(
+        'APPROVE_LOAN',
+        'Loan',
+        loan.id,
+        f'Loan for {loan.member.full_name} approved'
+    )
+
+    flash('Loan approved successfully.')
+    return redirect(url_for('loans'))
+
+
+@app.route('/loans/<int:loan_id>/disburse', methods=['POST'])
+@login_required
+@role_required('loans')
+def loan_disburse(loan_id):
+    loan = Loan.query.get_or_404(loan_id)
+
+    if loan.status != 'Approved':
+        flash('Only approved loans can be disbursed.', 'error')
+        return redirect(url_for('loans'))
+
+    loan.status = 'Disbursed'
+    loan.disbursed_on = date.today()
+
+    user = session.get('user') or {}
+    loan.disbursed_by = user.get('full_name') or user.get('username')
+
+    db.session.commit()
+
+    log_audit(
+        'DISBURSE_LOAN',
+        'Loan',
+        loan.id,
+        f'Loan for {loan.member.full_name} disbursed'
+    )
+
+    flash('Loan disbursed successfully.')
+    return redirect(url_for('loans'))
+
 
 @app.route('/distributions', methods=['GET','POST'])
 @login_required

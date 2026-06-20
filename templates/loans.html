@@ -1,11 +1,143 @@
 {% extends 'base.html' %}
+
 {% block page_title %}Loan Management{% endblock %}
 {% block subtitle %}Issue loans at {{ interest_percent }}% interest and track repayments{% endblock %}
+
 {% block content %}
-<div class="panel"><form method="post" class="form-grid"><label>Member<select name="member_id" required>{% for m in members %}<option value="{{ m.id }}">{{ m.member_no }} - {{ m.full_name }}</option>{% endfor %}</select></label><label>Principal<input type="number" step="0.01" name="principal" required></label><label>Issued On<input type="date" name="issued_on"></label><label>Due On<input type="date" name="due_on"></label><label>Approved By<input name="approved_by" placeholder="Management Committee"></label><label>Purpose<input name="purpose"></label><button class="btn primary">Issue Loan</button></form></div>
-<div class="panel"><div class="panel-head"><h2>Loan Portfolio</h2><a class="btn" href="{{ url_for('export_csv', kind='loans') }}">Export CSV</a></div><table><thead><tr><th>Member</th><th>Principal</th><th>Interest</th><th>Total Due</th><th>Paid</th><th>Balance</th><th>Due</th><th>Status</th><th>Repayment</th></tr></thead><tbody>{% for l in loans %}<tr><td>{{ l.member.full_name }}</td><td>{{ l.principal|kwacha }}</td><td>{{ l.interest_amount|kwacha }}</td><td>{{ l.total_due|kwacha }}</td><td>{{ l.total_paid|kwacha }}</td><td>{{ l.balance|kwacha }}</td><td>{{ l.due_on }}</td><td><span class="status {{ 'overdue' if l.overdue else l.status|lower }}">{{ 'Overdue' if l.overdue else l.status }}</span></td><td>{% if l.balance > 0 %}<form method="post" action="{{ url_for('repayments') }}" class="inline-form"><input type="hidden" name="loan_id" value="{{ l.id }}"><input name="amount" type="number" step="0.01" placeholder="Amount" required><select name="method">{% for p in payment_methods %}<option>{{ p }}</option>{% endfor %}</select><input name="reference" placeholder="Ref"><button class="btn small">Pay</button></form>{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+
+<section class="panel">
+  <h2>New Loan Application</h2>
+
+  <form method="post" class="form-grid">
+    <label>Member
+      <select name="member_id" required>
+        {% for m in members %}
+          <option value="{{ m.id }}">{{ m.member_no }} - {{ m.full_name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>Principal
+      <input type="number" step="0.01" name="principal" required>
+    </label>
+
+    <label>Issued On
+      <input type="date" name="issued_on">
+    </label>
+
+    <label>Due On
+      <input type="date" name="due_on">
+    </label>
+
+    <label>Approved By
+      <input name="approved_by" placeholder="Management Committee">
+    </label>
+
+    <label>Purpose
+      <input name="purpose">
+    </label>
+
+    <button class="btn primary" type="submit">Issue Loan</button>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h2>Loan Portfolio</h2>
+    <a class="btn" href="{{ url_for('export_csv', kind='loans') }}">Export CSV</a>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Member</th>
+        <th>Principal</th>
+        <th>Interest</th>
+        <th>Total Due</th>
+        <th>Paid</th>
+        <th>Balance</th>
+        <th>Due</th>
+        <th>Status</th>
+        <th>Actions
+          <td>
+            {% if l.status == 'Applied' %}
+              <form method="post" action="{{ url_for('loan_approve', loan_id=l.id) }}" class="inline-form">
+                <button class="btn small" type="submit">Approve</button>
+              </form>
+            {% elif l.status == 'Approved' %}
+              <form method="post" action="{{ url_for('loan_disburse', loan_id=l.id) }}" class="inline-form">
+                <button class="btn small" type="submit">Disburse</button>
+              </form>
+            {% else %}
+              <small>-</small>
+            {% endif %}
+          </td>
+        </th>
+        <th>Repayment</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for l in loans %}
+      <tr>
+        <td>{{ l.member.full_name }}</td>
+        <td>{{ l.principal|kwacha }}</td>
+        <td>{{ l.interest_amount|kwacha }}</td>
+        <td>{{ l.total_due|kwacha }}</td>
+        <td>{{ l.total_paid|kwacha }}</td>
+        <td>{{ l.balance|kwacha }}</td>
+        <td>{{ l.due_on }}</td>
+
+        <td>
+          <span class="status {{ 'overdue' if l.overdue else l.status|lower }}">
+            {{ 'Overdue' if l.overdue else l.status }}
+          </span>
+        </td>
+
+        <td>
+          {% if l.status in ['Disbursed', 'Partially Paid'] and l.balance > 0 %}
+            <form method="post"
+                  action="{{ url_for('repayments') }}"
+                  class="inline-form">
+
+              <input type="hidden" name="loan_id" value="{{ l.id }}">
+
+              <input name="amount"
+                     type="number"
+                     step="0.01"
+                     placeholder="Amount"
+                     required>
+
+              <select name="method">
+                {% for p in payment_methods %}
+                  <option>{{ p }}</option>
+                {% endfor %}
+              </select>
+
+              <input name="reference" placeholder="Ref">
+
+              <button class="btn small" type="submit">Pay</button>
+            </form>
+          {% else %}
+            <small>-</small>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="10">No loans found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
 {% if pagination %}
 <div class="actions">
+  {% if pagination.page > 1 %}
+    <a class="btn" href="{{ url_for('loans', page=1) }}">« First</a>
+  {% endif %}
+
   {% if pagination.has_prev %}
     <a class="btn" href="{{ url_for('loans', page=pagination.prev_num) }}">← Previous</a>
   {% endif %}
@@ -15,19 +147,11 @@
   {% if pagination.has_next %}
     <a class="btn" href="{{ url_for('loans', page=pagination.next_num) }}">Next →</a>
   {% endif %}
-</div>
-{% endif %}
-{% if loan_pagination %}
-<div class="actions">
-  {% if loan_pagination.has_prev %}
-    <a class="btn" href="{{ url_for('month_end_details', month=process.month, savings_page=savings_pagination.page, loans_page=loan_pagination.prev_num) }}">← Previous Loans</a>
-  {% endif %}
 
-  <span class="badge">Loan Page {{ loan_pagination.page }} of {{ loan_pagination.pages }}</span>
-
-  {% if loan_pagination.has_next %}
-    <a class="btn" href="{{ url_for('month_end_details', month=process.month, savings_page=savings_pagination.page, loans_page=loan_pagination.next_num) }}">Next Loans →</a>
+  {% if pagination.page < pagination.pages %}
+    <a class="btn" href="{{ url_for('loans', page=pagination.pages) }}">Last »</a>
   {% endif %}
 </div>
 {% endif %}
+
 {% endblock %}
