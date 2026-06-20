@@ -1377,20 +1377,6 @@ def loan_review(loan_id):
         db.session.commit(); log_audit('LOAN_REVIEWED', 'Loan', loan.id, f'{loan.member.full_name} loan reviewed by {loan.reviewed_by}'); flash('Loan application marked as reviewed.')
     return redirect(url_for('loans'))
 
-""" @app.route('/loans/<int:loan_id>/approve', methods=['POST'])
-@login_required
-@role_required('loans')
-def loan_approve(loan_id):
-    loan = Loan.query.get_or_404(loan_id)
-    if loan.status not in ['Applied', 'Reviewed']:
-        flash('Only Applied or Reviewed loans can be approved.', 'error')
-    else:
-        user = session.get('user') or {}
-        loan.status = 'Approved'
-        loan.approved_by = request.form.get('approved_by') or user.get('full_name') or 'Management Committee'
-        loan.approved_on = date.today()
-        db.session.commit(); log_audit('LOAN_APPROVED', 'Loan', loan.id, f'{loan.member.full_name} loan of {kwacha(loan.principal)} approved by {loan.approved_by}'); flash('Loan approved. It is ready for disbursement.')
-    return redirect(url_for('loans')) """
 
 @app.route('/loans/<int:loan_id>/reject', methods=['POST'])
 @login_required
