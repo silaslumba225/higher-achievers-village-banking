@@ -1392,7 +1392,7 @@ def loan_reject(loan_id):
         db.session.commit(); log_audit('LOAN_REJECTED', 'Loan', loan.id, f'{loan.member.full_name} loan rejected. Reason: {loan.rejection_reason}'); flash('Loan application rejected.')
     return redirect(url_for('loans'))
 
-@app.route('/loans/<int:loan_id>/disburse', methods=['POST'])
+""" @app.route('/loans/<int:loan_id>/disburse', methods=['POST'])
 @login_required
 @role_required('loans')
 def loan_disburse(loan_id):
@@ -1405,7 +1405,7 @@ def loan_disburse(loan_id):
         loan.disbursed_by = user.get('full_name') or user.get('username')
         loan.disbursed_on = date.today()
         db.session.commit(); log_audit('LOAN_DISBURSED', 'Loan', loan.id, f'{loan.member.full_name} loan of {kwacha(loan.principal)} disbursed by {loan.disbursed_by}'); flash('Loan disbursed. Repayments can now be recorded.')
-    return redirect(url_for('loans'))
+    return redirect(url_for('loans')) """
 
 @app.route('/repayments', methods=['POST'])
 @login_required
