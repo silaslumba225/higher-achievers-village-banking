@@ -1467,8 +1467,8 @@ def repayments():
 def loan_approve(loan_id):
     loan = Loan.query.get_or_404(loan_id)
 
-    if loan.status != 'Applied':
-        flash('Only applied loans can be approved.', 'error')
+    if loan.status != 'Reviewed':
+        flash('Only reviewed loans can be approved.', 'error')
         return redirect(url_for('loans'))
 
     loan.status = 'Approved'
