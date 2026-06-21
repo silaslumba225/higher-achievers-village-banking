@@ -1564,6 +1564,41 @@ def loan_disburse(loan_id):
     flash('Loan disbursed successfully.')
     return redirect(url_for('loans'))
 
+@app.route('/loans/<int:loan_id>/reject', methods=['POST'])
+@login_required
+@role_required('loans')
+def loan_reject(loan_id):
+    loan = Loan.query.get_or_404(loan_id)
+
+    if loan.status not in ['Applied', 'Reviewed']:
+        flash('Only applied or reviewed loans can be rejected.', 'error')
+        return redirect(url_for('loans'))
+
+    reason = (request.form.get('rejection_reason') or '').strip()
+
+    if not reason:
+        flash('Rejection reason is required.', 'error')
+        return redirect(url_for('loans'))
+
+    user = session.get('user') or {}
+
+    loan.status = 'Rejected'
+    loan.rejected_on = date.today()
+    loan.rejection_reason = reason
+    loan.reviewed_by = user.get('full_name') or user.get('username')
+
+    db.session.commit()
+
+    log_audit(
+        'LOAN_REJECTED',
+        'Loan',
+        loan.id,
+        f'{loan.member.full_name} loan rejected. Reason: {reason}'
+    )
+
+    flash('Loan application rejected.')
+    return redirect(url_for('loans'))
+
 
 @app.route('/distributions', methods=['GET','POST'])
 @login_required

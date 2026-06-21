@@ -60,6 +60,7 @@
         <th>Status</th>
         <th>Actions</th>
         <th>Repayment</th>
+        <th>Rejection Reason</th>
       </tr>
     </thead>
 
@@ -82,14 +83,40 @@
 
         <td>
         {% if l.status == 'Applied' %}
-          <form method="post" action="{{ url_for('loan_review', loan_id=l.id) }}" class="inline-form">
-            <button class="btn small" type="submit">Review</button>
-          </form>
+        <form method="post"
+              action="{{ url_for('loan_review', loan_id=l.id) }}"
+              class="inline-form">
+            <button class="btn small" type="submit">
+                Review
+            </button>
+        </form>
+
+        <form method="post"
+            action="{{ url_for('loan_reject', loan_id=l.id) }}"
+            class="inline-form"
+            onsubmit="return addRejectionReason(this);">
+        <input type="hidden" name="rejection_reason">
+        <button class="btn small danger" type="submit">Reject</button>
+      </form>
 
         {% elif l.status == 'Reviewed' %}
-          <form method="post" action="{{ url_for('loan_approve', loan_id=l.id) }}" class="inline-form">
-            <button class="btn small" type="submit">Approve</button>
+
+          <form method="post"
+                action="{{ url_for('loan_approve', loan_id=l.id) }}"
+                class="inline-form">
+              <button class="btn small" type="submit">
+                  Approve
+              </button>
           </form>
+
+          <form method="post"
+            action="{{ url_for('loan_reject', loan_id=l.id) }}"
+            class="inline-form"
+            onsubmit="return addRejectionReason(this);">
+        <input type="hidden" name="rejection_reason">
+        <button class="btn small danger" type="submit">Reject</button>
+        </form>
+          
 
         {% elif l.status == 'Approved' %}
           <form method="post" action="{{ url_for('loan_disburse', loan_id=l.id) }}" class="inline-form">
@@ -100,6 +127,13 @@
           <small>-</small>
         {% endif %}
       </td>
+      <td>
+          {% if l.status == 'Rejected' %}
+            {{ l.rejection_reason }}
+          {% else %}
+            -
+          {% endif %}
+        </td>
         <td>
           {% if l.status in ['Disbursed', 'Partially Paid'] and l.balance > 0 %}
             <form method="post"
@@ -152,5 +186,18 @@
   {% endif %}
 </div>
 {% endif %}
+  <script>
+      function addRejectionReason(form) {
+        const reason = prompt('Enter rejection reason:');
+
+        if (!reason || reason.trim() === '') {
+          alert('Rejection reason is required.');
+          return false;
+        }
+
+        form.querySelector('input[name="rejection_reason"]').value = reason.trim();
+        return true;
+      }
+</script>
 
 {% endblock %}
