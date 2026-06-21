@@ -202,7 +202,7 @@ class Loan(db.Model):
     issued_on = db.Column(db.Date, default=date.today)
     due_on = db.Column(db.Date, nullable=False)
     purpose = db.Column(db.String(200))
-    status = db.Column(db.String(20), default='Applied')  # Applied, Reviewed, Approved, Disbursed, Open, Rejected, Closed
+    status = db.Column(db.String(20), default='Applied')  # Applied, Reviewed, Approved, Disbursed, Partially Paid, Paid, Rejected
     approved_by = db.Column(db.String(120), default='')
     reviewed_by = db.Column(db.String(120))
     disbursed_by = db.Column(db.String(120))
@@ -231,7 +231,7 @@ class Loan(db.Model):
 
     @property
     def overdue(self):
-        return self.status in ['Open', 'Disbursed'] and self.due_on < date.today() and self.balance > 0
+        return self.status in ['Disbursed', 'Partially Paid'] and self.due_on < date.today() and self.balance > 0
 
 class Repayment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -623,7 +623,7 @@ def sync_operational_transactions_to_gl():
             ])
             created += 1
     # Disbursed loans: Dr loans receivable / Cr cash on hand
-    for l in Loan.query.filter(Loan.status.in_(['Open','Disbursed','Closed'])).all():
+    for l in Loan.query.filter(Loan.status.in_(['Disbursed', 'Partially Paid', 'Paid'])).all()
         if not JournalEntry.query.filter_by(source_type='Loan', source_id=str(l.id)).first():
             post_journal(l.issued_on, f'Loan issued to {l.member.full_name}', f'Loan-{l.id}', 'Loan', l.id, [
                 {'account': loans_receivable, 'debit': l.principal},
@@ -847,7 +847,7 @@ def dashboard():
     welfare_paid_total = money(db.session.query(db.func.coalesce(db.func.sum(WelfareClaim.amount_approved), 0)).filter(WelfareClaim.status == 'Paid').scalar())
     welfare_balance = money(welfare_contribution_total - welfare_paid_total)
     welfare_pending = WelfareClaim.query.filter(WelfareClaim.status.in_(['Requested', 'Reviewed', 'Approved'])).count()
-    open_loans = Loan.query.filter(Loan.status.in_(['Open', 'Disbursed'])).all()
+    open_loans = Loan.query.filter(Loan.status.in_(['Disbursed', 'Partially Paid'])).all()
     loan_balance = money(sum((l.balance for l in open_loans), Decimal('0.00')))
     interest_earned = money(sum((l.interest_amount for l in Loan.query.all()), Decimal('0.00')))
     available_fund = money(contribution_total + repayment_total + fine_paid_total - loans_total - distribution_total)
@@ -1383,7 +1383,7 @@ def loan_review(loan_id):
 @role_required('loans')
 def loan_reject(loan_id):
     loan = Loan.query.get_or_404(loan_id)
-    if loan.status in ['Disbursed', 'Open', 'Closed']:
+    if loan.status in ['Disbursed', 'Partially Paid', 'Paid']:
         flash('A disbursed or closed loan cannot be rejected.', 'error')
     else:
         loan.status = 'Rejected'
@@ -1980,7 +1980,7 @@ def reports():
     )
 
     open_loans = Loan.query.filter(
-        Loan.status.in_(['Open', 'Disbursed'])
+        Loan.status.in_(['Disbursed', 'Partially Paid'])
     ).order_by(
         Loan.issued_on.desc(),
         Loan.id.desc()
@@ -3633,7 +3633,7 @@ def month_end():
                 members_processed += 1
 
         loans = Loan.query.filter(
-            Loan.status.in_(['Disbursed', 'Open', 'Applied', 'Approved'])
+            Loan.status.in_(['Disbursed', 'Partially Paid'])
         ).all()
 
         for loan in loans:
