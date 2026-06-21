@@ -1313,7 +1313,23 @@ def contributions():
                 pagination=pagination,
                 members=Member.query.order_by(Member.full_name).all()
             )
-
+# ------------------------------------------------------------
+# LOAN PROCESSING WORKFLOW
+#
+# Applied    -> Review
+# Reviewed   -> Approve
+# Approved   -> Disburse
+# Disbursed  -> Repayment
+# Paid       -> Closed
+#
+# Rejection may occur before disbursement.
+#
+# Route Responsibilities:
+# loan_review()    : Applied   -> Reviewed
+# loan_approve()   : Reviewed  -> Approved
+# loan_disburse()  : Approved  -> Disbursed
+# repayments()     : Disbursed -> Partially Paid/Paid
+# ------------------------------------------------------------
 @app.route('/loans', methods=['GET','POST'])
 @login_required
 @role_required('loans')
@@ -1406,6 +1422,36 @@ def loan_reject(loan_id):
     return redirect(url_for('loans'))
 
 
+# ------------------------------------------------------------
+# LOAN REPAYMENT WORKFLOW
+#
+# Loan Status Flow:
+# Applied
+#   -> Reviewed
+#   -> Approved
+#   -> Disbursed
+#   -> Partially Paid
+#   -> Paid
+#
+# Repayments may ONLY be recorded for:
+#   - Disbursed
+#   - Partially Paid
+#
+# Repayments are NOT allowed for:
+#   - Applied
+#   - Reviewed
+#   - Approved
+#   - Paid
+#   - Rejected
+#
+# After repayment:
+#   - If balance > 0  -> status becomes 'Partially Paid'
+#   - If balance = 0  -> status becomes 'Paid'
+#
+# This workflow preserves a complete audit trail:
+# Review -> Approval -> Disbursement -> Repayment -> Closure
+# ------------------------------------------------------------
+
 @app.route('/repayments', methods=['POST'])
 @login_required
 @role_required('repayments')
@@ -1436,6 +1482,7 @@ def repayments():
 
     db.session.add(r)
     db.session.commit()
+    db.session.refresh(loan)
 
     log_audit(
         'RECORD_REPAYMENT',
