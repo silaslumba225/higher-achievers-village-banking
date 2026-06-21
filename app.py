@@ -1368,17 +1368,28 @@ def loans():
 @role_required('loans')
 def loan_review(loan_id):
     loan = Loan.query.get_or_404(loan_id)
-    if loan.status != 'Reviewed':
-        flash('Only reviewed loans can be approved.', 'error')
-        return redirect(url_for('loans'))
-    else:
-        user = session.get('user') or {}
-        loan.status = 'Reviewed'
-        loan.reviewed_by = user.get('full_name') or user.get('username')
-        loan.reviewed_on = date.today()
-        db.session.commit(); log_audit('LOAN_REVIEWED', 'Loan', loan.id, f'{loan.member.full_name} loan reviewed by {loan.reviewed_by}'); flash('Loan application marked as reviewed.')
-    return redirect(url_for('loans'))
 
+    if loan.status != 'Applied':
+        flash('Only applied loans can be reviewed.', 'error')
+        return redirect(url_for('loans'))
+
+    user = session.get('user') or {}
+
+    loan.status = 'Reviewed'
+    loan.reviewed_by = user.get('full_name') or user.get('username')
+    loan.reviewed_on = date.today()
+
+    db.session.commit()
+
+    log_audit(
+        'LOAN_REVIEWED',
+        'Loan',
+        loan.id,
+        f'{loan.member.full_name} loan reviewed by {loan.reviewed_by}'
+    )
+
+    flash('Loan application marked as reviewed.')
+    return redirect(url_for('loans'))
 
 @app.route('/loans/<int:loan_id>/reject', methods=['POST'])
 @login_required
