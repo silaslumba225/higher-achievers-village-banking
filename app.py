@@ -1407,20 +1407,6 @@ def loan_review(loan_id):
     flash('Loan application marked as reviewed.')
     return redirect(url_for('loans'))
 
-@app.route('/loans/<int:loan_id>/reject', methods=['POST'])
-@login_required
-@role_required('loans')
-def loan_reject(loan_id):
-    loan = Loan.query.get_or_404(loan_id)
-    if loan.status in ['Disbursed', 'Partially Paid', 'Paid']:
-        flash('A disbursed or closed loan cannot be rejected.', 'error')
-    else:
-        loan.status = 'Rejected'
-        loan.rejected_on = date.today()
-        loan.rejection_reason = request.form.get('reason') or 'Not specified'
-        db.session.commit(); log_audit('LOAN_REJECTED', 'Loan', loan.id, f'{loan.member.full_name} loan rejected. Reason: {loan.rejection_reason}'); flash('Loan application rejected.')
-    return redirect(url_for('loans'))
-
 
 # ------------------------------------------------------------
 # LOAN REPAYMENT WORKFLOW
