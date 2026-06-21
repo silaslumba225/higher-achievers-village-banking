@@ -623,7 +623,9 @@ def sync_operational_transactions_to_gl():
             ])
             created += 1
     # Disbursed loans: Dr loans receivable / Cr cash on hand
-    for l in Loan.query.filter(Loan.status.in_(['Disbursed', 'Partially Paid', 'Paid'])).all()
+    for l in Loan.query.filter(
+    Loan.status.in_(['Disbursed', 'Partially Paid', 'Paid'])
+        ).all():
         if not JournalEntry.query.filter_by(source_type='Loan', source_id=str(l.id)).first():
             post_journal(l.issued_on, f'Loan issued to {l.member.full_name}', f'Loan-{l.id}', 'Loan', l.id, [
                 {'account': loans_receivable, 'debit': l.principal},
