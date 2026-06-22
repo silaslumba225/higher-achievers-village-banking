@@ -4194,7 +4194,7 @@ def ensure_member_columns():
         except Exception:
             db.session.rollback()
 
-@app.route('/fix-loan-numbers')
+""" @app.route('/fix-loan-numbers')
 @login_required
 def fix_loan_numbers():
     loans = Loan.query.filter(
@@ -4207,7 +4207,7 @@ def fix_loan_numbers():
     db.session.commit()
 
     return f'Updated {len(loans)} loans.'
-
+ """
 
 def initialize_database():
     with app.app_context():
