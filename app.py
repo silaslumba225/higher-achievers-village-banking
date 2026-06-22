@@ -212,6 +212,7 @@ class Loan(db.Model):
     rejected_on = db.Column(db.Date)
     rejection_reason = db.Column(db.String(250))
     member = db.relationship('Member', backref='loans')
+    loan_no = db.Column(db.String(30), unique=True)
 
     @property
     def interest_amount(self):
@@ -4176,6 +4177,19 @@ def ensure_member_columns():
             db.session.commit()
         except Exception:
             db.session.rollback()
+
+@app.route('/fix-loan-numbers')
+def fix_loan_numbers():
+    loans = Loan.query.filter(
+        (Loan.loan_no == None) | (Loan.loan_no == '')
+    ).all()
+
+    for loan in loans:
+        loan.loan_no = f'LN{loan.id:04d}'
+
+    db.session.commit()
+
+    return f'Updated {len(loans)} loans.'
 
 def initialize_database():
     with app.app_context():
