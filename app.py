@@ -454,6 +454,7 @@ class SystemSetting(db.Model):
 
 def ensure_settings_columns():
     columns = {
+        'loan_no': 'VARCHAR(30)',
         'logo_url': 'VARCHAR(500)',
         'organization_address': 'VARCHAR(250)',
         'organization_phone': 'VARCHAR(50)',
@@ -4178,18 +4179,6 @@ def ensure_member_columns():
         except Exception:
             db.session.rollback()
 
-@app.route('/fix-loan-numbers')
-def fix_loan_numbers():
-    loans = Loan.query.filter(
-        (Loan.loan_no == None) | (Loan.loan_no == '')
-    ).all()
-
-    for loan in loans:
-        loan.loan_no = f'LN{loan.id:04d}'
-
-    db.session.commit()
-
-    return f'Updated {len(loans)} loans.'
 
 def initialize_database():
     with app.app_context():
@@ -4197,6 +4186,7 @@ def initialize_database():
         ensure_month_end_columns()
         ensure_settings_columns()
         ensure_member_columns()
+        ensure_loan_columns()
         ensure_schema()
         ensure_admin()
 
