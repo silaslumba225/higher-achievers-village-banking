@@ -60,9 +60,9 @@
           <th>Due</th>
           <th>Status</th>
           <th>Actions</th>
-          <th class="rejection-reason">Rejection Reason</th>
           <th>Repayment</th>
-        </tr>
+          <th class="rejection-reason">Rejection Reason</th>
+          </tr>
       </thead>
 
       <tbody>
@@ -125,14 +125,6 @@
             {% endif %}
           </td>
 
-          <td class="rejection-reason">
-            {% if l.status == 'Rejected' %}
-              {{ l.rejection_reason or '-' }}
-            {% else %}
-              -
-            {% endif %}
-          </td>
-
           <td>
             {% if l.status in ['Disbursed', 'Partially Paid'] and l.balance > 0 %}
               <form method="post"
@@ -158,6 +150,14 @@
               </form>
             {% else %}
               <small>-</small>
+            {% endif %}
+          </td>
+
+          <td class="rejection-reason">
+            {% if l.status == 'Rejected' %}
+              {{ l.rejection_reason or '-' }}
+            {% else %}
+              -
             {% endif %}
           </td>
         </tr>
