@@ -1742,13 +1742,16 @@ def loan_aging_report():
     today = date.today()
 
     loans = Loan.query.filter(
-        Loan.status.in_(['Disbursed', 'Partially Paid']),
-        Loan.balance > 0
-    ).order_by(
-        Loan.due_on.asc(),
-        Loan.id.desc()
-    ).all()
+    Loan.status.in_(['Disbursed', 'Partially Paid'])
+        ).order_by(
+            Loan.due_on.asc(),
+            Loan.id.desc()
+        ).all()
 
+    loans = [
+            loan for loan in loans
+            if loan.balance > 0
+        ]
     buckets = {
         'Current': [],
         '1-30 Days Overdue': [],
