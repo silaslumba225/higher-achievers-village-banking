@@ -3933,8 +3933,48 @@ def export_csv(kind):
     m.status
         ])
     elif kind == 'loans':
-        writer.writerow(['Member','Principal','Interest','Total Due','Paid','Balance','Status'])
-        for l in Loan.query.all(): writer.writerow([l.member.full_name,l.principal,l.interest_amount,l.total_due,l.total_paid,l.balance,l.status])
+        writer.writerow([
+            'Member No',
+            'Member Name',
+            'Principal',
+            'Interest',
+            'Total Due',
+            'Total Paid',
+            'Balance',
+            'Status',
+            'Purpose',
+            'Issued On',
+            'Due On',
+            'Reviewed By',
+            'Reviewed On',
+            'Approved By',
+            'Approved On',
+            'Disbursed By',
+            'Disbursed On',
+            'Rejected On',
+            'Rejection Reason',])
+        for l in Loan.query.order_by(Loan.issued_on.desc(), Loan.id.desc()).all():
+            writer.writerow([
+            l.member.member_no if l.member else '',
+            l.member.full_name if l.member else '',
+            l.principal,
+            l.interest_amount,
+            l.total_due,
+            l.total_paid,
+            l.balance,
+            l.status,
+            l.purpose or '',
+            l.issued_on or '',
+            l.due_on or '',
+            l.reviewed_by or '',
+            l.reviewed_on or '',
+            l.approved_by or '',
+            l.approved_on or '',
+            l.disbursed_by or '',
+            l.disbursed_on or '',
+            l.rejected_on or '',
+            l.rejection_reason or '',
+        ])
     else:
         writer.writerow(['Unsupported export'])
     return Response(output.getvalue(), mimetype='text/csv', headers={'Content-Disposition': f'attachment; filename={kind}.csv'})
