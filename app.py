@@ -4162,12 +4162,27 @@ def init_demo_db():
     db.session.commit()
     print('Demo database initialized with 250 members and default admin user: admin / admin123')
 
+def ensure_loan_columns():
+    columns = {
+        'loan_no': 'VARCHAR(30)',
+    }
+
+    for column, definition in columns.items():
+        try:
+            db.session.execute(
+                db.text(
+                    f'ALTER TABLE loan ADD COLUMN IF NOT EXISTS {column} {definition}'
+                )
+            )
+            db.session.commit()
+        except Exception:
+            db.session.rollback()    
+
 def ensure_member_columns():
     columns = {
         'member_type': 'VARCHAR(50)',
         'committee_position': 'VARCHAR(100)',
-        'loan_no': 'VARCHAR(30)',
-    }
+        }
 
     for column, definition in columns.items():
         try:
