@@ -454,7 +454,6 @@ class SystemSetting(db.Model):
 
 def ensure_settings_columns():
     columns = {
-        'loan_no': 'VARCHAR(30)',
         'logo_url': 'VARCHAR(500)',
         'organization_address': 'VARCHAR(250)',
         'organization_phone': 'VARCHAR(50)',
