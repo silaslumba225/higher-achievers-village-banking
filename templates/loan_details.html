@@ -8,7 +8,10 @@
 <div class="actions">
   <a class="btn" href="{{ url_for('loans') }}">← Back to Loans</a>
 </div>
-
+<tr>
+  <th>Loan No</th>
+  <td>{{ loan.loan_no or ('LN%04d'|format(loan.id)) }}</td>
+</tr>
 <section class="panel">
   <h2>{{ loan.member.full_name }}</h2>
 

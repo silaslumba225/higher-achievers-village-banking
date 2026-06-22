@@ -51,6 +51,7 @@
     <table>
       <thead>
         <tr>
+          <th>Loan No</th>
           <th>Member</th>
           <th>Principal</th>
           <th>Interest</th>
@@ -68,6 +69,7 @@
       <tbody>
         {% for l in loans %}
         <tr>
+          <td>{{ l.loan_no or ('LN%04d'|format(l.id)) }}</td>
           <td>{{ l.member.full_name }}</td>
           <td>{{ l.principal|kwacha }}</td>
           <td>{{ l.interest_amount|kwacha }}</td>
@@ -167,7 +169,7 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="11">No loans found.</td>
+          <td colspan="12">No loans found.</td>
         </tr>
         {% endfor %}
       </tbody>

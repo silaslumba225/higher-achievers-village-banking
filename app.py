@@ -1421,6 +1421,7 @@ def loan_statement_pdf(loan_id):
 
     story.append(Paragraph(f'<b>Member:</b> {loan.member.full_name}', normal))
     story.append(Paragraph(f'<b>Member No:</b> {loan.member.member_no}', normal))
+    story.append(Paragraph(f'<b>Loan No:</b> {loan.loan_no or f"LN{loan.id:04d}"}', normal))
     story.append(Paragraph(f'<b>Status:</b> {loan.status}', normal))
     story.append(Spacer(1, 8))
 
