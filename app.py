@@ -4194,6 +4194,20 @@ def ensure_member_columns():
         except Exception:
             db.session.rollback()
 
+@app.route('/fix-loan-numbers')
+@login_required
+def fix_loan_numbers():
+    loans = Loan.query.filter(
+        (Loan.loan_no == None) | (Loan.loan_no == '')
+    ).all()
+
+    for loan in loans:
+        loan.loan_no = f'LN{loan.id:04d}'
+
+    db.session.commit()
+
+    return f'Updated {len(loans)} loans.'
+
 
 def initialize_database():
     with app.app_context():
