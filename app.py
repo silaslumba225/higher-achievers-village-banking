@@ -1735,6 +1735,59 @@ def loan_reject(loan_id):
     flash('Loan application rejected.')
     return redirect(url_for('loans'))
 
+@app.route('/loans/aging')
+@login_required
+@role_required('loans')
+def loan_aging_report():
+    today = date.today()
+
+    loans = Loan.query.filter(
+        Loan.status.in_(['Disbursed', 'Partially Paid']),
+        Loan.balance > 0
+    ).order_by(
+        Loan.due_on.asc(),
+        Loan.id.desc()
+    ).all()
+
+    buckets = {
+        'Current': [],
+        '1-30 Days Overdue': [],
+        '31-60 Days Overdue': [],
+        '61-90 Days Overdue': [],
+        '90+ Days Overdue': [],
+    }
+
+    for loan in loans:
+        if not loan.due_on or loan.due_on >= today:
+            buckets['Current'].append(loan)
+            continue
+
+        days_overdue = (today - loan.due_on).days
+
+        if days_overdue <= 30:
+            buckets['1-30 Days Overdue'].append(loan)
+        elif days_overdue <= 60:
+            buckets['31-60 Days Overdue'].append(loan)
+        elif days_overdue <= 90:
+            buckets['61-90 Days Overdue'].append(loan)
+        else:
+            buckets['90+ Days Overdue'].append(loan)
+
+    bucket_totals = {
+        name: money(sum((loan.balance for loan in items), Decimal('0.00')))
+        for name, items in buckets.items()
+    }
+
+    grand_total = money(sum(bucket_totals.values(), Decimal('0.00')))
+
+    return render_template(
+        'loan_aging.html',
+        buckets=buckets,
+        bucket_totals=bucket_totals,
+        grand_total=grand_total,
+        today=today
+    )
+
 
 @app.route('/distributions', methods=['GET','POST'])
 @login_required

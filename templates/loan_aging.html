@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Loan Aging Report{% endblock %}
+{% block subtitle %}Current and overdue loan balances by aging category{% endblock %}
+
+{% block content %}
+
+<div class="actions">
+  <a class="btn" href="{{ url_for('loans') }}">← Back to Loans</a>
+</div>
+
+<section class="kpi-grid">
+  {% for bucket, total in bucket_totals.items() %}
+    <div class="kpi">
+      <span>{{ bucket }}</span>
+      <strong>{{ total|kwacha }}</strong>
+      <em>{{ buckets[bucket]|length }} loan(s)</em>
+    </div>
+  {% endfor %}
+
+  <div class="kpi accent">
+    <span>Total Outstanding</span>
+    <strong>{{ grand_total|kwacha }}</strong>
+    <em>As at {{ today }}</em>
+  </div>
+</section>
+
+{% for bucket, loans in buckets.items() %}
+<section class="panel">
+  <div class="panel-head">
+    <h2>{{ bucket }}</h2>
+    <span class="badge">{{ bucket_totals[bucket]|kwacha }}</span>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Loan No</th>
+          <th>Member</th>
+          <th>Due Date</th>
+          <th>Days Overdue</th>
+          <th>Total Due</th>
+          <th>Paid</th>
+          <th>Balance</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for loan in loans %}
+        <tr>
+          <td>{{ loan.loan_no or ('LN%04d'|format(loan.id)) }}</td>
+          <td>{{ loan.member.member_no }} - {{ loan.member.full_name }}</td>
+          <td>{{ loan.due_on or '-' }}</td>
+          <td>
+            {% if loan.due_on and loan.due_on < today %}
+              {{ (today - loan.due_on).days }}
+            {% else %}
+              0
+            {% endif %}
+          </td>
+          <td>{{ loan.total_due|kwacha }}</td>
+          <td>{{ loan.total_paid|kwacha }}</td>
+          <td>{{ loan.balance|kwacha }}</td>
+          <td>{{ loan.status }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8">No loans in this category.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endfor %}
+
+{% endblock %}
