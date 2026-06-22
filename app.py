@@ -1379,6 +1379,125 @@ def loans():
         members=Member.query.order_by(Member.full_name).all()
     )
 
+@app.route('/loans/<int:loan_id>/statement.pdf')
+@login_required
+@role_required('loans')
+def loan_statement_pdf(loan_id):
+    loan = Loan.query.get_or_404(loan_id)
+
+    repayments = Repayment.query.filter_by(
+        loan_id=loan.id
+    ).order_by(
+        Repayment.paid_on,
+        Repayment.id
+    ).all()
+
+    buffer = io.BytesIO()
+
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=16 * mm,
+        leftMargin=16 * mm,
+        topMargin=16 * mm,
+        bottomMargin=16 * mm
+    )
+
+    styles = getSampleStyleSheet()
+    story = []
+
+    title_style = ParagraphStyle(
+        'LoanStatementTitle',
+        parent=styles['Title'],
+        fontSize=16,
+        leading=20
+    )
+
+    normal = styles['Normal']
+
+    story.append(Paragraph('Loan Statement', title_style))
+    story.append(Spacer(1, 8))
+
+    story.append(Paragraph(f'<b>Member:</b> {loan.member.full_name}', normal))
+    story.append(Paragraph(f'<b>Member No:</b> {loan.member.member_no}', normal))
+    story.append(Paragraph(f'<b>Status:</b> {loan.status}', normal))
+    story.append(Spacer(1, 8))
+
+    summary_data = [
+        ['Principal', kwacha(loan.principal)],
+        ['Interest', kwacha(loan.interest_amount)],
+        ['Total Due', kwacha(loan.total_due)],
+        ['Total Paid', kwacha(loan.total_paid)],
+        ['Balance', kwacha(loan.balance)],
+        ['Issued On', str(loan.issued_on or '-')],
+        ['Due On', str(loan.due_on or '-')],
+        ['Purpose', loan.purpose or '-'],
+    ]
+
+    summary_table = Table(summary_data, colWidths=[45 * mm, 115 * mm])
+    summary_table.setStyle(TableStyle([
+        ('GRID', (0, 0), (-1, -1), 0.25, colors.grey),
+        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f4f8')),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+
+    story.append(summary_table)
+    story.append(Spacer(1, 12))
+
+    workflow_data = [
+        ['Reviewed By', loan.reviewed_by or '-', 'Reviewed On', str(loan.reviewed_on or '-')],
+        ['Approved By', loan.approved_by or '-', 'Approved On', str(loan.approved_on or '-')],
+        ['Disbursed By', loan.disbursed_by or '-', 'Disbursed On', str(loan.disbursed_on or '-')],
+        ['Rejected On', str(loan.rejected_on or '-'), 'Reason', loan.rejection_reason or '-'],
+    ]
+
+    workflow_table = Table(workflow_data, colWidths=[32 * mm, 48 * mm, 32 * mm, 48 * mm])
+    workflow_table.setStyle(TableStyle([
+        ('GRID', (0, 0), (-1, -1), 0.25, colors.grey),
+        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f4f8')),
+        ('BACKGROUND', (2, 0), (2, -1), colors.HexColor('#f0f4f8')),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+
+    story.append(Paragraph('Workflow Details', styles['Heading2']))
+    story.append(workflow_table)
+    story.append(Spacer(1, 12))
+
+    repayment_data = [['Date', 'Method', 'Reference', 'Amount']]
+
+    for r in repayments:
+        repayment_data.append([
+            str(r.paid_on or '-'),
+            r.method or '-',
+            r.reference or '-',
+            kwacha(r.amount),
+        ])
+
+    if len(repayment_data) == 1:
+        repayment_data.append(['-', '-', 'No repayments recorded', '-'])
+
+    repayment_table = Table(repayment_data, colWidths=[32 * mm, 38 * mm, 58 * mm, 32 * mm])
+    repayment_table.setStyle(TableStyle([
+        ('GRID', (0, 0), (-1, -1), 0.25, colors.grey),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1f4f68')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+
+    story.append(Paragraph('Repayment History', styles['Heading2']))
+    story.append(repayment_table)
+
+    doc.build(story)
+
+    buffer.seek(0)
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=f'loan_statement_{loan.id}.pdf',
+        mimetype='application/pdf'
+    )
+
 @app.route('/loans/<int:loan_id>')
 @login_required
 @role_required('loans')

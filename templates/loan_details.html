@@ -7,6 +7,9 @@
 
 <div class="actions">
   <a class="btn" href="{{ url_for('loans') }}">← Back to Loans</a>
+  <a class="btn" href="{{ url_for('loan_statement_pdf', loan_id=loan.id) }}">
+  Download PDF
+</a>
 </div>
 
 <section class="panel">
