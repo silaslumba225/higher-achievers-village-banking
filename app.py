@@ -1379,6 +1379,25 @@ def loans():
         members=Member.query.order_by(Member.full_name).all()
     )
 
+@app.route('/loans/<int:loan_id>')
+@login_required
+@role_required('loans')
+def loan_details(loan_id):
+    loan = Loan.query.get_or_404(loan_id)
+
+    repayments = Repayment.query.filter_by(
+        loan_id=loan.id
+    ).order_by(
+        Repayment.paid_on.desc(),
+        Repayment.id.desc()
+    ).all()
+
+    return render_template(
+        'loan_details.html',
+        loan=loan,
+        repayments=repayments
+    )
+
 @app.route('/loans/<int:loan_id>/review', methods=['POST'])
 @login_required
 @role_required('loans')

@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Loan Details{% endblock %}
+{% block subtitle %}Loan workflow, approval, disbursement and repayment history{% endblock %}
+
+{% block content %}
+
+<div class="actions">
+  <a class="btn" href="{{ url_for('loans') }}">← Back to Loans</a>
+</div>
+
+<section class="panel">
+  <h2>{{ loan.member.full_name }}</h2>
+
+  <table>
+    <tbody>
+      <tr><th>Member No</th><td>{{ loan.member.member_no }}</td></tr>
+      <tr><th>Principal</th><td>{{ loan.principal|kwacha }}</td></tr>
+      <tr><th>Interest</th><td>{{ loan.interest_amount|kwacha }}</td></tr>
+      <tr><th>Total Due</th><td>{{ loan.total_due|kwacha }}</td></tr>
+      <tr><th>Total Paid</th><td>{{ loan.total_paid|kwacha }}</td></tr>
+      <tr><th>Balance</th><td>{{ loan.balance|kwacha }}</td></tr>
+      <tr><th>Status</th><td>{{ loan.status }}</td></tr>
+      <tr><th>Purpose</th><td>{{ loan.purpose or '-' }}</td></tr>
+      <tr><th>Issued On</th><td>{{ loan.issued_on }}</td></tr>
+      <tr><th>Due On</th><td>{{ loan.due_on }}</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="panel">
+  <h2>Workflow History</h2>
+
+  <table>
+    <tbody>
+      <tr><th>Reviewed By</th><td>{{ loan.reviewed_by or '-' }}</td></tr>
+      <tr><th>Reviewed On</th><td>{{ loan.reviewed_on or '-' }}</td></tr>
+      <tr><th>Approved By</th><td>{{ loan.approved_by or '-' }}</td></tr>
+      <tr><th>Approved On</th><td>{{ loan.approved_on or '-' }}</td></tr>
+      <tr><th>Disbursed By</th><td>{{ loan.disbursed_by or '-' }}</td></tr>
+      <tr><th>Disbursed On</th><td>{{ loan.disbursed_on or '-' }}</td></tr>
+      <tr><th>Rejected On</th><td>{{ loan.rejected_on or '-' }}</td></tr>
+      <tr><th>Rejection Reason</th><td>{{ loan.rejection_reason or '-' }}</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="panel">
+  <h2>Repayment History</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Method</th>
+        <th>Reference</th>
+        <th>Amount</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for r in repayments %}
+      <tr>
+        <td>{{ r.paid_on }}</td>
+        <td>{{ r.method }}</td>
+        <td>{{ r.reference or '-' }}</td>
+        <td>{{ r.amount|kwacha }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="4">No repayments recorded.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% endblock %}

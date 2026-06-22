@@ -83,6 +83,10 @@
           </td>
 
           <td>
+            <a class="btn small"
+              href="{{ url_for('loan_details', loan_id=l.id) }}">
+              View
+            </a>
             {% if l.status == 'Applied' %}
               <form method="post"
                     action="{{ url_for('loan_review', loan_id=l.id) }}"
