@@ -4166,6 +4166,7 @@ def ensure_member_columns():
     columns = {
         'member_type': 'VARCHAR(50)',
         'committee_position': 'VARCHAR(100)',
+        'loan_no': 'VARCHAR(30)',
     }
 
     for column, definition in columns.items():
