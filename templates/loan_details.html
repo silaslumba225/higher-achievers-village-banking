@@ -46,6 +46,15 @@
       <tr><th>Approved On</th><td>{{ loan.approved_on or '-' }}</td></tr>
       <tr><th>Disbursed By</th><td>{{ loan.disbursed_by or '-' }}</td></tr>
       <tr><th>Disbursed On</th><td>{{ loan.disbursed_on or '-' }}</td></tr>
+      <tr>
+        <th>Disbursement Method</th>
+        <td>{{ loan.disbursement_method or '-' }}</td>
+        </tr>
+
+        <tr>
+        <th>Disbursement Reference</th>
+        <td>{{ loan.disbursement_reference or '-' }}</td>
+        </tr>
       <tr><th>Rejected On</th><td>{{ loan.rejected_on or '-' }}</td></tr>
       <tr><th>Rejection Reason</th><td>{{ loan.rejection_reason or '-' }}</td></tr>
     </tbody>

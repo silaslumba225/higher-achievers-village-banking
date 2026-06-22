@@ -121,10 +121,26 @@
 
             {% elif l.status == 'Approved' %}
               <form method="post"
-                    action="{{ url_for('loan_disburse', loan_id=l.id) }}"
-                    class="inline-form">
-                <button class="btn small" type="submit">Disburse</button>
-              </form>
+                action="{{ url_for('loan_disburse', loan_id=l.id) }}"
+                class="inline-form">
+
+                  <select name="method" required>
+                  <option value="">Method</option>
+                  <option>Cash</option>
+                  <option>Airtel Money</option>
+                  <option>MTN Money</option>
+                  <option>Bank Transfer</option>
+                  <option>Cheque</option>
+                </select>
+
+              <input name="reference"
+                    placeholder="Reference">
+
+              <button class="btn small" type="submit">
+                Disburse
+              </button>
+
+          </form>
 
             {% else %}
               <small>-</small>

@@ -214,6 +214,12 @@ class Loan(db.Model):
     member = db.relationship('Member', backref='loans')
     loan_no = db.Column(db.String(30), unique=True)
 
+    disbursed_by = db.Column(db.String(120))
+    disbursed_on = db.Column(db.Date)
+
+    disbursement_method = db.Column(db.String(50))
+    disbursement_reference = db.Column(db.String(100))
+
     @property
     def interest_amount(self):
         return money(self.principal * self.interest_rate)
@@ -1434,6 +1440,7 @@ def loan_statement_pdf(loan_id):
         ['Issued On', str(loan.issued_on or '-')],
         ['Due On', str(loan.due_on or '-')],
         ['Purpose', loan.purpose or '-'],
+        ['Disbursement Method', loan.disbursement_method or '-', 'Reference', loan.disbursement_reference or '-'],
     ]
 
     summary_table = Table(summary_data, colWidths=[45 * mm, 115 * mm])
@@ -1674,6 +1681,9 @@ def loan_disburse(loan_id):
 
     loan.status = 'Disbursed'
     loan.disbursed_on = date.today()
+
+    loan.disbursement_method = request.form.get('method')
+    loan.disbursement_reference = request.form.get('reference')
 
     user = session.get('user') or {}
     loan.disbursed_by = user.get('full_name') or user.get('username')
@@ -4073,7 +4083,9 @@ def export_csv(kind):
             'Disbursed By',
             'Disbursed On',
             'Rejected On',
-            'Rejection Reason',])
+            'Rejection Reason',
+            'Disbursement Method',
+            'Disbursement Reference',])
         for l in Loan.query.order_by(Loan.issued_on.desc(), Loan.id.desc()).all():
             writer.writerow([
             l.member.member_no if l.member else '',
@@ -4095,6 +4107,8 @@ def export_csv(kind):
             l.disbursed_on or '',
             l.rejected_on or '',
             l.rejection_reason or '',
+            l.disbursement_method or '',
+            l.disbursement_reference or '',
         ])
     else:
         writer.writerow(['Unsupported export'])
@@ -4165,6 +4179,8 @@ def init_demo_db():
 def ensure_loan_columns():
     columns = {
         'loan_no': 'VARCHAR(30)',
+        'disbursement_method': 'VARCHAR(50)',
+        'disbursement_reference': 'VARCHAR(100)',
     }
 
     for column, definition in columns.items():
@@ -4176,7 +4192,7 @@ def ensure_loan_columns():
             )
             db.session.commit()
         except Exception:
-            db.session.rollback()    
+            db.session.rollback()
 
 def ensure_member_columns():
     columns = {
