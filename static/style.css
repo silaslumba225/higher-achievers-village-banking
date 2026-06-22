@@ -34,3 +34,8 @@
 .bad-text {
   color: var(--bad);
 }
+.rejection-reason {
+  min-width: 220px;
+  max-width: 320px;
+  white-space: normal;
+}
