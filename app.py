@@ -100,6 +100,24 @@ ROLE_PERMISSIONS = {
     'Auditor': ['dashboard', 'attendance', 'reports', 'statements', 'shareout', 'fines', 'welfare', 'audit', 'notifications', 'accounting', 'exports'],
     'Data Clerk': ['dashboard', 'members', 'contributions', 'notifications'],
 }
+def format_zambian_phone(phone):
+    if not phone:
+        return ''
+
+    phone = str(phone).strip().replace(' ', '').replace('-', '')
+
+    if phone.startswith('+260'):
+        return phone
+
+    if phone.startswith('260'):
+        return '+' + phone
+
+    if phone.startswith('0'):
+        return '+260' + phone[1:]
+
+    return '+260' + phone
+
+
 def send_sms_via_africas_talking(phone, message):
     setting = get_settings()
 
@@ -110,6 +128,8 @@ def send_sms_via_africas_talking(phone, message):
     if not username or not api_key:
         return False, 'Africa’s Talking username or API key is missing.'
 
+    formatted_phone = format_zambian_phone(phone)
+
     response = requests.post(
         'https://api.africastalking.com/version1/messaging',
         headers={
@@ -119,7 +139,7 @@ def send_sms_via_africas_talking(phone, message):
         },
         data={
             'username': username,
-            'to': phone,
+            'to': formatted_phone,
             'message': message,
             'from': sender_id or '',
         },
@@ -129,11 +149,29 @@ def send_sms_via_africas_talking(phone, message):
     if response.status_code not in [200, 201]:
         return False, response.text
 
-    return True, response.text
+    try:
+        data = response.json()
 
-def user_can(permission):
-    user = session.get('user') or {}
-    return permission in ROLE_PERMISSIONS.get(user.get('role'), [])
+        recipients = data.get('SMSMessageData', {}).get('Recipients', [])
+
+        if not recipients:
+            return False, response.text
+
+        recipient = recipients[0]
+
+        status = str(
+            recipient.get('status')
+            or recipient.get('statusCode')
+            or ''
+        ).lower()
+
+        if status in ['success', 'sent', '101', '102']:
+            return True, response.text
+
+        return False, response.text
+
+    except Exception:
+        return False, response.text
 
 def ensure_month_end_columns():
     columns = {
