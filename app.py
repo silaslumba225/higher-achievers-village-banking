@@ -126,9 +126,18 @@ def send_sms_via_africas_talking(phone, message):
     sender_id = setting.sms_sender_id
 
     if not username or not api_key:
-        return False, 'Africa’s Talking username or API key is missing.'
+        return False, "Africa's Talking username or API key is missing."
 
     formatted_phone = format_zambian_phone(phone)
+
+    payload = {
+        'username': username,
+        'to': formatted_phone,
+        'message': message,
+    }
+
+    if sender_id and sender_id.strip():
+        payload['from'] = sender_id.strip()
 
     response = requests.post(
         'https://api.africastalking.com/version1/messaging',
@@ -137,12 +146,7 @@ def send_sms_via_africas_talking(phone, message):
             'Accept': 'application/json',
             'Content-Type': 'application/x-www-form-urlencoded',
         },
-        data={
-            'username': username,
-            'to': formatted_phone,
-            'message': message,
-            'from': sender_id or '',
-        },
+        data=payload,
         timeout=20
     )
 
@@ -152,7 +156,10 @@ def send_sms_via_africas_talking(phone, message):
     try:
         data = response.json()
 
-        recipients = data.get('SMSMessageData', {}).get('Recipients', [])
+        recipients = (
+            data.get('SMSMessageData', {})
+                .get('Recipients', [])
+        )
 
         if not recipients:
             return False, response.text
@@ -172,7 +179,7 @@ def send_sms_via_africas_talking(phone, message):
 
     except Exception:
         return False, response.text
-
+    
 def ensure_month_end_columns():
     columns = {
         'members_processed': 'INTEGER DEFAULT 0',
@@ -2844,7 +2851,7 @@ def notifications():
         )
 
     page = request.args.get('page', 1, type=int)
-    per_page = 25
+    per_page = 10
 
     pagination = query.order_by(
         NotificationLog.created_at.desc(),
