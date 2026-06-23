@@ -172,7 +172,7 @@ def send_sms_via_africas_talking(phone, message):
             or ''
         ).lower()
 
-        if status in ['success', 'sent', '101', '102']:
+        if status in ['success', 'sent', '100', '101', '102']:
             return True, response.text
 
         return False, response.text
