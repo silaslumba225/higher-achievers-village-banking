@@ -2761,6 +2761,11 @@ def notifications():
                     status = 'Failed'
                     failed += 1
 
+                    flash(
+                        f'SMS failed for {m.full_name}: {provider_response}',
+                        'error'
+                    )
+
             n = NotificationLog(
                 channel=channel,
                 notification_type=notification_type,
