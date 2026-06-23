@@ -90,5 +90,56 @@
     </tbody>
   </table>
 </section>
+<section class="panel">
+  <h2>Loan Guarantors</h2>
+
+  <form method="post"
+        action="{{ url_for('loan_add_guarantor', loan_id=loan.id) }}"
+        class="form-grid">
+
+    <label>Guarantor
+      <select name="guarantor_member_id" required>
+        {% for m in members %}
+          {% if m.id != loan.member_id %}
+            <option value="{{ m.id }}">{{ m.member_no }} - {{ m.full_name }}</option>
+          {% endif %}
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>Guaranteed Amount
+      <input type="number" name="guaranteed_amount" step="0.01" required>
+    </label>
+
+    <label>Notes
+      <input name="notes" placeholder="Optional notes">
+    </label>
+
+    <button class="btn primary" type="submit">Add Guarantor</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Guarantor</th>
+        <th>Guaranteed Amount</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for g in loan.guarantors %}
+      <tr>
+        <td>{{ g.guarantor.member_no }} - {{ g.guarantor.full_name }}</td>
+        <td>{{ g.guaranteed_amount|kwacha }}</td>
+        <td>{{ g.notes or '-' }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="3">No guarantors recorded.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
 
 {% endblock %}

@@ -240,6 +240,19 @@ class Loan(db.Model):
     def overdue(self):
         return self.status in ['Disbursed', 'Partially Paid'] and self.due_on < date.today() and self.balance > 0
 
+class LoanGuarantor(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    loan_id = db.Column(db.Integer, db.ForeignKey('loan.id'), nullable=False)
+    guarantor_member_id = db.Column(db.Integer, db.ForeignKey('member.id'), nullable=False)
+
+    guaranteed_amount = db.Column(db.Numeric(12, 2), default=0)
+    notes = db.Column(db.String(250))
+    created_at = db.Column(db.Date, default=date.today)
+
+    loan = db.relationship('Loan', backref='guarantors')
+    guarantor = db.relationship('Member', foreign_keys=[guarantor_member_id])
+
 class Repayment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     loan_id = db.Column(db.Integer, db.ForeignKey('loan.id'), nullable=False)
@@ -1521,10 +1534,56 @@ def loan_details(loan_id):
     ).all()
 
     return render_template(
-        'loan_details.html',
-        loan=loan,
-        repayments=repayments
+    'loan_details.html',
+    loan=loan,
+    repayments=repayments,
+    members=Member.query.order_by(Member.member_no).all()
     )
+
+@app.route('/loans/<int:loan_id>/guarantor', methods=['POST'])
+@login_required
+@role_required('loans')
+def loan_add_guarantor(loan_id):
+    loan = Loan.query.get_or_404(loan_id)
+
+    guarantor_member_id = request.form.get('guarantor_member_id', type=int)
+
+    if not guarantor_member_id:
+        flash('Please select a guarantor.', 'error')
+        return redirect(url_for('loan_details', loan_id=loan.id))
+
+    if guarantor_member_id == loan.member_id:
+        flash('A borrower cannot guarantee their own loan.', 'error')
+        return redirect(url_for('loan_details', loan_id=loan.id))
+
+    existing = LoanGuarantor.query.filter_by(
+        loan_id=loan.id,
+        guarantor_member_id=guarantor_member_id
+    ).first()
+
+    if existing:
+        flash('This member is already a guarantor for this loan.', 'error')
+        return redirect(url_for('loan_details', loan_id=loan.id))
+
+    guarantor = LoanGuarantor(
+        loan_id=loan.id,
+        guarantor_member_id=guarantor_member_id,
+        guaranteed_amount=money(request.form.get('guaranteed_amount') or 0),
+        notes=request.form.get('notes')
+    )
+
+    db.session.add(guarantor)
+    db.session.commit()
+
+    log_audit(
+        'ADD_LOAN_GUARANTOR',
+        'LoanGuarantor',
+        guarantor.id,
+        f'Guarantor added to loan {loan.loan_no or loan.id}'
+    )
+
+    flash('Guarantor added successfully.')
+    return redirect(url_for('loan_details', loan_id=loan.id))
 
 @app.route('/loans/<int:loan_id>/review', methods=['POST'])
 @login_required
