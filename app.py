@@ -582,6 +582,11 @@ def money(value):
 def kwacha(value):
     return f"K {money(value):,.2f}"
 
+def user_can(permission):
+    user = session.get('user') or {}
+    role = user.get('role')
+    return permission in ROLE_PERMISSIONS.get(role, [])
+
 @app.context_processor
 def inject_globals():
 
