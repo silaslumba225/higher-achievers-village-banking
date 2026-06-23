@@ -11,6 +11,7 @@ import io
 import os
 import shutil
 import json
+import requests
 from pathlib import Path
 from werkzeug.utils import secure_filename
 from reportlab.lib import colors
@@ -99,6 +100,36 @@ ROLE_PERMISSIONS = {
     'Auditor': ['dashboard', 'attendance', 'reports', 'statements', 'shareout', 'fines', 'welfare', 'audit', 'notifications', 'accounting', 'exports'],
     'Data Clerk': ['dashboard', 'members', 'contributions', 'notifications'],
 }
+def send_sms_via_africas_talking(phone, message):
+    setting = get_settings()
+
+    username = setting.sms_username
+    api_key = setting.sms_api_key
+    sender_id = setting.sms_sender_id
+
+    if not username or not api_key:
+        return False, 'Africa’s Talking username or API key is missing.'
+
+    response = requests.post(
+        'https://api.africastalking.com/version1/messaging',
+        headers={
+            'apiKey': api_key,
+            'Accept': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        data={
+            'username': username,
+            'to': phone,
+            'message': message,
+            'from': sender_id or '',
+        },
+        timeout=20
+    )
+
+    if response.status_code not in [200, 201]:
+        return False, response.text
+
+    return True, response.text
 
 def user_can(permission):
     user = session.get('user') or {}
@@ -2676,13 +2707,14 @@ def notifications():
     organization_name = setting.organization_name if setting and setting.organization_name else CLIENT_NAME
 
     templates = {
-    'Contribution Reminder': f'Dear {{name}}, your monthly contribution is due. Please pay through bank transfer, mobile money, or cash. {organization_name}.',
-    'Loan Repayment Reminder': f'Dear {{name}}, this is a reminder to make your loan repayment by the due date. {organization_name}.',
-    'Meeting Reminder': f'Dear {{name}}, please remember the upcoming Village Banking meeting. Your attendance is important. {organization_name}.',
-    'Welfare Notification': f'Dear {{name}}, your welfare fund update has been recorded. Contact the committee for details. {organization_name}.',
-    'Share-Out Notification': f'Dear {{name}}, your share-out/dividend information is ready. Contact the treasurer for your statement. {organization_name}.',
-    'General Notice': f'Dear {{name}}, this is a notice from {organization_name}.'
-}
+        'Contribution Reminder': f'Dear {{name}}, your monthly contribution is due. Please pay through bank transfer, mobile money, or cash. {organization_name}.',
+        'Loan Repayment Reminder': f'Dear {{name}}, this is a reminder to make your loan repayment by the due date. {organization_name}.',
+        'Meeting Reminder': f'Dear {{name}}, please remember the upcoming Village Banking meeting. Your attendance is important. {organization_name}.',
+        'Welfare Notification': f'Dear {{name}}, your welfare fund update has been recorded. Contact the committee for details. {organization_name}.',
+        'Share-Out Notification': f'Dear {{name}}, your share-out/dividend information is ready. Contact the treasurer for your statement. {organization_name}.',
+        'General Notice': f'Dear {{name}}, this is a notice from {organization_name}.'
+    }
+
     if request.method == 'POST':
         notification_type = request.form.get('notification_type') or 'General Notice'
         channel = request.form.get('channel') or 'SMS'
@@ -2702,59 +2734,58 @@ def notifications():
             return redirect(url_for('notifications'))
 
         created = 0
+        sent = 0
+        failed = 0
         user = session.get('user') or {}
 
-    sent = 0
-    failed = 0
-
-    for m in recipients:
-        personalized = (
-            message
-            .replace('{name}', m.full_name)
-            .replace('{member_no}', m.member_no)
-            .replace('{phone}', m.phone or '')
-        )
-
-        status = 'Prepared'
-        provider_response = ''
-
-        if channel == 'SMS':
-            ok, provider_response = send_sms_via_africas_talking(
-                m.phone,
-                personalized
+        for m in recipients:
+            personalized = (
+                message
+                .replace('{name}', m.full_name)
+                .replace('{member_no}', m.member_no)
+                .replace('{phone}', m.phone or '')
             )
-            if ok:
-                status = 'Sent'
-                sent += 1
-            else:
-                status = 'Failed'
-                failed += 1
 
-        n = NotificationLog(
-            channel=channel,
-            notification_type=notification_type,
-            recipient_type='All Members' if recipient_mode == 'all' else 'Selected Members',
-            member_id=m.id,
-            phone=m.phone,
-            subject=subject,
-            message=personalized,
-            status=status,
-            created_by=user.get('username')
-        )
+            status = 'Prepared'
 
-        db.session.add(n)
-        created += 1
+            if channel == 'SMS':
+                ok, provider_response = send_sms_via_africas_talking(
+                    m.phone,
+                    personalized
+                )
+
+                if ok:
+                    status = 'Sent'
+                    sent += 1
+                else:
+                    status = 'Failed'
+                    failed += 1
+
+            n = NotificationLog(
+                channel=channel,
+                notification_type=notification_type,
+                recipient_type='All Members' if recipient_mode == 'all' else 'Selected Members',
+                member_id=m.id,
+                phone=m.phone,
+                subject=subject,
+                message=personalized,
+                status=status,
+                created_by=user.get('username')
+            )
+
+            db.session.add(n)
+            created += 1
 
         db.session.commit()
 
         log_audit(
-            'PREPARE_NOTIFICATIONS',
+            'SEND_NOTIFICATIONS',
             'NotificationLog',
             None,
-            f'{created} {channel} notification(s) prepared for {notification_type}'
+            f'{created} {channel} notification(s). Sent: {sent}, Failed: {failed}'
         )
 
-        flash(f'{created} notification(s) prepared. Provider sending can be connected later.')
+        flash(f'{created} notification(s) processed. Sent: {sent}, Failed: {failed}.')
         return redirect(url_for('notifications'))
 
     query = NotificationLog.query
@@ -2790,6 +2821,7 @@ def notifications():
         q=q,
         templates=templates
     )
+
 @app.route('/sms-test', methods=['GET', 'POST'])
 @login_required
 @role_required('settings')
