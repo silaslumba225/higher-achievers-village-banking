@@ -48,6 +48,7 @@
     <table>
       <thead>
         <tr>
+          <th>Select</th>
           <th>Member No</th>
           <th>Name</th>
           <th>Phone</th>
@@ -58,6 +59,11 @@
       <tbody>
         {% for m in members %}
         <tr>
+          <td>
+        <input type="checkbox"
+               name="member_ids"
+               value="{{ m.id }}">
+        </td>
           <td><strong>{{ m.member_no }}</strong></td>
           <td>{{ m.full_name }}</td>
           <td>{{ m.phone or '-' }}</td>
