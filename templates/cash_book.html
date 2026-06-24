@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Cash Book / Bank Ledger{% endblock %}
+{% block subtitle %}Track all money coming in and going out{% endblock %}
+
+{% block content %}
+
+<section class="kpi-grid">
+  <div class="kpi">
+    <span>Total Cash In</span>
+    <strong>{{ total_in|kwacha }}</strong>
+  </div>
+
+  <div class="kpi">
+    <span>Total Cash Out</span>
+    <strong>{{ total_out|kwacha }}</strong>
+  </div>
+
+  <div class="kpi accent">
+    <span>Bank Balance</span>
+    <strong>{{ bank_balance|kwacha }}</strong>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>New Cash Book Entry</h2>
+
+  <form method="post" class="form-grid">
+    <label>Date
+      <input type="date" name="entry_date" required>
+    </label>
+
+    <label>Type
+      <select name="entry_type" required>
+        <option value="In">Cash In</option>
+        <option value="Out">Cash Out</option>
+      </select>
+    </label>
+
+    <label>Category
+      <select name="category" required>
+        <option>Member Contribution</option>
+        <option>Welfare Contribution</option>
+        <option>Loan Repayment</option>
+        <option>Fine Payment</option>
+        <option>Loan Disbursement</option>
+        <option>Welfare Claim Payment</option>
+        <option>Share-Out / Distribution</option>
+        <option>Bank Charges</option>
+        <option>Other Income</option>
+        <option>Other Expense</option>
+      </select>
+    </label>
+
+    <label>Amount
+      <input type="number" step="0.01" name="amount" required>
+    </label>
+
+    <label>Method
+      <select name="method">
+        {% for p in payment_methods %}
+          <option>{{ p }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>Reference
+      <input name="reference">
+    </label>
+
+    <label class="wide">Description
+      <input name="description">
+    </label>
+
+    <button class="btn primary" type="submit">Record Entry</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Cash Book Entries</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Type</th>
+          <th>Category</th>
+          <th>Description</th>
+          <th>Method</th>
+          <th>Reference</th>
+          <th>Amount</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for e in entries %}
+        <tr>
+          <td>{{ e.entry_date }}</td>
+          <td>{{ e.entry_type }}</td>
+          <td>{{ e.category }}</td>
+          <td>{{ e.description or '-' }}</td>
+          <td>{{ e.method or '-' }}</td>
+          <td>{{ e.reference or '-' }}</td>
+          <td>{{ e.amount|kwacha }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7">No cash book entries yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{% endblock %}

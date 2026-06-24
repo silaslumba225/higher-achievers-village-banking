@@ -547,6 +547,24 @@ class SystemSetting(db.Model):
     whatsapp_enabled = db.Column(db.Boolean, default=False)
     sms_username = db.Column(db.String(100))
 
+class CashBookEntry(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    entry_date = db.Column(db.Date, default=date.today, nullable=False)
+    entry_type = db.Column(db.String(20), nullable=False)  # In or Out
+    category = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.String(250))
+    amount = db.Column(db.Numeric(12, 2), nullable=False)
+
+    method = db.Column(db.String(50))
+    reference = db.Column(db.String(100))
+
+    source_type = db.Column(db.String(100))
+    source_id = db.Column(db.Integer)
+
+    created_by = db.Column(db.String(120))
+    created_at = db.Column(db.Date, default=date.today)
+
 def ensure_settings_columns():
     columns = {
         'logo_url': 'VARCHAR(500)',
@@ -2542,6 +2560,55 @@ def accounting():
     cashbook = [b for b in balances if b['account'].code in ['1000','1010','1020']]
     log_audit('VIEW_ACCOUNTING', 'Accounting', None, 'General Ledger and Accounting viewed')
     return render_template('accounting.html', **locals())
+
+@app.route('/accounting/cash-book', methods=['GET', 'POST'])
+@login_required
+@role_required('accounting')
+def cash_book():
+    if request.method == 'POST':
+        user = session.get('user') or {}
+
+        entry = CashBookEntry(
+            entry_date=parse_date(request.form.get('entry_date')),
+            entry_type=request.form.get('entry_type'),
+            category=request.form.get('category'),
+            description=request.form.get('description'),
+            amount=money(request.form.get('amount')),
+            method=request.form.get('method'),
+            reference=request.form.get('reference'),
+            created_by=user.get('username')
+        )
+
+        db.session.add(entry)
+        db.session.commit()
+
+        log_audit(
+            'CREATE_CASH_BOOK_ENTRY',
+            'CashBookEntry',
+            entry.id,
+            f'{entry.entry_type} - {entry.category} - {kwacha(entry.amount)}'
+        )
+
+        flash('Cash book entry recorded.')
+        return redirect(url_for('cash_book'))
+
+    entries = CashBookEntry.query.order_by(
+        CashBookEntry.entry_date.desc(),
+        CashBookEntry.id.desc()
+    ).all()
+
+    total_in = money(sum((e.amount for e in entries if e.entry_type == 'In'), Decimal('0.00')))
+    total_out = money(sum((e.amount for e in entries if e.entry_type == 'Out'), Decimal('0.00')))
+    bank_balance = money(total_in - total_out)
+
+    return render_template(
+        'cash_book.html',
+        entries=entries,
+        total_in=total_in,
+        total_out=total_out,
+        bank_balance=bank_balance,
+        payment_methods=PAYMENT_METHODS
+    )
 
 @app.route('/accounting/trial-balance')
 @login_required
