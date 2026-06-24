@@ -2594,13 +2594,13 @@ def income_statement():
     )
 
     if start_date:
-        loan_interest_query = loan_interest_query.filter(LoanInterest.created_at >= start_date)
+        loan_interest_query = loan_interest_query.filter(LoanInterest.month >= start_date.strftime('%Y-%m'))
         fines_query = fines_query.filter(FinePayment.paid_on >= start_date)
         welfare_query = welfare_query.filter(WelfareClaim.paid_on >= start_date)
         shareout_query = shareout_query.filter(Distribution.paid_on >= start_date)
 
     if end_date:
-        loan_interest_query = loan_interest_query.filter(LoanInterest.created_at <= end_date)
+        loan_interest_query = loan_interest_query.filter(LoanInterest.month <= end_date.strftime('%Y-%m'))
         fines_query = fines_query.filter(FinePayment.paid_on <= end_date)
         welfare_query = welfare_query.filter(WelfareClaim.paid_on <= end_date)
         shareout_query = shareout_query.filter(Distribution.paid_on <= end_date)
