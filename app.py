@@ -1136,6 +1136,50 @@ def members():
         pagination=pagination,
         q=q
     )
+@app.route('/member/<int:member_id>/savings')
+@login_required
+@role_required('members')
+def member_savings_statement(member_id):
+    member = Member.query.get_or_404(member_id)
+
+    contributions = Contribution.query.filter_by(
+        member_id=member.id
+    ).order_by(
+        Contribution.paid_on.desc(),
+        Contribution.id.desc()
+    ).all()
+
+    savings_interest = SavingsInterest.query.filter_by(
+        member_id=member.id
+    ).order_by(
+        SavingsInterest.month.desc(),
+        SavingsInterest.id.desc()
+    ).all()
+
+    distributions = Distribution.query.filter_by(
+        member_id=member.id
+    ).order_by(
+        Distribution.paid_on.desc(),
+        Distribution.id.desc()
+    ).all()
+
+    total_contributions = money(sum((c.amount for c in contributions), Decimal('0.00')))
+    total_interest = money(sum((s.interest_amount for s in savings_interest), Decimal('0.00')))
+    total_distributions = money(sum((d.amount for d in distributions), Decimal('0.00')))
+
+    savings_balance = money(total_contributions + total_interest - total_distributions)
+
+    return render_template(
+        'member_savings_statement.html',
+        member=member,
+        contributions=contributions,
+        savings_interest=savings_interest,
+        distributions=distributions,
+        total_contributions=total_contributions,
+        total_interest=total_interest,
+        total_distributions=total_distributions,
+        savings_balance=savings_balance
+    )
 
 @app.route('/member/<int:member_id>')
 @login_required
