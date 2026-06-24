@@ -2577,42 +2577,41 @@ def income_statement():
     start_date = parse_date(start) if start else None
     end_date = parse_date(end) if end else None
 
-    loan_interest_income = money(
-        db.session.query(
-            db.func.coalesce(db.func.sum(LoanInterest.interest_amount), 0)
-        ).scalar()
+    loan_interest_query = db.session.query(
+        db.func.coalesce(db.func.sum(LoanInterest.interest_amount), 0)
     )
 
-    fines_income = money(
-        db.session.query(
-            db.func.coalesce(db.func.sum(FinePayment.amount), 0)
-        ).scalar()
+    fines_query = db.session.query(
+        db.func.coalesce(db.func.sum(FinePayment.amount), 0)
     )
 
-    welfare_expense = money(
-        db.session.query(
-            db.func.coalesce(db.func.sum(WelfareClaim.amount_approved), 0)
-        )
-        .filter(WelfareClaim.status == 'Paid')
-        .scalar()
+    welfare_query = db.session.query(
+        db.func.coalesce(db.func.sum(WelfareClaim.amount_approved), 0)
+    ).filter(WelfareClaim.status == 'Paid')
+
+    shareout_query = db.session.query(
+        db.func.coalesce(db.func.sum(Distribution.amount), 0)
     )
 
-    shareout_expense = money(
-        db.session.query(
-            db.func.coalesce(db.func.sum(Distribution.amount), 0)
-        ).scalar()
-    )
+    if start_date:
+        loan_interest_query = loan_interest_query.filter(LoanInterest.created_at >= start_date)
+        fines_query = fines_query.filter(FinePayment.paid_on >= start_date)
+        welfare_query = welfare_query.filter(WelfareClaim.paid_on >= start_date)
+        shareout_query = shareout_query.filter(Distribution.paid_on >= start_date)
 
-    total_income = money(
-        loan_interest_income +
-        fines_income
-    )
+    if end_date:
+        loan_interest_query = loan_interest_query.filter(LoanInterest.created_at <= end_date)
+        fines_query = fines_query.filter(FinePayment.paid_on <= end_date)
+        welfare_query = welfare_query.filter(WelfareClaim.paid_on <= end_date)
+        shareout_query = shareout_query.filter(Distribution.paid_on <= end_date)
 
-    total_expenses = money(
-        welfare_expense +
-        shareout_expense
-    )
+    loan_interest_income = money(loan_interest_query.scalar())
+    fines_income = money(fines_query.scalar())
+    welfare_expense = money(welfare_query.scalar())
+    shareout_expense = money(shareout_query.scalar())
 
+    total_income = money(loan_interest_income + fines_income)
+    total_expenses = money(welfare_expense + shareout_expense)
     net_surplus = money(total_income - total_expenses)
 
     return render_template(
