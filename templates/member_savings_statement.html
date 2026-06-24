@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Member Savings Statement{% endblock %}
+{% block subtitle %}Savings, interest and distribution summary{% endblock %}
+
+{% block content %}
+
+<div class="actions">
+  <a class="btn" href="{{ url_for('member_profile', member_id=member.id) }}">← Back to Profile</a>
+</div>
+
+<section class="panel">
+  <h2>{{ member.full_name }}</h2>
+  <p><strong>Member No:</strong> {{ member.member_no }}</p>
+  <p><strong>Phone:</strong> {{ member.phone or '-' }}</p>
+  <p><strong>Group:</strong> {{ member.group_name or '-' }}</p>
+</section>
+
+<section class="kpi-grid">
+  <div class="kpi">
+    <span>Total Contributions</span>
+    <strong>{{ total_contributions|kwacha }}</strong>
+  </div>
+
+  <div class="kpi">
+    <span>Savings Interest</span>
+    <strong>{{ total_interest|kwacha }}</strong>
+  </div>
+
+  <div class="kpi">
+    <span>Distributions</span>
+    <strong>{{ total_distributions|kwacha }}</strong>
+  </div>
+
+  <div class="kpi accent">
+    <span>Savings Balance</span>
+    <strong>{{ savings_balance|kwacha }}</strong>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Contribution History</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Month</th>
+        <th>Method</th>
+        <th>Reference</th>
+        <th>Amount</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for c in contributions %}
+      <tr>
+        <td>{{ c.paid_on }}</td>
+        <td>{{ c.month }}</td>
+        <td>{{ c.method }}</td>
+        <td>{{ c.reference or '-' }}</td>
+        <td>{{ c.amount|kwacha }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="5">No contributions recorded.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="panel">
+  <h2>Savings Interest</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Month</th>
+        <th>Opening Balance</th>
+        <th>Rate</th>
+        <th>Interest</th>
+        <th>Closing Balance</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for s in savings_interest %}
+      <tr>
+        <td>{{ s.month }}</td>
+        <td>{{ s.opening_balance|kwacha }}</td>
+        <td>{{ s.interest_rate }}%</td>
+        <td>{{ s.interest_amount|kwacha }}</td>
+        <td>{{ s.closing_balance|kwacha }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="5">No savings interest recorded.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="panel">
+  <h2>Distributions / Share-Outs</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Month</th>
+        <th>Amount</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for d in distributions %}
+      <tr>
+        <td>{{ d.paid_on }}</td>
+        <td>{{ d.month }}</td>
+        <td>{{ d.amount|kwacha }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="3">No distributions recorded.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% endblock %}
