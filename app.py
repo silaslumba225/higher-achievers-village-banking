@@ -2119,7 +2119,7 @@ def distributions():
 def fines():
     if request.method == 'POST':
         user = session.get('user') or {}
-        f = FinePenalty(
+        fp = FinePenalty(
             member_id=int(request.form['member_id']),
             category=request.form['category'],
             amount=money(request.form['amount']),
@@ -2127,7 +2127,22 @@ def fines():
             fine_date=parse_date(request.form.get('fine_date')),
             recorded_by=user.get('full_name') or user.get('username')
         )
-        db.session.add(f); db.session.commit()
+        db.session.add(fp)
+        db.session.flush()
+
+        post_to_cash_book(
+            entry_date=fp.paid_on,
+            entry_type='In',
+            category='Fine Payment',
+            amount=fp.amount,
+            description=f'{fp.member.member_no} - {fp.member.full_name}',
+            method=fp.method,
+            reference=fp.reference,
+            source_type='FinePayment',
+            source_id=fp.id
+        )
+
+        db.session.commit()
         log_audit('RECORD_FINE', 'FinePenalty', f.id, f'{f.member.full_name} fined {kwacha(f.amount)} for {f.category}')
         flash('Fine / penalty recorded successfully.')
         return redirect(url_for('fines'))
