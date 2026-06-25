@@ -1875,9 +1875,23 @@ def repayments():
     )
 
     db.session.add(r)
+    db.session.flush()
+
+    post_to_cash_book(
+        entry_date=r.paid_on,
+        entry_type='In',
+        category='Loan Repayment',
+        amount=r.amount,
+        description=f'{loan.member.member_no} - {loan.member.full_name}',
+        method=r.method,
+        reference=r.reference,
+        source_type='Repayment',
+        source_id=r.id
+    )
+
     db.session.commit()
     db.session.refresh(loan)
-
+    
     log_audit(
         'RECORD_REPAYMENT',
         'Repayment',
