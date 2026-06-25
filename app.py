@@ -1963,6 +1963,18 @@ def loan_disburse(loan_id):
     user = session.get('user') or {}
     loan.disbursed_by = user.get('full_name') or user.get('username')
 
+    post_to_cash_book(
+        entry_date=loan.disbursed_on,
+        entry_type='Out',
+        category='Loan Disbursement',
+        amount=loan.principal,
+        description=f'{loan.member.member_no} - {loan.member.full_name}',
+        method=loan.disbursement_method,
+        reference=loan.disbursement_reference,
+        source_type='Loan',
+        source_id=loan.id
+    )
+
     db.session.commit()
 
     log_audit(
