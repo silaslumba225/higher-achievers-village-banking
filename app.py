@@ -237,7 +237,6 @@ class NotificationLog(db.Model):
     channel = db.Column(db.String(30), nullable=False)
     notification_type = db.Column(db.String(80), nullable=False)
     recipient_type = db.Column(db.String(80))
-    # member_id = db.Column(db.Integer, db.ForeignKey('member.id'))
     phone = db.Column(db.String(40))
     subject = db.Column(db.String(160))
     message = db.Column(db.Text, nullable=False)
@@ -566,7 +565,7 @@ class CashBookEntry(db.Model):
     created_at = db.Column(db.Date, default=date.today)
 
     member_id = db.Column(db.Integer, db.ForeignKey('member.id'))
-    # member = db.relationship('Member')
+    
 
 def ensure_settings_columns():
     columns = {
