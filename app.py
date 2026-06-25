@@ -2287,7 +2287,6 @@ def welfare():
                 reference=request.form.get('reference'),
                 paid_on=parse_date(request.form.get('paid_on'))
             )
-            db.session.add(c); db.session.commit()
             db.session.add(c)
             db.session.flush()
 
