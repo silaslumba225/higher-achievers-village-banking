@@ -245,6 +245,11 @@ class NotificationLog(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     sent_at = db.Column(db.DateTime)
     provider_reference = db.Column(db.String(120))
+    member_id = db.Column(
+        db.Integer,
+        db.ForeignKey('member.id'),
+        nullable=True
+    )
     member = db.relationship('Member', backref='notification_logs')
 
 class Member(db.Model):
