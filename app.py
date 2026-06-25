@@ -2192,20 +2192,54 @@ def fines():
 @role_required('fines')
 def fine_payment(fine_id):
     fine = FinePenalty.query.get_or_404(fine_id)
+
     if fine.status == 'Waived':
         flash('Cannot pay a waived fine.', 'error')
         return redirect(url_for('fines'))
-    payment = FinePayment(fine_id=fine.id, amount=money(request.form['amount']), method=request.form['method'], reference=request.form.get('reference'), paid_on=parse_date(request.form.get('paid_on')))
+
+    payment = FinePayment(
+        fine_id=fine.id,
+        amount=money(request.form['amount']),
+        method=request.form['method'],
+        reference=request.form.get('reference'),
+        paid_on=parse_date(request.form.get('paid_on'))
+    )
+
     if payment.amount <= 0:
         flash('Payment amount must be greater than zero.', 'error')
         return redirect(url_for('fines'))
+
     if payment.amount > fine.balance:
         flash('Payment cannot exceed the outstanding fine balance.', 'error')
         return redirect(url_for('fines'))
-    db.session.add(payment); db.session.commit()
+
+    db.session.add(payment)
+    db.session.flush()
+
+    post_to_cash_book(
+        entry_date=payment.paid_on,
+        entry_type='In',
+        category='Fine Payment',
+        amount=payment.amount,
+        description=f'{fine.member.member_no} - {fine.member.full_name}',
+        method=payment.method,
+        reference=payment.reference,
+        source_type='FinePayment',
+        source_id=payment.id
+    )
+
+    db.session.commit()
+
     fine.status = 'Paid' if fine.balance <= 0 else 'Partially Paid'
     db.session.commit()
-    log_audit('RECORD_FINE_PAYMENT', 'FinePayment', payment.id, f'{fine.member.full_name} paid {kwacha(payment.amount)} for fine #{fine.id} via {payment.method}')
+
+    log_audit(
+        'RECORD_FINE_PAYMENT',
+        'FinePayment',
+        payment.id,
+        f'{fine.member.full_name} paid {kwacha(payment.amount)} for fine #{fine.id} via {payment.method}'
+    )
+
     flash('Fine payment recorded.')
     return redirect(url_for('fines'))
 
