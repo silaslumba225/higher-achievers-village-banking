@@ -565,6 +565,9 @@ class CashBookEntry(db.Model):
     created_by = db.Column(db.String(120))
     created_at = db.Column(db.Date, default=date.today)
 
+    member_id = db.Column(db.Integer, db.ForeignKey('member.id'))
+    member = db.relationship('Member')
+
 def ensure_settings_columns():
     columns = {
         'logo_url': 'VARCHAR(500)',
