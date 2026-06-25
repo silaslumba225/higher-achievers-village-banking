@@ -4,7 +4,9 @@
 {% block subtitle %}Track all money coming in and going out{% endblock %}
 
 {% block content %}
-
+<div class="actions">
+  <a class="btn" href="{{ url_for('accounting') }}">← Back to Accounting</a>
+</div>
 <section class="kpi-grid">
   <div class="kpi">
     <span>Total Cash In</span>

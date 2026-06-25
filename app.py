@@ -875,6 +875,33 @@ def create_database_backup(prefix='backup', notes=None):
     prune_old_backups()
     return record
 
+def post_to_cash_book(
+    entry_date,
+    entry_type,
+    category,
+    amount,
+    description='',
+    method='',
+    reference='',
+    source_type='',
+    source_id=None
+    ):
+    user = session.get('user') or {}
+
+    entry = CashBookEntry(
+        entry_date=entry_date,
+        entry_type=entry_type,
+        category=category,
+        description=description,
+        amount=money(amount),
+        method=method,
+        reference=reference,
+        source_type=source_type,
+        source_id=source_id,
+        created_by=user.get('username')
+    )
+
+    db.session.add(entry)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -1461,7 +1488,32 @@ def members_import():
 def contributions():
     if request.method == 'POST':
         c = Contribution(member_id=int(request.form['member_id']), month=request.form['month'], amount=money(request.form['amount']), method=request.form['method'], reference=request.form.get('reference'), paid_on=parse_date(request.form.get('paid_on')))
-        db.session.add(c); db.session.commit(); log_audit('RECORD_CONTRIBUTION', 'Contribution', c.id, f'{c.member.full_name} paid {kwacha(c.amount)} for {c.month} via {c.method}'); flash('Contribution recorded.'); return redirect(url_for('contributions'))
+        db.session.add(c)
+        db.session.flush()
+
+        post_to_cash_book(
+            entry_date=c.paid_on,
+            entry_type='In',
+            category='Member Contribution',
+            amount=c.amount,
+            description=f'{c.member.member_no} - {c.member.full_name}',
+            method=c.method,
+            reference=c.reference,
+            source_type='Contribution',
+            source_id=c.id
+        )
+
+        db.session.commit()
+
+        log_audit(
+            'RECORD_CONTRIBUTION',
+            'Contribution',
+            c.id,
+            f'{c.member.full_name} paid {kwacha(c.amount)} for {c.month} via {c.method}'
+        )
+
+        flash('Contribution recorded.')
+        return redirect(url_for('contributions'))
     page = request.args.get('page', 1, type=int)
     per_page = 25
 
