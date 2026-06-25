@@ -2288,7 +2288,30 @@ def welfare():
                 paid_on=parse_date(request.form.get('paid_on'))
             )
             db.session.add(c); db.session.commit()
-            log_audit('RECORD_WELFARE_CONTRIBUTION', 'WelfareContribution', c.id, f'{c.member.full_name} paid welfare contribution {kwacha(c.amount)} for {c.month}')
+            db.session.add(c)
+            db.session.flush()
+
+            post_to_cash_book(
+                entry_date=c.paid_on,
+                entry_type='In',
+                category='Welfare Contribution',
+                amount=c.amount,
+                description=f'{c.member.member_no} - {c.member.full_name}',
+                method=c.method,
+                reference=c.reference,
+                source_type='WelfareContribution',
+                source_id=c.id
+            )
+
+            db.session.commit()
+
+            log_audit(
+                'RECORD_WELFARE_CONTRIBUTION',
+                'WelfareContribution',
+                c.id,
+                f'{c.member.full_name} paid welfare contribution {kwacha(c.amount)} for {c.month}'
+            )
+
             flash('Welfare contribution recorded.')
         elif action == 'claim':
             claim = WelfareClaim(
