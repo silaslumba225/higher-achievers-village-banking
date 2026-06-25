@@ -569,7 +569,7 @@ class CashBookEntry(db.Model):
     created_by = db.Column(db.String(120))
     created_at = db.Column(db.Date, default=date.today)
 
-    member_id = db.Column(db.Integer, db.ForeignKey('member.id'))
+    
     
 
 def ensure_settings_columns():
