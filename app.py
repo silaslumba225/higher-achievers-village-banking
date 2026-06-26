@@ -1695,7 +1695,8 @@ def loans():
         'loans.html',
         loans=pagination.items,
         pagination=pagination,
-        members=Member.query.order_by(Member.full_name).all()
+        members=Member.query.order_by(Member.full_name).all(),
+        settings=get_settings()
     )
 
 @app.route('/loans/<int:loan_id>/statement.pdf')
