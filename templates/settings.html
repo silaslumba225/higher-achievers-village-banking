@@ -132,5 +132,19 @@
 
   </form>
 </section>
+<section class="panel danger-zone">
+  <h2>Danger Zone</h2>
+  <p>This will delete all transactions but keep members, users, and settings.</p>
+
+  <form method="post" action="{{ url_for('reset_transactions') }}">
+    <label>Type RESET to confirm
+      <input name="confirm" placeholder="RESET" required>
+    </label>
+
+    <button class="btn danger" type="submit">
+      Reset Transactions
+    </button>
+  </form>
+</section>
 
 {% endblock %}

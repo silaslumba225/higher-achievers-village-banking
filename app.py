@@ -4591,6 +4591,49 @@ def export_csv(kind):
         writer.writerow(['Unsupported export'])
     return Response(output.getvalue(), mimetype='text/csv', headers={'Content-Disposition': f'attachment; filename={kind}.csv'})
 
+@app.route('/admin/reset-transactions', methods=['POST'])
+@login_required
+@role_required('admin')
+def reset_transactions():
+    confirm = request.form.get('confirm')
+
+    if confirm != 'RESET':
+        flash('Reset not confirmed. Type RESET to proceed.', 'error')
+        return redirect(url_for('settings'))
+
+    try:
+        # Delete child/detail records first
+        CashBookEntry.query.delete()
+        Repayment.query.delete()
+        FinePayment.query.delete()
+        FinePenalty.query.delete()
+        WelfareContribution.query.delete()
+        WelfareClaim.query.delete()
+        Distribution.query.delete()
+        SavingsInterest.query.delete()
+        LoanInterest.query.delete()
+        LoanGuarantor.query.delete()
+
+        # Delete loans after repayments/guarantors
+        Loan.query.delete()
+
+        db.session.commit()
+
+        log_audit(
+            'RESET_TRANSACTIONS',
+            'System',
+            None,
+            'All transactional records were reset.'
+        )
+
+        flash('All transactional records have been reset successfully.')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Reset failed: {str(e)}', 'error')
+
+    return redirect(url_for('settings'))
+
+
 def parse_date(value):
     if not value: return date.today()
     return datetime.strptime(value, '%Y-%m-%d').date()
