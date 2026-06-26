@@ -4623,6 +4623,9 @@ def reset_transactions():
 
         MonthEndProcess.query.delete()
 
+        JournalLine.query.delete()
+        JournalEntry.query.delete() 
+
         db.session.commit()
 
         log_audit(
