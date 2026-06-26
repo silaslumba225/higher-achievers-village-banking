@@ -2431,6 +2431,19 @@ def welfare_pay(claim_id):
         claim.paid_on = parse_date(request.form.get('paid_on'))
         claim.payment_method = request.form.get('method')
         claim.reference = request.form.get('reference')
+
+        post_to_cash_book(
+            entry_date=claim.paid_on,
+            entry_type='Out',
+            category='Welfare Claim Payment',
+            amount=claim.amount_approved,
+            description=f'{claim.member.member_no} - {claim.member.full_name}',
+            method=claim.payment_method,
+            reference=claim.reference,
+            source_type='WelfareClaim',
+            source_id=claim.id
+        )
+
         db.session.commit()
         log_audit('WELFARE_CLAIM_PAID', 'WelfareClaim', claim.id, f'{claim.member.full_name} welfare claim paid {kwacha(claim.amount_approved)} via {claim.payment_method}')
         flash('Welfare claim paid successfully.')
