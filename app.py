@@ -2185,6 +2185,30 @@ def distributions():
         )
 
         db.session.add(d)
+        db.session.flush()
+
+        post_to_cash_book(
+            entry_date=d.paid_on,
+            entry_type='Out',
+            category='Share-Out Payment',
+            amount=d.amount,
+            description=f'{d.member.member_no} - {d.member.full_name}',
+            method=d.method,
+            reference=d.reference,
+            source_type='Distribution',
+            source_id=d.id
+        )
+
+        post_journal(
+            entry_date=d.paid_on,
+            description=f'Share-out payment - {d.member.member_no} - {d.member.full_name}',
+            debit_account_code='5040',
+            credit_account_code=cash_account(d.method),
+            amount=d.amount,
+            source_type='Distribution',
+            source_id=d.id
+        )
+
         db.session.commit()
 
         log_audit(
@@ -2330,6 +2354,15 @@ def fine_payment(fine_id):
         source_type='FinePayment',
         source_id=payment.id
     )
+    post_journal(
+        entry_date=payment.paid_on,
+        description=f'Fine payment - {fine.member.member_no} - {fine.member.full_name}',
+        debit_account_code=cash_account(payment.method),
+        credit_account_code='4010',
+        amount=payment.amount,
+        source_type='FinePayment',
+        source_id=payment.id
+    )
 
     db.session.commit()
 
@@ -2401,6 +2434,15 @@ def welfare():
                 description=f'{c.member.member_no} - {c.member.full_name}',
                 method=c.method,
                 reference=c.reference,
+                source_type='WelfareContribution',
+                source_id=c.id
+            )
+            post_journal(
+                entry_date=c.paid_on,
+                description=f'Welfare contribution - {c.member.member_no} - {c.member.full_name}',
+                debit_account_code=cash_account(c.method),
+                credit_account_code='2010',
+                amount=c.amount,
                 source_type='WelfareContribution',
                 source_id=c.id
             )
@@ -2531,6 +2573,15 @@ def welfare_pay(claim_id):
             description=f'{claim.member.member_no} - {claim.member.full_name}',
             method=claim.payment_method,
             reference=claim.reference,
+            source_type='WelfareClaim',
+            source_id=claim.id
+        )
+        post_journal(
+            entry_date=claim.paid_on,
+            description=f'Welfare claim payment - {claim.member.member_no} - {claim.member.full_name}',
+            debit_account_code='5030',
+            credit_account_code=cash_account(claim.payment_method),
+            amount=claim.amount_approved,
             source_type='WelfareClaim',
             source_id=claim.id
         )
