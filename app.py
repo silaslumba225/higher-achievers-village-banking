@@ -696,6 +696,7 @@ def seed_chart_of_accounts():
         ('5020', 'Transport and Meetings', 'Expense', 'Debit'),
         ('5030', 'Welfare Support Expense', 'Expense', 'Debit'),
         ('5040', 'Share-Out / Dividend Distribution', 'Expense', 'Debit'),
+        ('2100', 'Member Loan Payable', 'Liability', 'Credit'),
     ]
     for code, name, account_type, normal_balance in default_accounts:
         if not Account.query.filter_by(code=code).first():
@@ -906,6 +907,67 @@ def post_to_cash_book(
     )
 
     db.session.add(entry)
+
+def post_journal(
+    entry_date,
+    description,
+    debit_account_code,
+    credit_account_code,
+    amount,
+    source_type='',
+    source_id=None
+):
+    amount = money(amount)
+
+    debit_account = Account.query.filter_by(
+        code=debit_account_code
+    ).first()
+
+    credit_account = Account.query.filter_by(
+        code=credit_account_code
+    ).first()
+
+    if not debit_account or not credit_account:
+        raise Exception(
+            f'Chart of Accounts missing: '
+            f'{debit_account_code} or {credit_account_code}'
+        )
+
+    journal = JournalEntry(
+        entry_date=entry_date,
+        description=description,
+        source_type=source_type,
+        source_id=source_id
+    )
+
+    db.session.add(journal)
+    db.session.flush()
+
+    db.session.add(
+        JournalLine(
+            journal_entry_id=journal.id,
+            account_id=debit_account.id,
+            debit=amount,
+            credit=Decimal('0.00')
+        )
+    )
+
+    db.session.add(
+        JournalLine(
+            journal_entry_id=journal.id,
+            account_id=credit_account.id,
+            debit=Decimal('0.00'),
+            credit=amount
+        )
+    )
+def cash_account(method):
+    if method == 'Bank Transfer':
+        return '1010'
+
+    if method == 'Mobile Money':
+        return '1020'
+
+    return '1000'
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -1503,6 +1565,15 @@ def contributions():
             description=f'{c.member.member_no} - {c.member.full_name}',
             method=c.method,
             reference=c.reference,
+            source_type='Contribution',
+            source_id=c.id
+        )
+        post_journal(
+            entry_date=c.paid_on,
+            description=f'Member contribution - {c.member.member_no} - {c.member.full_name}',
+            debit_account_code=cash_account(c.method),
+            credit_account_code='2000',
+            amount=c.amount,
             source_type='Contribution',
             source_id=c.id
         )
@@ -4624,7 +4695,8 @@ def reset_transactions():
         MonthEndProcess.query.delete()
 
         JournalLine.query.delete()
-        JournalEntry.query.delete() 
+        JournalEntry.query.delete()
+       
 
         db.session.commit()
 
