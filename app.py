@@ -4604,18 +4604,24 @@ def reset_transactions():
     try:
         # Delete child/detail records first
         CashBookEntry.query.delete()
+        NotificationLog.query.delete()
+
         Repayment.query.delete()
+        LoanGuarantor.query.delete()
+        LoanInterest.query.delete()
+        Loan.query.delete()
+
         FinePayment.query.delete()
         FinePenalty.query.delete()
+
         WelfareContribution.query.delete()
         WelfareClaim.query.delete()
+
         Distribution.query.delete()
         SavingsInterest.query.delete()
-        LoanInterest.query.delete()
-        LoanGuarantor.query.delete()
+        Contribution.query.delete()
 
-        # Delete loans after repayments/guarantors
-        Loan.query.delete()
+        MonthEndProcess.query.delete()
 
         db.session.commit()
 
@@ -4623,16 +4629,16 @@ def reset_transactions():
             'RESET_TRANSACTIONS',
             'System',
             None,
-            'All transactional records were reset.'
+            'All transactional records were reset. Members, users and settings were retained.'
         )
 
         flash('All transactional records have been reset successfully.')
+
     except Exception as e:
         db.session.rollback()
         flash(f'Reset failed: {str(e)}', 'error')
 
     return redirect(url_for('settings'))
-
 
 def parse_date(value):
     if not value: return date.today()
