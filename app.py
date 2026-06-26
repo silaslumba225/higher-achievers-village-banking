@@ -1558,6 +1558,32 @@ def contributions():
         db.session.flush()
 
         post_to_cash_book(
+                entry_date=c.paid_on,
+                entry_type='In',
+                category='Member Contribution',
+                amount=c.amount,
+                description=f'{c.member.member_no} - {c.member.full_name}',
+                method=c.method,
+                reference=c.reference,
+                source_type='Contribution',
+                source_id=c.id
+            )
+
+        post_journal(
+                entry_date=c.paid_on,
+                description=f'Member contribution - {c.member.member_no} - {c.member.full_name}',
+                debit_account_code=cash_account(c.method),
+                credit_account_code='2000',
+                amount=c.amount,
+                source_type='Contribution',
+                source_id=c.id
+            )
+
+        db.session.commit()
+        db.session.add(c)
+        db.session.flush()
+
+        post_to_cash_book(
             entry_date=c.paid_on,
             entry_type='In',
             category='Member Contribution',
