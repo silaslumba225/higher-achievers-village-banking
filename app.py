@@ -1960,6 +1960,16 @@ def repayments():
         source_id=r.id
     )
 
+    post_journal(
+        entry_date=r.paid_on,
+        description=f'Loan repayment - {loan.member.member_no} - {loan.member.full_name}',
+        debit_account_code=cash_account(r.method),
+        credit_account_code='1100',
+        amount=r.amount,
+        source_type='Repayment',
+        source_id=r.id
+    )
+
     db.session.commit()
     db.session.refresh(loan)
     
@@ -2042,6 +2052,16 @@ def loan_disburse(loan_id):
         description=f'{loan.member.member_no} - {loan.member.full_name}',
         method=loan.disbursement_method,
         reference=loan.disbursement_reference,
+        source_type='Loan',
+        source_id=loan.id
+    )
+
+    post_journal(
+        entry_date=loan.disbursed_on,
+        description=f'Loan disbursement - {loan.member.member_no} - {loan.member.full_name}',
+        debit_account_code='1100',
+        credit_account_code=cash_account(loan.disbursement_method),
+        amount=loan.principal,
         source_type='Loan',
         source_id=loan.id
     )
