@@ -1,8 +1,11 @@
 {% extends 'base.html' %}
 
 {% block page_title %}Loan Management{% endblock %}
-{% block subtitle %}Issue loans at {{ interest_percent }}% interest and track repayments{% endblock %}
-
+<p>Manage loan applications, approvals, disbursements, interest and repayments.</p>
+<!-- {% block subtitle %}Issue loans at {{ interest_percent }}% interest and track repayments{% endblock %} -->
+<span class="badge">
+    Current Interest Rate: {{ settings.loan_interest_rate }}%
+</span>
 {% block content %}
 
 <section class="panel">
