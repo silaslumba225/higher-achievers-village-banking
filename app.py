@@ -3036,86 +3036,46 @@ def income_statement():
 @login_required
 @role_required('accounting')
 def balance_sheet():
+    balances = ledger_balances()
 
-    total_savings = money(
-        db.session.query(
-            db.func.coalesce(db.func.sum(Contribution.amount), 0)
-        ).scalar()
-    )
+    balance_map = {
+        b['account'].code: b['balance']
+        for b in balances
+    }
 
-    savings_interest = money(
-        db.session.query(
-            db.func.coalesce(db.func.sum(SavingsInterest.interest_amount), 0)
-        ).scalar()
-    )
+    cash_on_hand = money(balance_map.get('1000', Decimal('0.00')))
+    bank_account = money(balance_map.get('1010', Decimal('0.00')))
+    mobile_money = money(balance_map.get('1020', Decimal('0.00')))
+    loans_receivable = money(balance_map.get('1100', Decimal('0.00')))
 
-    welfare_contributions = money(
-        db.session.query(
-            db.func.coalesce(db.func.sum(WelfareContribution.amount), 0)
-        ).scalar()
-    )
+    member_savings = money(balance_map.get('2000', Decimal('0.00')))
+    welfare_fund = money(balance_map.get('2010', Decimal('0.00')))
+    accumulated_surplus = money(balance_map.get('3000', Decimal('0.00')))
 
-    welfare_paid = money(
-        db.session.query(
-            db.func.coalesce(db.func.sum(WelfareClaim.amount_approved), 0)
-        )
-        .filter(WelfareClaim.status == 'Paid')
-        .scalar()
-    )
+    total_cash = money(cash_on_hand + bank_account + mobile_money)
+    total_assets = money(total_cash + loans_receivable)
 
-    welfare_balance = money(
-        welfare_contributions - welfare_paid
-    )
+    total_liabilities = money(member_savings + welfare_fund)
+    total_equity = accumulated_surplus
+    total_liabilities_equity = money(total_liabilities + total_equity)
 
-    loans_outstanding = money(
-        sum(
-            (loan.balance for loan in Loan.query.all()),
-            Decimal('0.00')
-        )
-    )
-
-    fines_outstanding = money(
-        sum(
-            (
-                fine.balance
-                for fine in FinePenalty.query.all()
-                if fine.status != 'Waived'
-            ),
-            Decimal('0.00')
-        )
-    )
-
-    member_equity = money(
-        total_savings + savings_interest
-    )
-
-    liabilities_equity = money(
-        member_equity + welfare_balance
-    )
-
-    cash_balance = money(
-        liabilities_equity
-        - loans_outstanding
-        - fines_outstanding
-    )
-
-    total_assets = money(
-        cash_balance
-        + loans_outstanding
-        + fines_outstanding
-    )
+    difference = money(total_assets - total_liabilities_equity)
 
     return render_template(
         'balance_sheet.html',
-        cash_balance=cash_balance,
-        loans_outstanding=loans_outstanding,
-        fines_outstanding=fines_outstanding,
+        cash_on_hand=cash_on_hand,
+        bank_account=bank_account,
+        mobile_money=mobile_money,
+        total_cash=total_cash,
+        loans_receivable=loans_receivable,
         total_assets=total_assets,
-        total_savings=total_savings,
-        savings_interest=savings_interest,
-        welfare_balance=welfare_balance,
-        member_equity=member_equity,
-        liabilities_equity=liabilities_equity
+        member_savings=member_savings,
+        welfare_fund=welfare_fund,
+        total_liabilities=total_liabilities,
+        accumulated_surplus=accumulated_surplus,
+        total_equity=total_equity,
+        total_liabilities_equity=total_liabilities_equity,
+        difference=difference
     )
 @app.route('/accounting/cash-flow')
 @login_required

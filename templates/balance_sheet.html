@@ -13,64 +13,75 @@
 </section>
 
 <section class="panel">
+  <h2>Balance Sheet</h2>
 
-<h2>Balance Sheet</h2>
-
-<table>
-  <tbody>
-
+  <table>
     <tr>
-      <th colspan="2">ASSETS</th>
+      <th colspan="2">Assets</th>
     </tr>
-
     <tr>
-      <td>Cash / Bank Balance</td>
-      <td>{{ cash_balance|kwacha }}</td>
+      <td>Cash on Hand</td>
+      <td>{{ cash_on_hand|kwacha }}</td>
     </tr>
-
     <tr>
-      <td>Loans Outstanding</td>
-      <td>{{ loans_outstanding|kwacha }}</td>
+      <td>Bank Account</td>
+      <td>{{ bank_account|kwacha }}</td>
     </tr>
-
     <tr>
-      <td>Fines Outstanding</td>
-      <td>{{ fines_outstanding|kwacha }}</td>
+      <td>Mobile Money</td>
+      <td>{{ mobile_money|kwacha }}</td>
     </tr>
-
+    <tr>
+      <th>Total Cash and Bank</th>
+      <th>{{ total_cash|kwacha }}</th>
+    </tr>
+    <tr>
+      <td>Loans Receivable</td>
+      <td>{{ loans_receivable|kwacha }}</td>
+    </tr>
     <tr>
       <th>Total Assets</th>
       <th>{{ total_assets|kwacha }}</th>
     </tr>
 
-    <tr><td colspan="2">&nbsp;</td></tr>
-
     <tr>
-      <th colspan="2">LIABILITIES & EQUITY</th>
+      <th colspan="2">Liabilities</th>
+    </tr>
+    <tr>
+      <td>Member Savings / Contributions</td>
+      <td>{{ member_savings|kwacha }}</td>
+    </tr>
+    <tr>
+      <td>Welfare Fund Payable</td>
+      <td>{{ welfare_fund|kwacha }}</td>
+    </tr>
+    <tr>
+      <th>Total Liabilities</th>
+      <th>{{ total_liabilities|kwacha }}</th>
     </tr>
 
     <tr>
-      <td>Member Savings</td>
-      <td>{{ total_savings|kwacha }}</td>
+      <th colspan="2">Equity</th>
+    </tr>
+    <tr>
+      <td>Accumulated Surplus</td>
+      <td>{{ accumulated_surplus|kwacha }}</td>
+    </tr>
+    <tr>
+      <th>Total Equity</th>
+      <th>{{ total_equity|kwacha }}</th>
     </tr>
 
     <tr>
-      <td>Savings Interest</td>
-      <td>{{ savings_interest|kwacha }}</td>
+      <th>Total Liabilities and Equity</th>
+      <th>{{ total_liabilities_equity|kwacha }}</th>
     </tr>
 
     <tr>
-      <td>Welfare Fund Balance</td>
-      <td>{{ welfare_balance|kwacha }}</td>
+      <th>Difference</th>
+      <th>{{ difference|kwacha }}</th>
     </tr>
-
-    <tr>
-      <th>Total Liabilities & Equity</th>
-      <th>{{ liabilities_equity|kwacha }}</th>
-    </tr>
-
-  </tbody>
-</table>
+  </table>
 </section>
 
 {% endblock %}
