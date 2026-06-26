@@ -4593,7 +4593,7 @@ def export_csv(kind):
 
 @app.route('/admin/reset-transactions', methods=['POST'])
 @login_required
-@role_required('admin')
+@role_required('settings')
 def reset_transactions():
     confirm = request.form.get('confirm')
 
