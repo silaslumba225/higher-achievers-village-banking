@@ -3198,51 +3198,30 @@ def income_statement():
     start_date = parse_date(start) if start else None
     end_date = parse_date(end) if end else None
 
-    loan_interest_query = db.session.query(
-        db.func.coalesce(db.func.sum(LoanInterest.interest_amount), 0)
-    )
+    balances = ledger_balances(start_date, end_date)
 
-    fines_query = db.session.query(
-        db.func.coalesce(db.func.sum(FinePayment.amount), 0)
-    )
+    income_accounts = []
+    expense_accounts = []
 
-    welfare_query = db.session.query(
-        db.func.coalesce(db.func.sum(WelfareClaim.amount_approved), 0)
-    ).filter(WelfareClaim.status == 'Paid')
+    for b in balances:
+        account = b['account']
 
-    shareout_query = db.session.query(
-        db.func.coalesce(db.func.sum(Distribution.amount), 0)
-    )
+        if account.account_type == 'Income' and b['balance'] != 0:
+            income_accounts.append(b)
 
-    if start_date:
-        loan_interest_query = loan_interest_query.filter(LoanInterest.month >= start_date.strftime('%Y-%m'))
-        fines_query = fines_query.filter(FinePayment.paid_on >= start_date)
-        welfare_query = welfare_query.filter(WelfareClaim.paid_on >= start_date)
-        shareout_query = shareout_query.filter(Distribution.paid_on >= start_date)
+        if account.account_type == 'Expense' and b['balance'] != 0:
+            expense_accounts.append(b)
 
-    if end_date:
-        loan_interest_query = loan_interest_query.filter(LoanInterest.month <= end_date.strftime('%Y-%m'))
-        fines_query = fines_query.filter(FinePayment.paid_on <= end_date)
-        welfare_query = welfare_query.filter(WelfareClaim.paid_on <= end_date)
-        shareout_query = shareout_query.filter(Distribution.paid_on <= end_date)
-
-    loan_interest_income = money(loan_interest_query.scalar())
-    fines_income = money(fines_query.scalar())
-    welfare_expense = money(welfare_query.scalar())
-    shareout_expense = money(shareout_query.scalar())
-
-    total_income = money(loan_interest_income + fines_income)
-    total_expenses = money(welfare_expense + shareout_expense)
+    total_income = money(sum((b['balance'] for b in income_accounts), Decimal('0.00')))
+    total_expenses = money(sum((b['balance'] for b in expense_accounts), Decimal('0.00')))
     net_surplus = money(total_income - total_expenses)
 
     return render_template(
         'income_statement.html',
         start=start,
         end=end,
-        loan_interest_income=loan_interest_income,
-        fines_income=fines_income,
-        welfare_expense=welfare_expense,
-        shareout_expense=shareout_expense,
+        income_accounts=income_accounts,
+        expense_accounts=expense_accounts,
         total_income=total_income,
         total_expenses=total_expenses,
         net_surplus=net_surplus

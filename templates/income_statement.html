@@ -1,103 +1,182 @@
 {% extends 'base.html' %}
 
-{% block page_title %}Income & Expenditure Statement{% endblock %}
-{% block subtitle %}Income, expenses and surplus/deficit report{% endblock %}
+{% block page_title %}Income Statement{% endblock %}
+{% block subtitle %}
+Income and Expenditure Statement from the General Ledger
+{% endblock %}
 
 {% block content %}
 
 <section class="panel">
-  <form method="get" class="actions">
-    <input type="date" name="start" value="{{ start or '' }}">
-    <input type="date" name="end" value="{{ end or '' }}">
 
-    <button class="btn primary" type="submit">
-      Run Report
-    </button>
+    <div class="panel-head">
+        <div>
+            <h2>Income Statement</h2>
+            <p>Generated directly from the General Ledger.</p>
+        </div>
+    </div>
 
-    <a class="btn"
-       href="{{ url_for('accounting') }}">
-       Back to Accounting
-    </a>
-  </form>
+    <form method="get" class="form-grid">
+
+        <label>
+            Start Date
+            <input type="date" name="start" value="{{ start }}">
+        </label>
+
+        <label>
+            End Date
+            <input type="date" name="end" value="{{ end }}">
+        </label>
+
+        <button class="btn primary">
+            Refresh
+        </button>
+
+    </form>
+
 </section>
 
 <section class="panel">
 
-  <h2>Income & Expenditure Statement</h2>
+<h2>Income</h2>
 
-  <table>
-    <tbody>
+<div class="table-wrap">
 
-      <tr>
-        <th colspan="2">Income</th>
-      </tr>
+<table>
 
-      <tr>
-        <td>Loan Interest Income</td>
-        <td>{{ loan_interest_income|kwacha }}</td>
-      </tr>
+<thead>
 
-      <tr>
-        <td>Fines Collected</td>
-        <td>{{ fines_income|kwacha }}</td>
-      </tr>
+<tr>
+    <th>Code</th>
+    <th>Account</th>
+    <th>Amount</th>
+</tr>
 
-      <tr>
-        <th>Total Income</th>
-        <th>{{ total_income|kwacha }}</th>
-      </tr>
+</thead>
 
-      <tr>
-        <td colspan="2">&nbsp;</td>
-      </tr>
+<tbody>
 
-      <tr>
-        <th colspan="2">Expenses</th>
-      </tr>
+{% for row in income_accounts %}
 
-      <tr>
-        <td>Welfare Payments</td>
-        <td>{{ welfare_expense|kwacha }}</td>
-      </tr>
+<tr>
 
-      <tr>
-        <td>Share-Out Distributions</td>
-        <td>{{ shareout_expense|kwacha }}</td>
-      </tr>
+    <td>{{ row.account.code }}</td>
 
-      <tr>
-        <th>Total Expenses</th>
-        <th>{{ total_expenses|kwacha }}</th>
-      </tr>
+    <td>{{ row.account.name }}</td>
 
-      <tr>
-        <td colspan="2">&nbsp;</td>
-      </tr>
+    <td class="text-end">{{ row.balance|kwacha }}</td>
 
-      <tr>
-        <th>Net Result</th>
+</tr>
 
-        <th>
-          <span class="{% if net_surplus >= 0 %}good-text{% else %}bad-text{% endif %}">
-            {{ net_surplus|kwacha }}
-          </span>
-        </th>
-      </tr>
+{% else %}
 
-      <tr>
-        <td>Status</td>
+<tr>
 
-        <td>
-          {% if net_surplus >= 0 %}
-            Surplus
-          {% else %}
-            Deficit
-          {% endif %}
-        </td>
-      </tr>
+    <td colspan="3">
+        No income recorded.
+    </td>
 
-    </tbody>
-  </table>
+</tr>
+
+{% endfor %}
+
+<tr>
+
+    <th colspan="2">
+        Total Income
+    </th>
+
+    <th class="text-end">
+        {{ total_income|kwacha }}
+    </th>
+
+</tr>
+
+</tbody>
+
+</table>
+
+</div>
+
+</section>
+
+<section class="panel">
+
+<h2>Expenses</h2>
+
+<div class="table-wrap">
+
+<table>
+
+<thead>
+
+<tr>
+
+    <th>Code</th>
+
+    <th>Account</th>
+
+    <th>Amount</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+{% for row in expense_accounts %}
+
+<tr>
+
+    <td>{{ row.account.code }}</td>
+
+    <td>{{ row.account.name }}</td>
+
+    <td class="text-end">{{ row.balance|kwacha }}</td>
+
+</tr>
+
+{% else %}
+
+<tr>
+
+    <td colspan="3">
+        No expenses recorded.
+    </td>
+
+</tr>
+
+{% endfor %}
+
+<tr>
+
+    <th colspan="2">
+        Total Expenses
+    </th>
+
+    <th class="text-end">
+        {{ total_expenses|kwacha }}
+    </th>
+
+</tr>
+
+</tbody>
+
+</table>
+
+</div>
+
+</section>
+
+<section class="kpi-grid">
+
+<div class="kpi accent">
+
+<span>Net Surplus / (Deficit)</span>
+
+<strong>{{ net_surplus|kwacha }}</strong>
+
+</div>
 
 </section>
 
