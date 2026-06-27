@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Year-End Closing{% endblock %}
+{% block subtitle %}Close the financial year and transfer surplus to Accumulated Surplus{% endblock %}
+
+{% block content %}
+
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Year-End Closing Wizard</h2>
+      <p>Preview the year before closing.</p>
+    </div>
+    <a class="btn" href="{{ url_for('accounting') }}">← Back to Accounting</a>
+  </div>
+
+  <form method="get" class="form-grid">
+    <label>Start Date
+      <input type="date" name="start" value="{{ start }}">
+    </label>
+
+    <label>End Date
+      <input type="date" name="end" value="{{ end }}">
+    </label>
+
+    <button class="btn primary" type="submit">Preview</button>
+  </form>
+</section>
+
+<section class="kpi-grid">
+  <div class="kpi">
+    <span>Trial Balance</span>
+    {% if trial_balance_ok %}
+      <strong class="good-text">Balanced</strong>
+    {% else %}
+      <strong class="bad-text">Not Balanced</strong>
+    {% endif %}
+    <em>Dr {{ total_debits|kwacha }} / Cr {{ total_credits|kwacha }}</em>
+  </div>
+
+  <div class="kpi">
+    <span>Total Income</span>
+    <strong>{{ total_income|kwacha }}</strong>
+  </div>
+
+  <div class="kpi">
+    <span>Total Expenses</span>
+    <strong>{{ total_expenses|kwacha }}</strong>
+  </div>
+
+  <div class="kpi accent">
+    <span>Net Surplus / Deficit</span>
+    <strong>{{ net_surplus|kwacha }}</strong>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Income Accounts to Close</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Account</th>
+          <th>Balance</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in income_accounts %}
+        <tr>
+          <td>{{ b.account.code }}</td>
+          <td>{{ b.account.name }}</td>
+          <td>{{ b.balance|kwacha }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="3">No income accounts to close.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Expense Accounts to Close</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Account</th>
+          <th>Balance</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in expense_accounts %}
+        <tr>
+          <td>{{ b.account.code }}</td>
+          <td>{{ b.account.name }}</td>
+          <td>{{ b.balance|kwacha }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="3">No expense accounts to close.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Close Financial Year</h2>
+
+  {% if trial_balance_ok %}
+    <form method="post" action="{{ url_for('year_end_close') }}">
+      <input type="hidden" name="start" value="{{ start }}">
+      <input type="hidden" name="end" value="{{ end }}">
+
+      <button class="btn danger" type="submit"
+              onclick="return confirm('Are you sure you want to close this financial year?')">
+        Close Financial Year
+      </button>
+    </form>
+  {% else %}
+    <p class="bad-text">You cannot close the year until the Trial Balance is balanced.</p>
+  {% endif %}
+</section>
+
+{% endblock %}
