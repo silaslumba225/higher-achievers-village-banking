@@ -569,9 +569,17 @@ class CashBookEntry(db.Model):
     created_by = db.Column(db.String(120))
     created_at = db.Column(db.Date, default=date.today)
 
-    
-    
+class FinancialYear(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
 
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date, nullable=False)
+
+    status = db.Column(db.String(20), default='Open')  # Open / Closed
+    closed_on = db.Column(db.DateTime)
+    closed_by = db.Column(db.String(120))
+
+   
 def ensure_settings_columns():
     columns = {
         'logo_url': 'VARCHAR(500)',
@@ -1141,7 +1149,7 @@ def dashboard():
     monthly_contribution_values = [float(row[1]) for row in monthly_contribution_rows]
 
 
-    loan_month = db.func.to_char(Loan.issued_on, 'YYYY-MM')
+    loan_month = db.func.strftime('%Y-%m', Loan.issued_on)
 
     monthly_loan_rows = db.session.query(
         loan_month,
@@ -1156,7 +1164,7 @@ def dashboard():
     monthly_loan_values = [float(row[1]) for row in monthly_loan_rows]
 
 
-    repayment_month = db.func.to_char(Repayment.paid_on, 'YYYY-MM')
+    repayment_month = db.func.strftime('%Y-%m', Repayment.paid_on)
 
     monthly_repayment_rows = db.session.query(
         repayment_month,
@@ -2822,6 +2830,127 @@ def reports():
         open_loans=open_loans
     )
 
+@app.route('/accounting/year-end')
+@login_required
+@role_required('accounting')
+def year_end_closing():
+    start = request.args.get('start')
+    end = request.args.get('end')
+
+    start_date = parse_date(start) if start else date(date.today().year, 1, 1)
+    end_date = parse_date(end) if end else date(date.today().year, 12, 31)
+
+    balances = ledger_balances(start_date, end_date)
+
+    total_debits = money(sum((b['debit'] for b in balances), Decimal('0.00')))
+    total_credits = money(sum((b['credit'] for b in balances), Decimal('0.00')))
+    trial_balance_ok = total_debits == total_credits
+
+    income_accounts = []
+    expense_accounts = []
+
+    for b in balances:
+        account = b['account']
+
+        if account.account_type == 'Income' and b['balance'] != 0:
+            income_accounts.append(b)
+
+        if account.account_type == 'Expense' and b['balance'] != 0:
+            expense_accounts.append(b)
+
+    total_income = money(sum((b['balance'] for b in income_accounts), Decimal('0.00')))
+    total_expenses = money(sum((b['balance'] for b in expense_accounts), Decimal('0.00')))
+    net_surplus = money(total_income - total_expenses)
+
+    return render_template(
+        'year_end_closing.html',
+        start=start_date,
+        end=end_date,
+        balances=balances,
+        total_debits=total_debits,
+        total_credits=total_credits,
+        trial_balance_ok=trial_balance_ok,
+        income_accounts=income_accounts,
+        expense_accounts=expense_accounts,
+        total_income=total_income,
+        total_expenses=total_expenses,
+        net_surplus=net_surplus
+    )
+@app.route('/accounting/year-end/close', methods=['POST'])
+@login_required
+@role_required('accounting')
+def year_end_close():
+
+    start = parse_date(request.form['start'])
+    end = parse_date(request.form['end'])
+
+    if not start or not end:
+        flash('Invalid financial year.', 'error')
+        return redirect(url_for('year_end_closing'))
+
+    fy = FinancialYear.query.filter_by(
+        start_date=start,
+        end_date=end
+    ).first()
+
+    if fy and fy.status == 'Closed':
+        flash('This financial year has already been closed.', 'error')
+        return redirect(url_for('year_end_closing'))
+
+    balances = ledger_balances(start, end)
+
+    total_debits = money(sum((b['debit'] for b in balances), Decimal('0.00')))
+    total_credits = money(sum((b['credit'] for b in balances), Decimal('0.00')))
+
+    if total_debits != total_credits:
+        flash('Cannot close year because the Trial Balance is not balanced.', 'error')
+        return redirect(url_for('year_end_closing'))
+
+    flash('Trial Balance verified. Ready to generate closing journals.', 'success')
+    
+    journal = JournalEntry(
+    entry_date=end,
+    description=f'Year-End Closing {end.year}',
+    source_type='YearEndClosing'
+)
+
+    db.session.add(journal)
+    db.session.flush()
+
+    closing_amount = Decimal('0.00')
+
+    for b in balances:
+        account = b['account']
+
+        if account.account_type == 'Income' and b['balance'] != 0:
+
+            db.session.add(
+                JournalLine(
+                    journal_entry_id=journal.id,
+                    account_id=account.id,
+                    debit=b['balance'],
+                    credit=Decimal('0.00')
+                )
+            )
+
+            closing_amount += b['balance']
+
+    surplus_account = Account.query.filter_by(code='3000').first()
+
+    if not surplus_account:
+        raise Exception('Account 3000 - Accumulated Surplus is missing.')
+
+    if closing_amount > 0:
+        db.session.add(
+            JournalLine(
+                journal_entry_id=journal.id,
+                account_id=surplus_account.id,
+                debit=Decimal('0.00'),
+                credit=closing_amount
+            )
+        )
+
+    return redirect(url_for('year_end_closing'))
 
 @app.route('/accounting', methods=['GET', 'POST'])
 @login_required
@@ -3038,6 +3167,20 @@ def income_statement():
 def balance_sheet():
     balances = ledger_balances()
 
+    income = Decimal('0.00')
+    expenses = Decimal('0.00')
+
+    for b in balances:
+        account = b['account']
+
+    if account.account_type == 'Income':
+        income += b['balance']
+
+    elif account.account_type == 'Expense':
+        expenses += b['balance']
+
+    current_surplus = money(income - expenses)
+
     balance_map = {
         b['account'].code: b['balance']
         for b in balances
@@ -3056,7 +3199,10 @@ def balance_sheet():
     total_assets = money(total_cash + loans_receivable)
 
     total_liabilities = money(member_savings + welfare_fund)
-    total_equity = accumulated_surplus
+    total_equity = money(
+        accumulated_surplus +
+        current_surplus
+        )
     total_liabilities_equity = money(total_liabilities + total_equity)
 
     difference = money(total_assets - total_liabilities_equity)
@@ -3075,6 +3221,7 @@ def balance_sheet():
         accumulated_surplus=accumulated_surplus,
         total_equity=total_equity,
         total_liabilities_equity=total_liabilities_equity,
+        current_surplus=current_surplus,
         difference=difference
     )
 @app.route('/accounting/cash-flow')
