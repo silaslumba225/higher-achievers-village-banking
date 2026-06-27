@@ -2950,7 +2950,57 @@ def year_end_close():
             )
         )
 
-    return redirect(url_for('year_end_closing'))
+        expense_closing_amount = Decimal('0.00')
+
+    for b in balances:
+        account = b['account']
+
+        if account.account_type == 'Expense' and b['balance'] != 0:
+
+            db.session.add(
+                JournalLine(
+                    journal_entry_id=journal.id,
+                    account_id=account.id,
+                    debit=Decimal('0.00'),
+                    credit=b['balance']
+                )
+            )
+
+            expense_closing_amount += b['balance']
+
+    if expense_closing_amount > 0:
+        db.session.add(
+            JournalLine(
+                journal_entry_id=journal.id,
+                account_id=surplus_account.id,
+                debit=expense_closing_amount,
+                credit=Decimal('0.00')
+            )
+        )
+    if not fy:
+        fy = FinancialYear(
+            start_date=start,
+            end_date=end
+        )
+        db.session.add(fy)
+
+    user = session.get('user') or {}
+
+    fy.status = 'Closed'
+    fy.closed_on = datetime.utcnow()
+    fy.closed_by = user.get('full_name') or user.get('username')
+
+    db.session.commit()
+
+    log_audit(
+        'YEAR_END_CLOSE',
+        'FinancialYear',
+        fy.id,
+        f'Financial year {start} to {end} closed. Net surplus transferred to Accumulated Surplus.'
+    )
+
+    flash('Financial year closed successfully.')
+    return redirect(url_for('year_end_closing', start=start, end=end))       
 
 @app.route('/accounting', methods=['GET', 'POST'])
 @login_required
