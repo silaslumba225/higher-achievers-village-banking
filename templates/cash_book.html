@@ -53,6 +53,14 @@
       </select>
     </label>
 
+      <label>Ledger Account
+      <select name="account_code" required>
+        {% for a in accounts %}
+          <option value="{{ a.code }}">{{ a.code }} - {{ a.name }}</option>
+        {% endfor %}
+      </select>
+   </label>
+
     <label>Amount
       <input type="number" step="0.01" name="amount" required>
     </label>

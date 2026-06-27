@@ -3093,10 +3093,36 @@ def cash_book():
             amount=money(request.form.get('amount')),
             method=request.form.get('method'),
             reference=request.form.get('reference'),
-            created_by=user.get('username')
+            created_by=user.get('username'),
         )
 
         db.session.add(entry)
+        db.session.flush()
+
+        selected_account = request.form.get('account_code')
+
+        if not selected_account:
+            db.session.rollback()
+            flash('Please select a ledger account.', 'error')
+            return redirect(url_for('cash_book'))
+
+        if entry.entry_type == 'In':
+            debit_account = cash_account(entry.method)
+            credit_account = selected_account
+        else:
+            debit_account = selected_account
+            credit_account = cash_account(entry.method)
+
+        post_journal(
+            entry_date=entry.entry_date,
+            description=entry.description or entry.category,
+            debit_account_code=debit_account,
+            credit_account_code=credit_account,
+            amount=entry.amount,
+            source_type='CashBook',
+            source_id=entry.id
+        )
+
         db.session.commit()
 
         log_audit(
@@ -3114,9 +3140,19 @@ def cash_book():
         CashBookEntry.id.desc()
     ).all()
 
-    total_in = money(sum((e.amount for e in entries if e.entry_type == 'In'), Decimal('0.00')))
-    total_out = money(sum((e.amount for e in entries if e.entry_type == 'Out'), Decimal('0.00')))
+    total_in = money(
+        sum((e.amount for e in entries if e.entry_type == 'In'), Decimal('0.00'))
+    )
+
+    total_out = money(
+        sum((e.amount for e in entries if e.entry_type == 'Out'), Decimal('0.00'))
+    )
+
     bank_balance = money(total_in - total_out)
+
+    accounts = Account.query.filter(
+        ~Account.code.in_(['1000', '1010', '1020'])
+    ).order_by(Account.code).all()
 
     return render_template(
         'cash_book.html',
@@ -3124,7 +3160,8 @@ def cash_book():
         total_in=total_in,
         total_out=total_out,
         bank_balance=bank_balance,
-        payment_methods=PAYMENT_METHODS
+        payment_methods=PAYMENT_METHODS,
+        accounts=accounts
     )
 
 @app.route('/accounting/trial-balance')
