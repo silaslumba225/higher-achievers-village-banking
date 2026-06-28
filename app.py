@@ -579,6 +579,22 @@ class FinancialYear(db.Model):
     closed_on = db.Column(db.DateTime)
     closed_by = db.Column(db.String(120))
 
+class BankStatementLine(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    statement_date = db.Column(db.Date, nullable=False)
+    description = db.Column(db.String(250))
+    reference = db.Column(db.String(100))
+    amount = db.Column(db.Numeric(12, 2), nullable=False)
+
+    entry_type = db.Column(db.String(20), nullable=False)  # In or Out
+
+    reconciled = db.Column(db.Boolean, default=False)
+    cash_book_entry_id = db.Column(db.Integer, db.ForeignKey('cash_book_entry.id'))
+    cash_book_entry = db.relationship('CashBookEntry')
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by = db.Column(db.String(120))
    
 def ensure_settings_columns():
     columns = {
@@ -2828,6 +2844,25 @@ def reports():
         arrears=arrears_pagination.items,
         arrears_pagination=arrears_pagination,
         open_loans=open_loans
+    )
+@app.route('/accounting/bank-reconciliation')
+@login_required
+@role_required('accounting')
+def bank_reconciliation():
+    bank_lines = BankStatementLine.query.order_by(
+        BankStatementLine.statement_date.desc(),
+        BankStatementLine.id.desc()
+    ).all()
+
+    cash_entries = CashBookEntry.query.order_by(
+        CashBookEntry.entry_date.desc(),
+        CashBookEntry.id.desc()
+    ).all()
+
+    return render_template(
+        'bank_reconciliation.html',
+        bank_lines=bank_lines,
+        cash_entries=cash_entries
     )
 
 @app.route('/accounting/year-end')

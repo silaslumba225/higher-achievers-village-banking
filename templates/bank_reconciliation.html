@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Bank Reconciliation{% endblock %}
+{% block subtitle %}Compare Cash Book transactions with the Bank Statement{% endblock %}
+
+{% block content %}
+
+<section class="panel">
+
+    <div class="panel-head">
+        <div>
+            <h2>Bank Reconciliation</h2>
+            <p>Match bank statement transactions with the Cash Book.</p>
+        </div>
+
+        <a class="btn" href="{{ url_for('accounting') }}">
+            ← Back to Accounting
+        </a>
+    </div>
+
+</section>
+
+<div class="grid-2">
+
+<section class="panel">
+
+<h2>Bank Statement</h2>
+
+<div class="table-wrap">
+
+<table>
+
+<thead>
+
+<tr>
+    <th>Date</th>
+    <th>Description</th>
+    <th>Reference</th>
+    <th>Amount</th>
+    <th>Status</th>
+</tr>
+
+</thead>
+
+<tbody>
+
+{% for line in bank_lines %}
+
+<tr>
+
+<td>{{ line.statement_date }}</td>
+
+<td>{{ line.description }}</td>
+
+<td>{{ line.reference }}</td>
+
+<td>{{ line.amount|kwacha }}</td>
+
+<td>
+{% if line.reconciled %}
+<span class="badge success">Matched</span>
+{% else %}
+<span class="badge warning">Outstanding</span>
+{% endif %}
+</td>
+
+</tr>
+
+{% else %}
+
+<tr>
+<td colspan="5">No bank statement loaded.</td>
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+</div>
+
+</section>
+
+<section class="panel">
+
+<h2>Cash Book</h2>
+
+<div class="table-wrap">
+
+<table>
+
+<thead>
+
+<tr>
+    <th>Date</th>
+    <th>Description</th>
+    <th>Method</th>
+    <th>Amount</th>
+</tr>
+
+</thead>
+
+<tbody>
+
+{% for entry in cash_entries %}
+
+<tr>
+
+<td>{{ entry.entry_date }}</td>
+
+<td>{{ entry.description }}</td>
+
+<td>{{ entry.method }}</td>
+
+<td>{{ entry.amount|kwacha }}</td>
+
+</tr>
+
+{% else %}
+
+<tr>
+<td colspan="4">No Cash Book entries.</td>
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+</div>
+
+</section>
+
+</div>
+
+{% endblock %}
