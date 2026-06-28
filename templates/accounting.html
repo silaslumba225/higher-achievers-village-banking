@@ -23,14 +23,14 @@
       Balance Sheet
     </a>
     <a class="btn" href="{{ url_for('cash_flow_statement') }}">Cash Flow Statement</a>
-    <a href="{{ url_for('year_end_closing') }}">
-        Year-End Closing
-    </a>
+    
     <a class="btn" href="{{ url_for('bank_reconciliation') }}">
       Bank Reconciliation
     </a>
   </div>
-  
+    <a class="btn" href="{{ url_for('year_end_closing') }}">
+        Year-End Closing
+    </a>  
 
   <form method="post" class="actions">
     <input type="hidden" name="action" value="sync">
