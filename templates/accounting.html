@@ -3,9 +3,6 @@
 {% block subtitle %}Chart of accounts, journals, cashbook, trial balance and financial summaries{% endblock %}
 
 {% block content %}
-<div class="actions">
-  <a class="btn" href="{{ url_for('accounting') }}">← Back to Accounting</a>
-</div>
 <section class="panel">
   <div class="panel-head">
     <div>
@@ -30,6 +27,9 @@
   <a href="{{ url_for('year_end_closing') }}">
     Year-End Closing
   </a>
+    <a class="btn" href="{{ url_for('bank_reconciliation') }}">
+    Bank Reconciliation
+</a>
 
   <form method="post" class="actions">
     <input type="hidden" name="action" value="sync">
