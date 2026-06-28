@@ -1,204 +1,398 @@
 {% extends 'base.html' %}
+
 {% block page_title %}General Ledger & Accounting{% endblock %}
-{% block subtitle %}Chart of accounts, journals, cashbook, trial balance and financial summaries{% endblock %}
+{% block subtitle %}Manage accounts, transactions and financial reports{% endblock %}
 
 {% block content %}
-<section class="panel">
-  <div class="panel-head">
-    <div>
-      <h2>General Ledger & Accounting</h2>
-      <p>Manage accounts and review financial position.</p>
-    </div>
-    <a class="btn" href="{{ url_for('export_accounting_csv') }}">Export CSV</a>
-    <a class="btn" href="{{ url_for('trial_balance', start=start, end=end) }}">Trial Balance</a>
-    <a class="btn" href="{{ url_for('cash_book') }}">Cash Book</a>
-    <a class="btn"
-      href="{{ url_for('income_statement',
-                        start=start,
-                        end=end) }}">
-      Income Statement
-    </a>
-    <a class="btn"
-      href="{{ url_for('balance_sheet') }}">
-      Balance Sheet
-    </a>
-    <a class="btn" href="{{ url_for('cash_flow_statement') }}">Cash Flow Statement</a>
-    
-    <a class="btn" href="{{ url_for('bank_reconciliation') }}">
-      Bank Reconciliation
-    </a>
-  </div>
-    <a class="btn" href="{{ url_for('year_end_closing') }}">
-        Year-End Closing
-    </a>  
 
-  <form method="post" class="actions">
-    <input type="hidden" name="action" value="sync">
-    <button type="submit" class="primary">Sync Operational Transactions to Ledger</button>
-  </form>
+<style>
+  .accounting-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+
+  .accounting-hero h2 {
+    margin: 0;
+    font-size: 28px;
+  }
+
+  .accounting-hero p {
+    margin-top: 6px;
+    color: #566176;
+  }
+
+  .module-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 22px;
+  }
+
+  .module-tile {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    border-radius: 18px;
+    background: #fff;
+    border: 1px solid #e5e7f0;
+    text-decoration: none;
+    color: inherit;
+    box-shadow: 0 8px 24px rgba(20, 20, 60, 0.06);
+    transition: 0.2s ease;
+  }
+
+  .module-tile:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 30px rgba(80, 0, 120, 0.12);
+  }
+
+  .module-icon {
+    width: 58px;
+    height: 58px;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    font-size: 28px;
+  }
+
+  .module-tile h3 {
+    margin: 0 0 6px;
+    font-size: 17px;
+  }
+
+  .module-tile p {
+    margin: 0;
+    color: #566176;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  .module-arrow {
+    margin-left: auto;
+    font-size: 26px;
+    color: #7a00a8;
+  }
+
+  .bg-green { background: #e7f8ec; color: #138a3d; }
+  .bg-purple { background: #efe3ff; color: #7417b8; }
+  .bg-blue { background: #e6f0ff; color: #145bd7; }
+  .bg-orange { background: #fff0dc; color: #e87800; }
+  .bg-teal { background: #e2f7f5; color: #078b84; }
+  .bg-red { background: #ffe4ea; color: #e63757; }
+  .bg-brown { background: #f4e7d8; color: #9a5b19; }
+  .bg-navy { background: #e8edf7; color: #243e73; }
+
+  .accounting-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 22px;
+  }
+
+  .accounting-kpi {
+    background: #fff;
+    border: 1px solid #e5e7f0;
+    border-radius: 18px;
+    padding: 20px;
+    box-shadow: 0 8px 24px rgba(20, 20, 60, 0.06);
+  }
+
+  .accounting-kpi span {
+    display: block;
+    color: #566176;
+    font-size: 14px;
+  }
+
+  .accounting-kpi strong {
+    display: block;
+    margin-top: 8px;
+    font-size: 24px;
+    color: #101828;
+  }
+
+  .accounting-kpi em {
+    display: block;
+    margin-top: 6px;
+    font-style: normal;
+    color: #667085;
+    font-size: 13px;
+  }
+
+  .accounting-bottom-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+
+  .panel-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .text-end {
+    text-align: right;
+  }
+
+  @media (max-width: 1100px) {
+    .module-grid,
+    .accounting-kpis,
+    .accounting-bottom-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .accounting-hero {
+      flex-direction: column;
+    }
+  }
+</style>
+
+<div class="accounting-hero">
+  <div>
+    <h2>General Ledger & Accounting</h2>
+    <p>Manage accounts, cash book transactions, journals and financial reports.</p>
+  </div>
+
+  <div class="panel-actions">
+    <a class="btn" href="{{ url_for('export_accounting_csv') }}">Export CSV</a>
+  </div>
+</div>
+
+<section>
+  <h3 style="margin-bottom: 12px;">Accounting Modules</h3>
+
+  <div class="module-grid">
+
+    <a class="module-tile" href="{{ url_for('cash_book') }}">
+      <div class="module-icon bg-green">📗</div>
+      <div>
+        <h3>Cash Book</h3>
+        <p>View and manage all cash, bank and mobile money transactions.</p>
+      </div>
+      <div class="module-arrow">›</div>
+    </a>
+
+    <a class="module-tile" href="{{ url_for('trial_balance') }}">
+      <div class="module-icon bg-purple">⚖️</div>
+      <div>
+        <h3>Trial Balance</h3>
+        <p>Review debit and credit balances from the General Ledger.</p>
+      </div>
+      <div class="module-arrow">›</div>
+    </a>
+
+    <a class="module-tile" href="#recent-journals">
+      <div class="module-icon bg-blue">📘</div>
+      <div>
+        <h3>Journal Entries</h3>
+        <p>Review recent accounting journals and ledger postings.</p>
+      </div>
+      <div class="module-arrow">›</div>
+    </a>
+
+    <a class="module-tile" href="{{ url_for('income_statement') }}">
+      <div class="module-icon bg-orange">📈</div>
+      <div>
+        <h3>Income Statement</h3>
+        <p>View income, expenses and current year surplus.</p>
+      </div>
+      <div class="module-arrow">›</div>
+    </a>
+
+    <a class="module-tile" href="{{ url_for('balance_sheet') }}">
+      <div class="module-icon bg-teal">◔</div>
+      <div>
+        <h3>Balance Sheet</h3>
+        <p>View assets, liabilities, equity and accumulated surplus.</p>
+      </div>
+      <div class="module-arrow">›</div>
+    </a>
+
+    <a class="module-tile" href="{{ url_for('cash_flow_statement') }}">
+      <div class="module-icon bg-red">📊</div>
+      <div>
+        <h3>Cash Flow Statement</h3>
+        <p>Review cash inflows, outflows and net cash movement.</p>
+      </div>
+      <div class="module-arrow">›</div>
+    </a>
+
+    <a class="module-tile" href="{{ url_for('bank_reconciliation') }}">
+      <div class="module-icon bg-purple">🏦</div>
+      <div>
+        <h3>Bank Reconciliation</h3>
+        <p>Reconcile bank statement transactions with the Cash Book.</p>
+      </div>
+      <div class="module-arrow">›</div>
+    </a>
+
+    <a class="module-tile" href="{{ url_for('year_end_closing') }}">
+      <div class="module-icon bg-brown">🗓️</div>
+      <div>
+        <h3>Year-End Closing</h3>
+        <p>Close income and expenses into accumulated surplus.</p>
+      </div>
+      <div class="module-arrow">›</div>
+    </a>
+
+    <a class="module-tile" href="#chart-of-accounts">
+      <div class="module-icon bg-navy">🗂️</div>
+      <div>
+        <h3>Chart of Accounts</h3>
+        <p>Manage ledger accounts and account classifications.</p>
+      </div>
+      <div class="module-arrow">›</div>
+    </a>
+
+  </div>
 </section>
 
-<section class="kpi-grid">
-  <div class="kpi">
+<section class="accounting-kpis">
+  <div class="accounting-kpi">
     <span>Total Debits</span>
     <strong>{{ total_debits|default(0)|kwacha }}</strong>
     <em>Posted debit entries</em>
   </div>
-  <div class="kpi">
+
+  <div class="accounting-kpi">
     <span>Total Credits</span>
     <strong>{{ total_credits|default(0)|kwacha }}</strong>
     <em>Posted credit entries</em>
   </div>
-  <div class="kpi accent">
+
+  <div class="accounting-kpi">
     <span>Difference</span>
     <strong>{{ difference|default(0)|kwacha }}</strong>
     <em>Debits less credits</em>
   </div>
+
+  <div class="accounting-kpi">
+    <span>Accounting Status</span>
+    {% if difference|default(0) == 0 %}
+      <strong class="good-text">Balanced</strong>
+    {% else %}
+      <strong class="bad-text">Review</strong>
+    {% endif %}
+    <em>General Ledger control check</em>
+  </div>
 </section>
 
-<section class="two-col">
-  <div class="panel">
-    <h2>Chart of Accounts</h2>
+<section class="accounting-bottom-grid">
+
+  <section class="panel" id="chart-of-accounts">
+    <div class="panel-head">
+      <div>
+        <h2>Chart of Accounts</h2>
+        <p>Ledger accounts used for financial reporting.</p>
+      </div>
+    </div>
+
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>Code</th><th>Name</th><th>Type</th><th>Normal Balance</th></tr>
+          <tr>
+            <th>Code</th>
+            <th>Account Name</th>
+            <th>Type</th>
+            <th>Normal Balance</th>
+          </tr>
         </thead>
         <tbody>
-          {% for a in accounts %}
+          {% for account in accounts[:10] %}
           <tr>
-            <td><strong>{{ a.code }}</strong></td>
-            <td>{{ a.name }}</td>
-            <td>{{ a.account_type }}</td>
-            <td>{{ a.normal_balance }}</td>
+            <td><strong>{{ account.code }}</strong></td>
+            <td>{{ account.name }}</td>
+            <td>{{ account.account_type }}</td>
+            <td>{{ account.normal_balance }}</td>
           </tr>
           {% else %}
-          <tr><td colspan="4">No accounts found.</td></tr>
+          <tr>
+            <td colspan="4">No accounts found.</td>
+          </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
-  </div>
+  </section>
 
-  <div class="panel">
-    <h2>Create Account</h2>
-    <form method="post" class="form-grid single">
-      <input type="hidden" name="action" value="account">
-      <label>Account Code
-        <input name="code" required placeholder="Example: 1000">
-      </label>
-      <label>Account Name
-        <input name="name" required placeholder="Example: Cash">
-      </label>
-      <label>Account Type
-        <select name="account_type">
-          <option>Asset</option>
-          <option>Liability</option>
-          <option>Equity</option>
-          <option>Income</option>
-          <option>Expense</option>
-        </select>
-      </label>
-      <label>Normal Balance
-        <select name="normal_balance">
-          <option>Debit</option>
-          <option>Credit</option>
-        </select>
-      </label>
-      <button type="submit">Create Account</button>
-    </form>
-  </div>
+  <section class="panel" id="recent-journals">
+    <div class="panel-head">
+      <div>
+        <h2>Recent Journal Entries</h2>
+        <p>Latest postings to the General Ledger.</p>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Source</th>
+            <th>Reference</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for journal in recent_journals|default([]) %}
+          <tr>
+            <td>{{ journal.entry_date }}</td>
+            <td>{{ journal.description }}</td>
+            <td>{{ journal.source_type or '-' }}</td>
+            <td>{{ journal.source_id or '-' }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4">No recent journal entries.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
 </section>
 
-<section class="panel">
-  <h2>Recent Journal Entries</h2>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Description</th>
-          <th>Reference</th>
-          <th>Total Debit</th>
-          <th>Total Credit</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for j in entries %}
-        <tr>
-          <td>{{ j.entry_date }}</td>
-          <td>{{ j.description }}</td>
-          <td>{{ j.reference or '-' }}</td>
-          <td>{{ j.total_debit|kwacha }}</td>
-          <td>{{ j.total_credit|kwacha }}</td>
-          <td>{% if j.balanced %}<span class="status active">Balanced</span>{% else %}<span class="status overdue">Unbalanced</span>{% endif %}</td>
-        </tr>
-        {% else %}
-        <tr><td colspan="6">No journal entries found.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+<section class="panel" style="margin-top: 18px;">
+  <div class="panel-head">
+    <div>
+      <h2>Create Account</h2>
+      <p>Add a new ledger account to the Chart of Accounts.</p>
+    </div>
   </div>
+
+  <form method="post" class="form-grid">
+    <label>Account Code
+      <input name="code" placeholder="Example: 5050" required>
+    </label>
+
+    <label>Account Name
+      <input name="name" placeholder="Example: Office Supplies" required>
+    </label>
+
+    <label>Account Type
+      <select name="account_type" required>
+        <option>Asset</option>
+        <option>Liability</option>
+        <option>Equity</option>
+        <option>Income</option>
+        <option>Expense</option>
+      </select>
+    </label>
+
+    <label>Normal Balance
+      <select name="normal_balance" required>
+        <option>Debit</option>
+        <option>Credit</option>
+      </select>
+    </label>
+
+    <button class="btn primary" type="submit">Create Account</button>
+  </form>
 </section>
-{% if pagination %}
-<div class="actions">
-  {% if pagination.has_prev %}
-    <a class="btn" href="{{ url_for('accounting', page=pagination.prev_num, start=start, end=end) }}">← Previous</a>
-  {% endif %}
 
-  <span class="badge">
-    Page {{ pagination.page }} of {{ pagination.pages }}
-  </span>
-
-  {% if pagination.has_next %}
-    <a class="btn" href="{{ url_for('accounting', page=pagination.next_num, start=start, end=end) }}">Next →</a>
-  {% endif %}
-</div>
-{% endif %}
-
-<section class="panel">
-  <h2>Trial Balance</h2>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr><th>Account</th><th>Debit</th><th>Credit</th></tr>
-      </thead>
-      <tbody>
-        {% for row in trial_balance %}
-        <tr>
-          <td>{{ row.account.code }} - {{ row.account.name }}</td>
-          <td>{{ row.debit|kwacha }}</td>
-          <td>{{ row.credit|kwacha }}</td>
-        </tr>
-        {% else %}
-        <tr><td colspan="3">No trial balance records available.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</section>
-{% if pagination %}
-<div class="actions">
-
-  {% if pagination.page > 1 %}
-    <a class="btn" href="{{ url_for('accounting', page=1, start=start, end=end) }}">« First</a>
-  {% endif %}
-
-  {% if pagination.has_prev %}
-    <a class="btn" href="{{ url_for('accounting', page=pagination.prev_num, start=start, end=end) }}">← Previous</a>
-  {% endif %}
-
-  <span class="badge">Page {{ pagination.page }} of {{ pagination.pages }}</span>
-
-  {% if pagination.has_next %}
-    <a class="btn" href="{{ url_for('accounting', page=pagination.next_num, start=start, end=end) }}">Next →</a>
-  {% endif %}
-
-  {% if pagination.page < pagination.pages %}
-    <a class="btn" href="{{ url_for('accounting', page=pagination.pages, start=start, end=end) }}">Last »</a>
-  {% endif %}
-
-</div>
-{% endif %}
 {% endblock %}
