@@ -2952,7 +2952,7 @@ from io import StringIO
 @app.route('/accounting/bank-reconciliation/import', methods=['POST'])
 @login_required
 @role_required('accounting')
-def import_bank_statement():
+def import_bank_statement_csv():
     file = request.files.get('bank_statement')
 
     if not file:
