@@ -114,6 +114,9 @@
     <span class="badge success">Matched</span>
   {% endif %}
 </td>
+<form method="post" action="{{ url_for('auto_match_bank_reconciliation') }}" class="inline-form">
+  <button class="btn primary" type="submit">Auto Match</button>
+</form>
 
 </tr>
 

@@ -2909,6 +2909,40 @@ def match_bank_reconciliation():
     flash('Bank statement line matched to Cash Book entry.')
     return redirect(url_for('bank_reconciliation'))
 
+@app.route('/accounting/bank-reconciliation/auto-match', methods=['POST'])
+@login_required
+@role_required('accounting')
+def auto_match_bank_reconciliation():
+    matched = 0
+
+    unmatched_bank_lines = BankStatementLine.query.filter_by(
+        reconciled=False
+    ).all()
+
+    for line in unmatched_bank_lines:
+        cash_entry = CashBookEntry.query.filter(
+            CashBookEntry.entry_date == line.statement_date,
+            CashBookEntry.entry_type == line.entry_type,
+            CashBookEntry.amount == line.amount
+        ).first()
+
+        if cash_entry:
+            line.reconciled = True
+            line.cash_book_entry_id = cash_entry.id
+            matched += 1
+
+    db.session.commit()
+
+    log_audit(
+        'BANK_RECONCILIATION_AUTO_MATCH',
+        'BankStatementLine',
+        None,
+        f'{matched} bank statement line(s) automatically matched.'
+    )
+
+    flash(f'{matched} bank statement line(s) automatically matched.')
+    return redirect(url_for('bank_reconciliation'))
+
 @app.route('/accounting/year-end')
 @login_required
 @role_required('accounting')
