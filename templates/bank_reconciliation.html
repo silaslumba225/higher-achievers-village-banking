@@ -19,6 +19,36 @@
     </div>
 
 </section>
+<section class="panel">
+  <h2>Add Bank Statement Line</h2>
+
+  <form method="post" class="form-grid">
+    <label>Date
+      <input type="date" name="statement_date" required>
+    </label>
+
+    <label>Type
+      <select name="entry_type" required>
+        <option value="In">Money In</option>
+        <option value="Out">Money Out</option>
+      </select>
+    </label>
+
+    <label>Amount
+      <input type="number" step="0.01" name="amount" required>
+    </label>
+
+    <label>Reference
+      <input name="reference">
+    </label>
+
+    <label class="wide">Description
+      <input name="description">
+    </label>
+
+    <button class="btn primary" type="submit">Add Statement Line</button>
+  </form>
+</section>
 
 <div class="grid-2">
 
@@ -38,6 +68,7 @@
     <th>Reference</th>
     <th>Amount</th>
     <th>Status</th>
+    <th>Match</th>
 </tr>
 
 </thead>
@@ -63,13 +94,33 @@
 <span class="badge warning">Outstanding</span>
 {% endif %}
 </td>
+<td>
+  {% if not line.reconciled %}
+    <form method="post" action="{{ url_for('match_bank_reconciliation') }}" class="inline-form">
+      <input type="hidden" name="bank_line_id" value="{{ line.id }}">
+
+      <select name="cash_entry_id" required>
+        <option value="">Select Cash Book Entry</option>
+        {% for entry in cash_entries %}
+          <option value="{{ entry.id }}">
+            {{ entry.entry_date }} - {{ entry.entry_type }} - {{ entry.amount|kwacha }} - {{ entry.reference or entry.description }}
+          </option>
+        {% endfor %}
+      </select>
+
+      <button class="btn" type="submit">Match</button>
+    </form>
+  {% else %}
+    <span class="badge success">Matched</span>
+  {% endif %}
+</td>
 
 </tr>
 
 {% else %}
 
 <tr>
-<td colspan="5">No bank statement loaded.</td>
+<td colspan="6">No bank statement loaded.</td>
 </tr>
 
 {% endfor %}

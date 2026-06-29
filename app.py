@@ -2845,10 +2845,29 @@ def reports():
         arrears_pagination=arrears_pagination,
         open_loans=open_loans
     )
-@app.route('/accounting/bank-reconciliation')
+
+@app.route('/accounting/bank-reconciliation', methods=['GET', 'POST'])
 @login_required
 @role_required('accounting')
 def bank_reconciliation():
+    if request.method == 'POST':
+        user = session.get('user') or {}
+
+        line = BankStatementLine(
+            statement_date=parse_date(request.form.get('statement_date')),
+            description=request.form.get('description'),
+            reference=request.form.get('reference'),
+            amount=money(request.form.get('amount')),
+            entry_type=request.form.get('entry_type'),
+            created_by=user.get('username')
+        )
+
+        db.session.add(line)
+        db.session.commit()
+
+        flash('Bank statement line added.')
+        return redirect(url_for('bank_reconciliation'))
+
     bank_lines = BankStatementLine.query.order_by(
         BankStatementLine.statement_date.desc(),
         BankStatementLine.id.desc()
@@ -2864,6 +2883,31 @@ def bank_reconciliation():
         bank_lines=bank_lines,
         cash_entries=cash_entries
     )
+
+@app.route('/accounting/bank-reconciliation/match', methods=['POST'])
+@login_required
+@role_required('accounting')
+def match_bank_reconciliation():
+    bank_line_id = request.form.get('bank_line_id', type=int)
+    cash_entry_id = request.form.get('cash_entry_id', type=int)
+
+    bank_line = BankStatementLine.query.get_or_404(bank_line_id)
+    cash_entry = CashBookEntry.query.get_or_404(cash_entry_id)
+
+    bank_line.reconciled = True
+    bank_line.cash_book_entry_id = cash_entry.id
+
+    db.session.commit()
+
+    log_audit(
+        'BANK_RECONCILIATION_MATCH',
+        'BankStatementLine',
+        bank_line.id,
+        f'Bank statement line matched to Cash Book entry #{cash_entry.id}'
+    )
+
+    flash('Bank statement line matched to Cash Book entry.')
+    return redirect(url_for('bank_reconciliation'))
 
 @app.route('/accounting/year-end')
 @login_required
