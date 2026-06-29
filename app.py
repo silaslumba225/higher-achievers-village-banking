@@ -13,7 +13,6 @@ import shutil
 import json
 import requests
 import re
-import pdfplumber
 from pypdf import PdfReader
 from pathlib import Path
 from werkzeug.utils import secure_filename
@@ -22,6 +21,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from bank_import import import_bank_statement
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'change-this-secret-key')
@@ -2997,60 +2997,25 @@ def import_bank_statement_pdf():
         return redirect(url_for('bank_reconciliation'))
 
     user = session.get('user') or {}
-    imported = 0
-    skipped = 0
 
     try:
-        with pdfplumber.open(file) as pdf:
-            text = ""
+        transactions = import_bank_statement(file, bank_name="FNB")
 
-            for page in pdf.pages:
-                text += "\n" + (page.extract_text() or "")
-
-        lines = text.splitlines()
-
-        transaction_pattern = re.compile(
-            r'^(\d{2}\s(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))\s+(.+?)\s+([\d,]+\.\d{2})(Cr)?\s+([\d,]+\.\d{2})Cr'
-        )
-
-        statement_year = date.today().year
-
-        year_match = re.search(r'Statement Period\s*:\s*\d{1,2}\s+\w+\s+(\d{4})', text)
-        if year_match:
-            statement_year = int(year_match.group(1))
-
-        for line in lines:
-            match = transaction_pattern.match(line.strip())
-
-            if not match:
-                skipped += 1
-                continue
-
-            date_text = match.group(1)
-            description = match.group(2).strip()
-            amount_text = match.group(3).replace(',', '')
-            is_credit = bool(match.group(4))
-
-            statement_date = datetime.strptime(
-                f'{date_text} {statement_year}',
-                '%d %b %Y'
-            ).date()
-
-            bank_line = BankStatementLine(
-                statement_date=statement_date,
-                description=description,
-                reference='',
-                amount=money(amount_text),
-                entry_type='In' if is_credit else 'Out',
-                created_by=user.get('username')
+        for tx in transactions:
+            line = BankStatementLine(
+                statement_date=tx["statement_date"],
+                description=tx["description"],
+                reference=tx["reference"],
+                amount=money(tx["amount"]),
+                entry_type=tx["entry_type"],
+                created_by=user.get("username")
             )
 
-            db.session.add(bank_line)
-            imported += 1
+            db.session.add(line)
 
         db.session.commit()
 
-        flash(f'{imported} PDF bank statement line(s) imported. {skipped} line(s) skipped.')
+        flash(f'{len(transactions)} bank statement line(s) imported successfully.')
 
     except Exception as e:
         db.session.rollback()
