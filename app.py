@@ -2983,6 +2983,8 @@ def import_bank_statement():
 
     flash(f'{imported} bank statement line(s) imported successfully.')
     return redirect(url_for('bank_reconciliation'))
+
+
 @app.route('/accounting/bank-reconciliation/import-pdf', methods=['POST'])
 @login_required
 @role_required('accounting')
@@ -2993,47 +2995,67 @@ def import_bank_statement_pdf():
         flash('Please select a PDF bank statement.', 'error')
         return redirect(url_for('bank_reconciliation'))
 
-    reader = PdfReader(file)
-    text = ''
-
-    for page in reader.pages:
-        text += page.extract_text() or ''
-
-    imported = 0
     user = session.get('user') or {}
+    imported = 0
+    skipped = 0
 
-    pattern = re.compile(
-        r'(\d{2}\s\w{3})\s+(.+?)\s+([\d,]+\.\d{2})(Cr)?\s+[\d,]+\.\d{2}Cr'
-    )
+    try:
+        with pdfplumber.open(file) as pdf:
+            text = ""
 
-    for match in pattern.finditer(text):
-        date_text = match.group(1)
-        description = match.group(2).strip()
-        amount_text = match.group(3).replace(',', '')
-        is_credit = bool(match.group(4))
+            for page in pdf.pages:
+                text += "\n" + (page.extract_text() or "")
 
-        statement_date = datetime.strptime(
-            f'{date_text} {date.today().year}',
-            '%d %b %Y'
-        ).date()
+        lines = text.splitlines()
 
-        line = BankStatementLine(
-            statement_date=statement_date,
-            description=description,
-            reference='',
-            amount=money(amount_text),
-            entry_type='In' if is_credit else 'Out',
-            created_by=user.get('username')
+        transaction_pattern = re.compile(
+            r'^(\d{2}\s(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))\s+(.+?)\s+([\d,]+\.\d{2})(Cr)?\s+([\d,]+\.\d{2})Cr'
         )
 
-        db.session.add(line)
-        imported += 1
+        statement_year = date.today().year
 
-    db.session.commit()
+        year_match = re.search(r'Statement Period\s*:\s*\d{1,2}\s+\w+\s+(\d{4})', text)
+        if year_match:
+            statement_year = int(year_match.group(1))
 
-    flash(f'{imported} PDF bank statement line(s) imported successfully.')
+        for line in lines:
+            match = transaction_pattern.match(line.strip())
+
+            if not match:
+                skipped += 1
+                continue
+
+            date_text = match.group(1)
+            description = match.group(2).strip()
+            amount_text = match.group(3).replace(',', '')
+            is_credit = bool(match.group(4))
+
+            statement_date = datetime.strptime(
+                f'{date_text} {statement_year}',
+                '%d %b %Y'
+            ).date()
+
+            bank_line = BankStatementLine(
+                statement_date=statement_date,
+                description=description,
+                reference='',
+                amount=money(amount_text),
+                entry_type='In' if is_credit else 'Out',
+                created_by=user.get('username')
+            )
+
+            db.session.add(bank_line)
+            imported += 1
+
+        db.session.commit()
+
+        flash(f'{imported} PDF bank statement line(s) imported. {skipped} line(s) skipped.')
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'PDF import failed: {str(e)}', 'error')
+
     return redirect(url_for('bank_reconciliation'))
-
 
 @app.route('/accounting/year-end')
 @login_required
