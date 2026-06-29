@@ -105,6 +105,54 @@
     </div>
   </div>
 </section>
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Import History</h2>
+      <p>Review or delete bank statement batches imported in error.</p>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Batch</th>
+          <th>File Name</th>
+          <th>Bank</th>
+          <th>Imported On</th>
+          <th>Lines</th>
+          <th>Imported By</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for batch in import_batches %}
+        <tr>
+          <td>#{{ batch.id }}</td>
+          <td>{{ batch.file_name }}</td>
+          <td>{{ batch.bank_name }}</td>
+          <td>{{ batch.imported_on }}</td>
+          <td>{{ batch.line_count }}</td>
+          <td>{{ batch.imported_by }}</td>
+          <td>
+            <form method="post"
+                  action="{{ url_for('delete_bank_statement_batch', batch_id=batch.id) }}"
+                  onsubmit="return confirm('Delete this imported bank statement batch?');">
+              <button class="btn danger" type="submit">Delete Batch</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7">No imported bank statement batches found.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
 
 <section class="panel">
   <h2>Add Bank Statement Line</h2>

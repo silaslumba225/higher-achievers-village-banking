@@ -598,6 +598,17 @@ class BankStatementLine(db.Model):
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     created_by = db.Column(db.String(120))
+
+class BankStatementImportBatch(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    file_name = db.Column(db.String(250))
+    bank_name = db.Column(db.String(80), default='FNB')
+    imported_on = db.Column(db.DateTime, default=datetime.utcnow)
+    imported_by = db.Column(db.String(120))
+    line_count = db.Column(db.Integer, default=0)
+
+    import_batch_id = db.Column(db.Integer, db.ForeignKey('bank_statement_import_batch.id'))
+    import_batch = db.relationship('BankStatementImportBatch')
    
 def ensure_settings_columns():
     columns = {
@@ -2881,10 +2892,15 @@ def bank_reconciliation():
         CashBookEntry.id.desc()
     ).all()
 
+    import_batches = BankStatementImportBatch.query.order_by(
+        BankStatementImportBatch.imported_on.desc()
+    ).all()
+
     return render_template(
         'bank_reconciliation.html',
         bank_lines=bank_lines,
-        cash_entries=cash_entries
+        cash_entries=cash_entries,
+        import_batches=import_batches
     )
 
 @app.route('/accounting/bank-reconciliation/match', methods=['POST'])
@@ -3001,6 +3017,18 @@ def import_bank_statement_pdf():
     try:
         transactions = import_bank_statement(file, bank_name="FNB")
 
+        # Create one import batch
+        batch = BankStatementImportBatch(
+            file_name=file.filename,
+            bank_name="FNB",
+            imported_by=user.get("username"),
+            line_count=len(transactions)
+        )
+
+        db.session.add(batch)
+        db.session.flush()      # Gets batch.id without committing
+
+    # Save all imported transactions
         for tx in transactions:
             line = BankStatementLine(
                 statement_date=tx["statement_date"],
@@ -3008,7 +3036,8 @@ def import_bank_statement_pdf():
                 reference=tx["reference"],
                 amount=money(tx["amount"]),
                 entry_type=tx["entry_type"],
-                created_by=user.get("username")
+                created_by=user.get("username"),
+                import_batch_id=batch.id      # Link every line to this batch
             )
 
             db.session.add(line)
@@ -3021,6 +3050,31 @@ def import_bank_statement_pdf():
         db.session.rollback()
         flash(f'PDF import failed: {str(e)}', 'error')
 
+    return redirect(url_for('bank_reconciliation'))
+
+@app.route('/accounting/bank-reconciliation/delete-batch/<int:batch_id>', methods=['POST'])
+@login_required
+@role_required('accounting')
+def delete_bank_statement_batch(batch_id):
+    batch = BankStatementImportBatch.query.get_or_404(batch_id)
+
+    matched_count = BankStatementLine.query.filter_by(
+        import_batch_id=batch.id,
+        reconciled=True
+    ).count()
+
+    if matched_count > 0:
+        flash('Cannot delete this batch because some lines have already been reconciled.', 'error')
+        return redirect(url_for('bank_reconciliation'))
+
+    BankStatementLine.query.filter_by(
+        import_batch_id=batch.id
+    ).delete()
+
+    db.session.delete(batch)
+    db.session.commit()
+
+    flash('Bank statement import batch deleted successfully.')
     return redirect(url_for('bank_reconciliation'))
 
 @app.route('/accounting/year-end')
