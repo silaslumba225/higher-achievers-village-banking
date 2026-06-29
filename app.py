@@ -13,6 +13,7 @@ import shutil
 import json
 import requests
 import re
+import pdfplumber
 from pypdf import PdfReader
 from pathlib import Path
 from werkzeug.utils import secure_filename
