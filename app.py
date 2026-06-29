@@ -12,6 +12,8 @@ import os
 import shutil
 import json
 import requests
+import re
+from pypdf import PdfReader
 from pathlib import Path
 from werkzeug.utils import secure_filename
 from reportlab.lib import colors
@@ -2942,6 +2944,96 @@ def auto_match_bank_reconciliation():
 
     flash(f'{matched} bank statement line(s) automatically matched.')
     return redirect(url_for('bank_reconciliation'))
+
+import csv
+from io import StringIO
+
+@app.route('/accounting/bank-reconciliation/import', methods=['POST'])
+@login_required
+@role_required('accounting')
+def import_bank_statement():
+    file = request.files.get('bank_statement')
+
+    if not file:
+        flash('Please select a bank statement CSV file.', 'error')
+        return redirect(url_for('bank_reconciliation'))
+
+    content = file.stream.read().decode('utf-8-sig')
+    reader = csv.DictReader(StringIO(content))
+
+    imported = 0
+    user = session.get('user') or {}
+
+    for row in reader:
+        amount = money(row.get('amount') or row.get('Amount') or 0)
+
+        line = BankStatementLine(
+            statement_date=parse_date(row.get('date') or row.get('Date')),
+            description=row.get('description') or row.get('Description'),
+            reference=row.get('reference') or row.get('Reference'),
+            amount=abs(amount),
+            entry_type='In' if amount > 0 else 'Out',
+            created_by=user.get('username')
+        )
+
+        db.session.add(line)
+        imported += 1
+
+    db.session.commit()
+
+    flash(f'{imported} bank statement line(s) imported successfully.')
+    return redirect(url_for('bank_reconciliation'))
+@app.route('/accounting/bank-reconciliation/import-pdf', methods=['POST'])
+@login_required
+@role_required('accounting')
+def import_bank_statement_pdf():
+    file = request.files.get('bank_statement_pdf')
+
+    if not file:
+        flash('Please select a PDF bank statement.', 'error')
+        return redirect(url_for('bank_reconciliation'))
+
+    reader = PdfReader(file)
+    text = ''
+
+    for page in reader.pages:
+        text += page.extract_text() or ''
+
+    imported = 0
+    user = session.get('user') or {}
+
+    pattern = re.compile(
+        r'(\d{2}\s\w{3})\s+(.+?)\s+([\d,]+\.\d{2})(Cr)?\s+[\d,]+\.\d{2}Cr'
+    )
+
+    for match in pattern.finditer(text):
+        date_text = match.group(1)
+        description = match.group(2).strip()
+        amount_text = match.group(3).replace(',', '')
+        is_credit = bool(match.group(4))
+
+        statement_date = datetime.strptime(
+            f'{date_text} {date.today().year}',
+            '%d %b %Y'
+        ).date()
+
+        line = BankStatementLine(
+            statement_date=statement_date,
+            description=description,
+            reference='',
+            amount=money(amount_text),
+            entry_type='In' if is_credit else 'Out',
+            created_by=user.get('username')
+        )
+
+        db.session.add(line)
+        imported += 1
+
+    db.session.commit()
+
+    flash(f'{imported} PDF bank statement line(s) imported successfully.')
+    return redirect(url_for('bank_reconciliation'))
+
 
 @app.route('/accounting/year-end')
 @login_required

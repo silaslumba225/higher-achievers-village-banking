@@ -78,6 +78,29 @@
         <button class="btn primary" type="submit">Auto Match</button>
       </form>
 
+    <form method="post"
+      action="{{ url_for('import_bank_statement_pdf') }}"
+      enctype="multipart/form-data"
+      class="inline-form">
+
+      <input type="file" name="bank_statement_pdf" accept=".pdf" required>
+
+      <button class="btn" type="submit">Import PDF Statement</button>
+    </form>
+    
+      <form method="post"
+      action="{{ url_for('import_bank_statement') }}"
+      enctype="multipart/form-data"
+      class="inline-form">
+
+      <input type="file" name="bank_statement" accept=".csv" required>
+
+      <button class="btn" type="submit">
+        Import CSV Statement
+      </button>
+    </form>
+    
+
       <a class="btn" href="{{ url_for('accounting') }}">← Back to Accounting</a>
     </div>
   </div>
