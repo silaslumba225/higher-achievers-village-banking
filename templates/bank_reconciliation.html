@@ -1,24 +1,88 @@
 {% extends 'base.html' %}
 
 {% block page_title %}Bank Reconciliation{% endblock %}
-{% block subtitle %}Compare Cash Book transactions with the Bank Statement{% endblock %}
+{% block subtitle %}Match bank statement transactions with the Cash Book{% endblock %}
 
 {% block content %}
 
+<style>
+  .recon-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .recon-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 18px;
+  }
+
+  .recon-card {
+    background: #fff;
+    border: 1px solid #e5e7f0;
+    border-radius: 18px;
+    padding: 18px;
+    box-shadow: 0 8px 24px rgba(20, 20, 60, 0.06);
+  }
+
+  .recon-card span {
+    display: block;
+    color: #566176;
+    font-size: 14px;
+  }
+
+  .recon-card strong {
+    display: block;
+    margin-top: 8px;
+    font-size: 24px;
+  }
+
+  .workspace-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+
+  .matched-row {
+    background: #f0fff4;
+  }
+
+  .unmatched-row {
+    background: #fff8f0;
+  }
+
+  .text-end {
+    text-align: right;
+  }
+
+  @media (max-width: 1100px) {
+    .recon-grid,
+    .workspace-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
 <section class="panel">
-
-    <div class="panel-head">
-        <div>
-            <h2>Bank Reconciliation</h2>
-            <p>Match bank statement transactions with the Cash Book.</p>
-        </div>
-
-        <a class="btn" href="{{ url_for('accounting') }}">
-            ← Back to Accounting
-        </a>
+  <div class="panel-head">
+    <div>
+      <h2>Bank Reconciliation Workspace</h2>
+      <p>Compare bank statement lines with Cash Book entries and identify outstanding items.</p>
     </div>
 
+    <div class="recon-actions">
+      <form method="post" action="{{ url_for('auto_match_bank_reconciliation') }}" class="inline-form">
+        <button class="btn primary" type="submit">Auto Match</button>
+      </form>
+
+      <a class="btn" href="{{ url_for('accounting') }}">← Back to Accounting</a>
+    </div>
+  </div>
 </section>
+
 <section class="panel">
   <h2>Add Bank Statement Line</h2>
 
@@ -39,154 +103,191 @@
     </label>
 
     <label>Reference
-      <input name="reference">
+      <input name="reference" placeholder="Bank reference">
     </label>
 
     <label class="wide">Description
-      <input name="description">
+      <input name="description" placeholder="Bank narration">
     </label>
 
     <button class="btn primary" type="submit">Add Statement Line</button>
   </form>
 </section>
 
-<div class="grid-2">
+<section class="recon-grid">
+  <div class="recon-card">
+    <span>Bank Statement Lines</span>
+    <strong>{{ bank_lines|length }}</strong>
+  </div>
 
-<section class="panel">
+  <div class="recon-card">
+    <span>Matched Lines</span>
+    <strong>
+      {{ bank_lines|selectattr('reconciled')|list|length }}
+    </strong>
+  </div>
 
-<h2>Bank Statement</h2>
+  <div class="recon-card">
+    <span>Outstanding Lines</span>
+    <strong>
+      {{ bank_lines|rejectattr('reconciled')|list|length }}
+    </strong>
+  </div>
 
-<div class="table-wrap">
+  <div class="recon-card">
+    <span>Cash Book Entries</span>
+    <strong>{{ cash_entries|length }}</strong>
+  </div>
+</section>
 
-<table>
+<div class="workspace-grid">
 
-<thead>
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Bank Statement</h2>
+        <p>Imported or manually entered bank statement lines.</p>
+      </div>
+    </div>
 
-<tr>
-    <th>Date</th>
-    <th>Description</th>
-    <th>Reference</th>
-    <th>Amount</th>
-    <th>Status</th>
-    <th>Match</th>
-</tr>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Reference</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Match</th>
+          </tr>
+        </thead>
 
-</thead>
+        <tbody>
+          {% for line in bank_lines %}
+          <tr class="{% if line.reconciled %}matched-row{% else %}unmatched-row{% endif %}">
+            <td>{{ line.statement_date }}</td>
+            <td>{{ line.description or '-' }}</td>
+            <td>{{ line.reference or '-' }}</td>
+            <td class="text-end">{{ line.amount|kwacha }}</td>
 
-<tbody>
+            <td>
+              {% if line.reconciled %}
+                <span class="badge success">Matched</span>
+              {% else %}
+                <span class="badge warning">Outstanding</span>
+              {% endif %}
+            </td>
 
-{% for line in bank_lines %}
+            <td>
+              {% if not line.reconciled %}
+                <form method="post" action="{{ url_for('match_bank_reconciliation') }}" class="inline-form">
+                  <input type="hidden" name="bank_line_id" value="{{ line.id }}">
 
-<tr>
+                  <select name="cash_entry_id" required>
+                    <option value="">Select Cash Book Entry</option>
+                    {% for entry in cash_entries %}
+                      <option value="{{ entry.id }}">
+                        {{ entry.entry_date }} - {{ entry.entry_type }} - {{ entry.amount|kwacha }} - {{ entry.reference or entry.description }}
+                      </option>
+                    {% endfor %}
+                  </select>
 
-<td>{{ line.statement_date }}</td>
+                  <button class="btn" type="submit">Match</button>
+                </form>
+              {% else %}
+                <span class="badge success">Matched</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6">No bank statement lines entered.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
 
-<td>{{ line.description }}</td>
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Cash Book</h2>
+        <p>Cash Book transactions available for reconciliation.</p>
+      </div>
+    </div>
 
-<td>{{ line.reference }}</td>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Method</th>
+            <th>Type</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
 
-<td>{{ line.amount|kwacha }}</td>
+        <tbody>
+          {% for entry in cash_entries %}
+          <tr>
+            <td>{{ entry.entry_date }}</td>
+            <td>{{ entry.description or entry.category }}</td>
+            <td>{{ entry.method }}</td>
+            <td>{{ entry.entry_type }}</td>
+            <td class="text-end">{{ entry.amount|kwacha }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5">No Cash Book entries found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
 
-<td>
-{% if line.reconciled %}
-<span class="badge success">Matched</span>
-{% else %}
-<span class="badge warning">Outstanding</span>
-{% endif %}
-</td>
-<td>
-  {% if not line.reconciled %}
-    <form method="post" action="{{ url_for('match_bank_reconciliation') }}" class="inline-form">
-      <input type="hidden" name="bank_line_id" value="{{ line.id }}">
+</div>
 
-      <select name="cash_entry_id" required>
-        <option value="">Select Cash Book Entry</option>
-        {% for entry in cash_entries %}
-          <option value="{{ entry.id }}">
-            {{ entry.entry_date }} - {{ entry.entry_type }} - {{ entry.amount|kwacha }} - {{ entry.reference or entry.description }}
-          </option>
+<section class="panel" style="margin-top: 18px;">
+  <div class="panel-head">
+    <div>
+      <h2>Outstanding Bank Statement Items</h2>
+      <p>These items are on the bank statement but have not yet been matched to the Cash Book.</p>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Description</th>
+          <th>Reference</th>
+          <th>Type</th>
+          <th>Amount</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for line in bank_lines if not line.reconciled %}
+        <tr>
+          <td>{{ line.statement_date }}</td>
+          <td>{{ line.description or '-' }}</td>
+          <td>{{ line.reference or '-' }}</td>
+          <td>{{ line.entry_type }}</td>
+          <td class="text-end">{{ line.amount|kwacha }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5">No outstanding bank statement items.</td>
+        </tr>
         {% endfor %}
-      </select>
-
-      <button class="btn" type="submit">Match</button>
-    </form>
-  {% else %}
-    <span class="badge success">Matched</span>
-  {% endif %}
-</td>
-<form method="post" action="{{ url_for('auto_match_bank_reconciliation') }}" class="inline-form">
-  <button class="btn primary" type="submit">Auto Match</button>
-</form>
-
-</tr>
-
-{% else %}
-
-<tr>
-<td colspan="6">No bank statement loaded.</td>
-</tr>
-
-{% endfor %}
-
-</tbody>
-
-</table>
-
-</div>
-
+      </tbody>
+    </table>
+  </div>
 </section>
-
-<section class="panel">
-
-<h2>Cash Book</h2>
-
-<div class="table-wrap">
-
-<table>
-
-<thead>
-
-<tr>
-    <th>Date</th>
-    <th>Description</th>
-    <th>Method</th>
-    <th>Amount</th>
-</tr>
-
-</thead>
-
-<tbody>
-
-{% for entry in cash_entries %}
-
-<tr>
-
-<td>{{ entry.entry_date }}</td>
-
-<td>{{ entry.description }}</td>
-
-<td>{{ entry.method }}</td>
-
-<td>{{ entry.amount|kwacha }}</td>
-
-</tr>
-
-{% else %}
-
-<tr>
-<td colspan="4">No Cash Book entries.</td>
-</tr>
-
-{% endfor %}
-
-</tbody>
-
-</table>
-
-</div>
-
-</section>
-
-</div>
 
 {% endblock %}
