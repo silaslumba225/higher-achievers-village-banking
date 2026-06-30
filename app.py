@@ -1179,7 +1179,7 @@ def dashboard():
     monthly_contribution_values = [float(row[1]) for row in monthly_contribution_rows]
 
 
-    loan_month = db.func.strftime('%Y-%m', Loan.issued_on)
+    loan_month = db.func.to_char(Loan.issued_on, 'YYYY-MM')
 
     monthly_loan_rows = db.session.query(
         loan_month,
@@ -1194,8 +1194,8 @@ def dashboard():
     monthly_loan_values = [float(row[1]) for row in monthly_loan_rows]
 
 
-    repayment_month = db.func.strftime('%Y-%m', Repayment.paid_on)
-
+    repayment_month = db.func.to_char(Repayment.paid_on, 'YYYY-MM')
+    
     monthly_repayment_rows = db.session.query(
         repayment_month,
         db.func.coalesce(db.func.sum(Repayment.amount), 0)
