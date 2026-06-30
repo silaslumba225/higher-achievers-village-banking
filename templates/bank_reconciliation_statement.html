@@ -1,0 +1,362 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Bank Reconciliation Statement{% endblock %}
+{% block subtitle %}Professional Bank Reconciliation Report{% endblock %}
+
+{% block content %}
+
+<style>
+    .statement-card{
+        max-width:900px;
+        margin:auto;
+        background:#fff;
+        border-radius:18px;
+        padding:40px;
+        box-shadow:0 8px 25px rgba(0,0,0,.08);
+    }
+
+    .statement-header{
+        text-align:center;
+        margin-bottom:35px;
+    }
+
+    .statement-header h1{
+        margin:0;
+        color:#1d3557;
+        font-size:30px;
+    }
+
+    .statement-header h3{
+        margin-top:8px;
+        color:#666;
+        font-weight:500;
+    }
+
+    .statement-table{
+        width:100%;
+        border-collapse:collapse;
+        margin-top:25px;
+    }
+
+    .statement-table td{
+        padding:12px;
+        border-bottom:1px solid #ececec;
+    }
+
+    .statement-table tr.total{
+        background:#f8fafc;
+        font-weight:bold;
+        font-size:18px;
+    }
+
+    .amount{
+        text-align:right;
+        font-weight:bold;
+    }
+
+    .section-title{
+        background:#edf4ff;
+        font-weight:bold;
+        color:#0f3d75;
+    }
+
+    .difference-zero{
+        color:#198754;
+    }
+
+    .difference-error{
+        color:#dc3545;
+    }
+
+    .print-buttons{
+        text-align:right;
+        margin-bottom:20px;
+    }
+
+    @media print{
+
+        .no-print{
+            display:none;
+        }
+
+        body{
+            background:white;
+        }
+
+        .statement-card{
+            box-shadow:none;
+            border:none;
+        }
+
+    }
+
+</style>
+
+
+<div class="print-buttons no-print">
+
+    <button onclick="window.print()" class="btn primary">
+        🖨 Print Statement
+    </button>
+
+    <a href="{{ url_for('bank_reconciliation') }}" class="btn">
+        ← Back
+    </a>
+
+</div>
+
+
+<div class="statement-card">
+
+<div class="statement-header">
+
+{% if settings and settings.organization_logo %}
+<img src="{{ url_for('static', filename=settings.organization_logo) }}"
+     style="height:90px;margin-bottom:15px;">
+{% endif %}
+
+<h1>{{ settings.organization_name if settings else "Higher Achievers Village Banking" }}</h1>
+
+<h3>Bank Reconciliation Statement</h3>
+
+<p>
+As at {{ current_date.strftime('%d %B %Y') if current_date else "" }}
+</p>
+
+</div>
+
+
+<table class="statement-table">
+
+<tr class="section-title">
+<td colspan="2">
+Balance as per Bank Statement
+</td>
+</tr>
+
+<tr>
+<td>Bank Statement Balance</td>
+<td class="amount">
+{{ bank_statement_balance|kwacha }}
+</td>
+</tr>
+
+<tr class="section-title">
+<td colspan="2">
+Add
+</td>
+</tr>
+
+<tr>
+<td>Outstanding Deposits</td>
+<td class="amount">
+{{ outstanding_deposits_total|kwacha }}
+</td>
+</tr>
+
+<tr class="section-title">
+<td colspan="2">
+Less
+</td>
+</tr>
+
+<tr>
+<td>Unpresented Cheques</td>
+<td class="amount">
+({{ unpresented_cheques_total|kwacha }})
+</td>
+</tr>
+
+<tr class="total">
+
+<td>
+Adjusted Bank Balance
+</td>
+
+<td class="amount">
+
+{{ adjusted_bank_balance|kwacha }}
+
+</td>
+
+</tr>
+
+<tr>
+<td colspan="2"></td>
+</tr>
+
+<tr class="section-title">
+
+<td colspan="2">
+
+Cash Book
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+Balance as per Cash Book
+
+</td>
+
+<td class="amount">
+
+{{ cash_book_balance|kwacha }}
+
+</td>
+
+</tr>
+
+<tr class="total">
+
+<td>
+
+Difference
+
+</td>
+
+<td class="amount">
+
+{% if difference == 0 %}
+
+<span class="difference-zero">
+
+{{ difference|kwacha }}
+
+</span>
+
+{% else %}
+
+<span class="difference-error">
+
+{{ difference|kwacha }}
+
+</span>
+
+{% endif %}
+
+</td>
+
+</tr>
+
+</table>
+
+<br>
+
+<h3>Outstanding Deposits</h3>
+
+<table class="table">
+
+<thead>
+
+<tr>
+
+<th>Date</th>
+
+<th>Description</th>
+
+<th>Reference</th>
+
+<th class="text-end">Amount</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+{% for item in outstanding_deposits %}
+
+<tr>
+
+<td>{{ item.entry_date }}</td>
+
+<td>{{ item.description or item.category }}</td>
+
+<td>{{ item.reference or "-" }}</td>
+
+<td class="text-end">{{ item.amount|kwacha }}</td>
+
+</tr>
+
+{% else %}
+
+<tr>
+
+<td colspan="4">
+
+No Outstanding Deposits
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+<br>
+
+<h3>Unpresented Cheques</h3>
+
+<table class="table">
+
+<thead>
+
+<tr>
+
+<th>Date</th>
+
+<th>Description</th>
+
+<th>Reference</th>
+
+<th class="text-end">Amount</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+{% for item in unpresented_cheques %}
+
+<tr>
+
+<td>{{ item.entry_date }}</td>
+
+<td>{{ item.description or item.category }}</td>
+
+<td>{{ item.reference or "-" }}</td>
+
+<td class="text-end">{{ item.amount|kwacha }}</td>
+
+</tr>
+
+{% else %}
+
+<tr>
+
+<td colspan="4">
+
+No Unpresented Cheques
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+</div>
+
+{% endblock %}

@@ -99,7 +99,9 @@
         Import CSV Statement
       </button>
     </form>
-
+        <a class="btn" href="{{ url_for('bank_reconciliation_statement') }}">
+          View Reconciliation Statement
+        </a>
   <a class="btn" href="{{ url_for('accounting') }}">← Back to Accounting</a>
     </div>
   </div>
@@ -340,6 +342,135 @@
       </table>
     </div>
   </section>
+
+</div>
+<div class="workspace-grid" style="margin-top:20px;">
+
+    <!-- Outstanding Deposits -->
+    <section class="panel">
+        <div class="panel-head">
+            <div>
+                <h2>Outstanding Deposits</h2>
+                <p>Recorded in the Cash Book but not yet appearing on the Bank Statement.</p>
+            </div>
+
+            <div class="badge success">
+                {{ outstanding_deposits_total|kwacha }}
+            </div>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Description</th>
+                        <th>Reference</th>
+                        <th class="text-end">Amount</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                {% for item in outstanding_deposits %}
+
+                    <tr>
+                        <td>{{ item.entry_date }}</td>
+                        <td>{{ item.description or item.category }}</td>
+                        <td>{{ item.reference or "-" }}</td>
+                        <td class="text-end">
+                            {{ item.amount|kwacha }}
+                        </td>
+                    </tr>
+
+                {% else %}
+
+                    <tr>
+                        <td colspan="4" class="text-center">
+                            No Outstanding Deposits
+                        </td>
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+            </table>
+        </div>
+
+    </section>
+
+
+    <!-- Unpresented Cheques -->
+
+    <section class="panel">
+
+        <div class="panel-head">
+
+            <div>
+                <h2>Unpresented Cheques</h2>
+                <p>Payments recorded in the Cash Book but not yet cleared by the bank.</p>
+            </div>
+
+            <div class="badge warning">
+                {{ unpresented_cheques_total|kwacha }}
+            </div>
+
+        </div>
+
+        <div class="table-wrap">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>Date</th>
+                        <th>Description</th>
+                        <th>Reference</th>
+                        <th class="text-end">Amount</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                {% for item in unpresented_cheques %}
+
+                    <tr>
+
+                        <td>{{ item.entry_date }}</td>
+
+                        <td>{{ item.description or item.category }}</td>
+
+                        <td>{{ item.reference or "-" }}</td>
+
+                        <td class="text-end">
+                            {{ item.amount|kwacha }}
+                        </td>
+
+                    </tr>
+
+                {% else %}
+
+                    <tr>
+
+                        <td colspan="4" class="text-center">
+
+                            No Unpresented Cheques
+
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
 
 </div>
 

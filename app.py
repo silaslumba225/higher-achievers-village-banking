@@ -2913,6 +2913,35 @@ def bank_reconciliation():
     if bank_lines:
         match_rate = round((matched_count / len(bank_lines)) * 100, 1)
 
+        reconciled_cash_entry_ids = [
+        l.cash_book_entry_id
+        for l in bank_lines
+        if l.reconciled and l.cash_book_entry_id
+    ]
+
+    unreconciled_cash_entries = [
+        e for e in cash_entries
+        if e.id not in reconciled_cash_entry_ids
+    ]
+
+    outstanding_deposits = [
+        e for e in unreconciled_cash_entries
+        if e.entry_type == 'In'
+    ]
+
+    unpresented_cheques = [
+        e for e in unreconciled_cash_entries
+        if e.entry_type == 'Out'
+    ]
+
+    outstanding_deposits_total = money(
+        sum((e.amount for e in outstanding_deposits), Decimal('0.00'))
+    )
+
+    unpresented_cheques_total = money(
+        sum((e.amount for e in unpresented_cheques), Decimal('0.00'))
+    )
+
     return render_template(
         'bank_reconciliation.html',
         bank_lines=bank_lines,
@@ -2923,7 +2952,11 @@ def bank_reconciliation():
         reconciliation_difference=reconciliation_difference,
         matched_count=matched_count,
         outstanding_count=outstanding_count,
-        match_rate=match_rate
+        match_rate=match_rate,
+        outstanding_deposits=outstanding_deposits,
+        unpresented_cheques=unpresented_cheques,
+        outstanding_deposits_total=outstanding_deposits_total,
+        unpresented_cheques_total=unpresented_cheques_total
     )
 
 @app.route('/accounting/bank-reconciliation/match', methods=['POST'])
@@ -3099,6 +3132,66 @@ def delete_bank_statement_batch(batch_id):
 
     flash('Bank statement import batch deleted successfully.')
     return redirect(url_for('bank_reconciliation'))
+
+@app.route('/accounting/bank-reconciliation/statement')
+@login_required
+@role_required('accounting')
+def bank_reconciliation_statement():
+    bank_lines = BankStatementLine.query.all()
+    cash_entries = CashBookEntry.query.all()
+
+    bank_statement_in = money(sum((l.amount for l in bank_lines if l.entry_type == 'In'), Decimal('0.00')))
+    bank_statement_out = money(sum((l.amount for l in bank_lines if l.entry_type == 'Out'), Decimal('0.00')))
+    bank_statement_balance = money(bank_statement_in - bank_statement_out)
+
+    cash_book_in = money(sum((e.amount for e in cash_entries if e.entry_type == 'In'), Decimal('0.00')))
+    cash_book_out = money(sum((e.amount for e in cash_entries if e.entry_type == 'Out'), Decimal('0.00')))
+    cash_book_balance = money(cash_book_in - cash_book_out)
+
+    reconciled_cash_entry_ids = [
+        l.cash_book_entry_id
+        for l in bank_lines
+        if l.reconciled and l.cash_book_entry_id
+    ]
+
+    unreconciled_cash_entries = [
+        e for e in cash_entries
+        if e.id not in reconciled_cash_entry_ids
+    ]
+
+    outstanding_deposits = [
+        e for e in unreconciled_cash_entries
+        if e.entry_type == 'In'
+    ]
+
+    unpresented_cheques = [
+        e for e in unreconciled_cash_entries
+        if e.entry_type == 'Out'
+    ]
+
+    outstanding_deposits_total = money(sum((e.amount for e in outstanding_deposits), Decimal('0.00')))
+    unpresented_cheques_total = money(sum((e.amount for e in unpresented_cheques), Decimal('0.00')))
+
+    adjusted_bank_balance = money(
+        bank_statement_balance
+        + outstanding_deposits_total
+        - unpresented_cheques_total
+    )
+
+    difference = money(adjusted_bank_balance - cash_book_balance)
+
+    return render_template(
+        'bank_reconciliation_statement.html',
+        bank_statement_balance=bank_statement_balance,
+        outstanding_deposits=outstanding_deposits,
+        outstanding_deposits_total=outstanding_deposits_total,
+        unpresented_cheques=unpresented_cheques,
+        unpresented_cheques_total=unpresented_cheques_total,
+        adjusted_bank_balance=adjusted_bank_balance,
+        cash_book_balance=cash_book_balance,
+        difference=difference,
+        current_date=date.today()
+    )
 
 @app.route('/accounting/year-end')
 @login_required
