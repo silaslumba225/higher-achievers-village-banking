@@ -153,6 +153,28 @@
     </table>
   </div>
 </section>
+<section class="recon-grid">
+  <div class="recon-card">
+    <span>Bank Statement Balance</span>
+    <strong>{{ bank_statement_balance|kwacha }}</strong>
+  </div>
+
+  <div class="recon-card">
+    <span>Cash Book Balance</span>
+    <strong>{{ cash_book_balance|kwacha }}</strong>
+  </div>
+
+  <div class="recon-card">
+    <span>Difference</span>
+    <strong>{{ reconciliation_difference|kwacha }}</strong>
+  </div>
+
+  <div class="recon-card">
+    <span>Match Rate</span>
+    <strong>{{ match_rate }}%</strong>
+    <em>{{ matched_count }} matched / {{ outstanding_count }} outstanding</em>
+  </div>
+</section>
 
 <section class="panel">
   <h2>Add Bank Statement Line</h2>

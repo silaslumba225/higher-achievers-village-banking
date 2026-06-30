@@ -1195,7 +1195,7 @@ def dashboard():
 
 
     repayment_month = db.func.to_char(Repayment.paid_on, 'YYYY-MM')
-    
+
     monthly_repayment_rows = db.session.query(
         repayment_month,
         db.func.coalesce(db.func.sum(Repayment.amount), 0)
@@ -2896,11 +2896,34 @@ def bank_reconciliation():
         BankStatementImportBatch.imported_on.desc()
     ).all()
 
+    bank_statement_in = money(sum((l.amount for l in bank_lines if l.entry_type == 'In'), Decimal('0.00')))
+    bank_statement_out = money(sum((l.amount for l in bank_lines if l.entry_type == 'Out'), Decimal('0.00')))
+    bank_statement_balance = money(bank_statement_in - bank_statement_out)
+
+    cash_book_in = money(sum((e.amount for e in cash_entries if e.entry_type == 'In'), Decimal('0.00')))
+    cash_book_out = money(sum((e.amount for e in cash_entries if e.entry_type == 'Out'), Decimal('0.00')))
+    cash_book_balance = money(cash_book_in - cash_book_out)
+
+    reconciliation_difference = money(bank_statement_balance - cash_book_balance)
+
+    matched_count = sum(1 for l in bank_lines if l.reconciled)
+    outstanding_count = sum(1 for l in bank_lines if not l.reconciled)
+
+    match_rate = 0
+    if bank_lines:
+        match_rate = round((matched_count / len(bank_lines)) * 100, 1)
+
     return render_template(
         'bank_reconciliation.html',
         bank_lines=bank_lines,
         cash_entries=cash_entries,
-        import_batches=import_batches
+        import_batches=import_batches,
+        bank_statement_balance=bank_statement_balance,
+        cash_book_balance=cash_book_balance,
+        reconciliation_difference=reconciliation_difference,
+        matched_count=matched_count,
+        outstanding_count=outstanding_count,
+        match_rate=match_rate
     )
 
 @app.route('/accounting/bank-reconciliation/match', methods=['POST'])
