@@ -2913,7 +2913,7 @@ def bank_reconciliation():
     if bank_lines:
         match_rate = round((matched_count / len(bank_lines)) * 100, 1)
 
-        reconciled_cash_entry_ids = [
+    reconciled_cash_entry_ids = [
         l.cash_book_entry_id
         for l in bank_lines
         if l.reconciled and l.cash_book_entry_id
@@ -2934,13 +2934,8 @@ def bank_reconciliation():
         if e.entry_type == 'Out'
     ]
 
-    outstanding_deposits_total = money(
-        sum((e.amount for e in outstanding_deposits), Decimal('0.00'))
-    )
-
-    unpresented_cheques_total = money(
-        sum((e.amount for e in unpresented_cheques), Decimal('0.00'))
-    )
+    outstanding_deposits_total = money(sum((e.amount for e in outstanding_deposits), Decimal('0.00')))
+    unpresented_cheques_total = money(sum((e.amount for e in unpresented_cheques), Decimal('0.00')))
 
     return render_template(
         'bank_reconciliation.html',
