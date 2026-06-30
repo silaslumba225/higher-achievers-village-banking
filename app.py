@@ -3100,6 +3100,21 @@ def delete_bank_statement_batch(batch_id):
     flash('Bank statement import batch deleted successfully.')
     return redirect(url_for('bank_reconciliation'))
 
+@app.route('/accounting/bank-reconciliation/clear-test', methods=['POST'])
+@login_required
+@role_required('accounting')
+def clear_test_bank_statement():
+
+    deleted = BankStatementLine.query.delete()
+
+    BankStatementImportBatch.query.delete()
+
+    db.session.commit()
+
+    flash(f'{deleted} bank statement lines removed successfully.')
+
+    return redirect(url_for('bank_reconciliation'))
+
 @app.route('/accounting/year-end')
 @login_required
 @role_required('accounting')

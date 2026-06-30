@@ -99,7 +99,16 @@
         Import CSV Statement
       </button>
     </form>
-    
+
+    <form method="post"
+      action="{{ url_for('clear_test_bank_statement') }}"
+      onsubmit="return confirm('Delete ALL imported bank statement test data?');">
+
+      <button class="btn btn-danger">
+          Clear Test Data
+      </button>
+
+    </form>
 
       <a class="btn" href="{{ url_for('accounting') }}">← Back to Accounting</a>
     </div>
