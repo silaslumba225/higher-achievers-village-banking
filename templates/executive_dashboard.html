@@ -1,0 +1,251 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Executive Dashboard{% endblock %}
+{% block subtitle %}Financial overview for the Chairperson, Treasurer and Management Committee{% endblock %}
+
+{% block content %}
+
+<style>
+  .exec-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .exec-card {
+    background: #fff;
+    border: 1px solid #e5e7f0;
+    border-radius: 18px;
+    padding: 20px;
+    box-shadow: 0 8px 24px rgba(20, 20, 60, 0.06);
+  }
+
+  .exec-card span {
+    display: block;
+    color: #667085;
+    font-size: 14px;
+  }
+
+  .exec-card strong {
+    display: block;
+    margin-top: 8px;
+    font-size: 24px;
+    color: #101828;
+  }
+
+  .exec-card em {
+    display: block;
+    margin-top: 6px;
+    font-style: normal;
+    color: #667085;
+    font-size: 13px;
+  }
+
+  .exec-section {
+    margin-bottom: 24px;
+  }
+
+  .exec-two {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+
+  .chart-placeholder {
+    min-height: 220px;
+    border: 2px dashed #d0d5dd;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    color: #667085;
+    background: #f9fafb;
+  }
+
+  .text-end {
+    text-align: right;
+  }
+
+  @media (max-width: 1100px) {
+    .exec-grid,
+    .exec-two {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<section class="panel exec-section">
+  <div class="panel-head">
+    <div>
+      <h2>Executive Financial Dashboard</h2>
+      <p>Live summary of cash position, loan portfolio, member funds and financial performance.</p>
+    </div>
+
+    <a class="btn" href="{{ url_for('dashboard') }}">← Back to Main Dashboard</a>
+  </div>
+</section>
+
+<section class="exec-section">
+  <h2>Cash Position</h2>
+
+  <div class="exec-grid">
+    <div class="exec-card">
+      <span>Cash on Hand</span>
+      <strong>{{ cash_on_hand|kwacha }}</strong>
+      <em>Physical cash balance</em>
+    </div>
+
+    <div class="exec-card">
+      <span>Bank Account</span>
+      <strong>{{ bank_account|kwacha }}</strong>
+      <em>Ledger bank balance</em>
+    </div>
+
+    <div class="exec-card">
+      <span>Mobile Money</span>
+      <strong>{{ mobile_money|kwacha }}</strong>
+      <em>Mobile wallet balance</em>
+    </div>
+
+    <div class="exec-card">
+      <span>Total Available Cash</span>
+      <strong>{{ total_cash|kwacha }}</strong>
+      <em>Cash + Bank + Mobile Money</em>
+    </div>
+  </div>
+</section>
+
+<section class="exec-section">
+  <h2>Portfolio & Member Funds</h2>
+
+  <div class="exec-grid">
+    <div class="exec-card">
+      <span>Loans Receivable</span>
+      <strong>{{ loans_receivable|kwacha }}</strong>
+      <em>Outstanding loan portfolio</em>
+    </div>
+
+    <div class="exec-card">
+      <span>Member Savings</span>
+      <strong>{{ member_savings|kwacha }}</strong>
+      <em>Member contributions liability</em>
+    </div>
+
+    <div class="exec-card">
+      <span>Welfare Fund</span>
+      <strong>{{ welfare_fund|kwacha }}</strong>
+      <em>Available welfare fund balance</em>
+    </div>
+
+    <div class="exec-card">
+      <span>Active Loans</span>
+      <strong>{{ active_loans }}</strong>
+      <em>Currently disbursed or partially paid</em>
+    </div>
+  </div>
+</section>
+
+<section class="exec-section">
+  <h2>Performance & Operations</h2>
+
+  <div class="exec-grid">
+    <div class="exec-card">
+      <span>Total Income</span>
+      <strong>{{ total_income|kwacha }}</strong>
+      <em>Current year income</em>
+    </div>
+
+    <div class="exec-card">
+      <span>Total Expenses</span>
+      <strong>{{ total_expenses|kwacha }}</strong>
+      <em>Current year expenses</em>
+    </div>
+
+    <div class="exec-card">
+      <span>Current Surplus</span>
+      <strong>{{ current_surplus|kwacha }}</strong>
+      <em>Income less expenses</em>
+    </div>
+
+    <div class="exec-card">
+      <span>Active Members</span>
+      <strong>{{ active_members }}</strong>
+      <em>Registered members</em>
+    </div>
+  </div>
+</section>
+
+<div class="exec-two">
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Financial Trends</h2>
+        <p>Charts will be added in the next step.</p>
+      </div>
+    </div>
+
+    <div class="chart-placeholder">
+      Contributions, loan portfolio and cash trend charts
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Management Alerts</h2>
+        <p>Items requiring committee attention.</p>
+      </div>
+    </div>
+
+    <div class="exec-grid" style="grid-template-columns: 1fr;">
+      <div class="exec-card">
+        <span>Pending Welfare Claims</span>
+        <strong>{{ pending_welfare_claims }}</strong>
+        <em>Claims awaiting review or approval</em>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<section class="panel" style="margin-top: 20px;">
+  <div class="panel-head">
+    <div>
+      <h2>Recent Journal Entries</h2>
+      <p>Latest accounting postings affecting the financial position.</p>
+    </div>
+
+    <a class="btn" href="{{ url_for('accounting') }}">Open Accounting</a>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Description</th>
+          <th>Source</th>
+          <th>Reference</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for journal in recent_journals %}
+        <tr>
+          <td>{{ journal.entry_date }}</td>
+          <td>{{ journal.description }}</td>
+          <td>{{ journal.source_type or '-' }}</td>
+          <td>{{ journal.source_id or '-' }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4">No recent journal entries.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{% endblock %}

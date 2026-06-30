@@ -1278,6 +1278,75 @@ def dashboard():
 
     return render_template('dashboard.html', **locals())
 
+@app.route('/executive-dashboard')
+@login_required
+@role_required('dashboard')
+def executive_dashboard():
+    balances = ledger_balances()
+
+    balance_map = {
+        b['account'].code: b['balance']
+        for b in balances
+    }
+
+    cash_on_hand = money(balance_map.get('1000', Decimal('0.00')))
+    bank_account = money(balance_map.get('1010', Decimal('0.00')))
+    mobile_money = money(balance_map.get('1020', Decimal('0.00')))
+    total_cash = money(cash_on_hand + bank_account + mobile_money)
+
+    loans_receivable = money(balance_map.get('1100', Decimal('0.00')))
+    member_savings = money(balance_map.get('2000', Decimal('0.00')))
+    welfare_fund = money(balance_map.get('2010', Decimal('0.00')))
+
+    income = Decimal('0.00')
+    expenses = Decimal('0.00')
+
+    for b in balances:
+        account = b['account']
+
+        if account.account_type == 'Income':
+            income += b['balance']
+
+        elif account.account_type == 'Expense':
+            expenses += b['balance']
+
+    total_income = money(income)
+    total_expenses = money(expenses)
+    current_surplus = money(total_income - total_expenses)
+
+    active_members = Member.query.count()
+
+    active_loans = Loan.query.filter(
+        Loan.status.in_(['Disbursed', 'Partially Paid'])
+    ).count()
+
+    pending_welfare_claims = WelfareClaim.query.filter_by(
+        status='Pending'
+    ).count()
+
+    recent_journals = JournalEntry.query.order_by(
+        JournalEntry.entry_date.desc(),
+        JournalEntry.id.desc()
+    ).limit(8).all()
+
+    return render_template(
+        'executive_dashboard.html',
+        cash_on_hand=cash_on_hand,
+        bank_account=bank_account,
+        mobile_money=mobile_money,
+        total_cash=total_cash,
+        loans_receivable=loans_receivable,
+        member_savings=member_savings,
+        welfare_fund=welfare_fund,
+        total_income=total_income,
+        total_expenses=total_expenses,
+        current_surplus=current_surplus,
+        active_members=active_members,
+        active_loans=active_loans,
+        pending_welfare_claims=pending_welfare_claims,
+        recent_journals=recent_journals
+    )
+
 @app.route('/members')
 @login_required
 @role_required('members')

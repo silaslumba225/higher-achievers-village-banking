@@ -18,7 +18,10 @@
 </div>
     </div>
   <nav>
-  {% if user_can('dashboard') %}<a href="{{ url_for('dashboard') }}">▣ Dashboard</a>{% endif %}
+  {% if user_can('dashboard') %}
+  <a href="{{ url_for('dashboard') }}">▣ Dashboard</a>
+  <a href="{{ url_for('executive_dashboard') }}">📊 Executive Dashboard</a>
+  {% endif %}
   {% if user_can('members') %}<a href="{{ url_for('members') }}">👥 Members</a>{% endif %}
   {% if user_can('contributions') %}<a href="{{ url_for('contributions') }}">💰 Contributions</a>{% endif %}
   {% if user_can('loans') %}<a href="{{ url_for('loans') }}">🏦 Loans & Repayments</a>{% endif %}
