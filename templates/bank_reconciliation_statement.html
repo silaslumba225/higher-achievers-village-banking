@@ -99,6 +99,17 @@
         🖨 Print Statement
     </button>
 
+    <form method="post"
+      action="{{ url_for('complete_bank_reconciliation') }}"
+      class="inline-form"
+      onsubmit="return confirm('Mark this bank reconciliation as completed?');">
+
+  <button class="btn primary" type="submit">
+    Mark as Completed
+  </button>
+
+</form>
+
     <a href="{{ url_for('bank_reconciliation') }}" class="btn">
         ← Back
     </a>

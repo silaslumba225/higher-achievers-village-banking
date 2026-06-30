@@ -609,6 +609,25 @@ class BankStatementImportBatch(db.Model):
 
     import_batch_id = db.Column(db.Integer, db.ForeignKey('bank_statement_import_batch.id'))
     import_batch = db.relationship('BankStatementImportBatch')
+
+class BankReconciliation(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    reconciliation_date = db.Column(db.Date, nullable=False)
+
+    bank_statement_balance = db.Column(db.Numeric(12, 2), default=0)
+    outstanding_deposits = db.Column(db.Numeric(12, 2), default=0)
+    unpresented_cheques = db.Column(db.Numeric(12, 2), default=0)
+    adjusted_bank_balance = db.Column(db.Numeric(12, 2), default=0)
+    cash_book_balance = db.Column(db.Numeric(12, 2), default=0)
+    difference = db.Column(db.Numeric(12, 2), default=0)
+
+    status = db.Column(db.String(30), default='Completed')
+
+    prepared_by = db.Column(db.String(120))
+    prepared_on = db.Column(db.DateTime, default=datetime.utcnow)
+
+    notes = db.Column(db.Text)    
    
 def ensure_settings_columns():
     columns = {
@@ -3187,6 +3206,83 @@ def bank_reconciliation_statement():
         difference=difference,
         current_date=date.today()
     )
+@app.route('/accounting/bank-reconciliation/complete', methods=['POST'])
+@login_required
+@role_required('accounting')
+def complete_bank_reconciliation():
+    bank_lines = BankStatementLine.query.all()
+    cash_entries = CashBookEntry.query.all()
+
+    bank_statement_in = money(sum((l.amount for l in bank_lines if l.entry_type == 'In'), Decimal('0.00')))
+    bank_statement_out = money(sum((l.amount for l in bank_lines if l.entry_type == 'Out'), Decimal('0.00')))
+    bank_statement_balance = money(bank_statement_in - bank_statement_out)
+
+    cash_book_in = money(sum((e.amount for e in cash_entries if e.entry_type == 'In'), Decimal('0.00')))
+    cash_book_out = money(sum((e.amount for e in cash_entries if e.entry_type == 'Out'), Decimal('0.00')))
+    cash_book_balance = money(cash_book_in - cash_book_out)
+
+    reconciled_cash_entry_ids = [
+        l.cash_book_entry_id
+        for l in bank_lines
+        if l.reconciled and l.cash_book_entry_id
+    ]
+
+    unreconciled_cash_entries = [
+        e for e in cash_entries
+        if e.id not in reconciled_cash_entry_ids
+    ]
+
+    outstanding_deposits = [
+        e for e in unreconciled_cash_entries
+        if e.entry_type == 'In'
+    ]
+
+    unpresented_cheques = [
+        e for e in unreconciled_cash_entries
+        if e.entry_type == 'Out'
+    ]
+
+    outstanding_deposits_total = money(sum((e.amount for e in outstanding_deposits), Decimal('0.00')))
+    unpresented_cheques_total = money(sum((e.amount for e in unpresented_cheques), Decimal('0.00')))
+
+    adjusted_bank_balance = money(
+        bank_statement_balance
+        + outstanding_deposits_total
+        - unpresented_cheques_total
+    )
+
+    difference = money(adjusted_bank_balance - cash_book_balance)
+
+    if difference != 0:
+        flash('Bank reconciliation cannot be completed because the difference is not zero.', 'error')
+        return redirect(url_for('bank_reconciliation_statement'))
+
+    user = session.get('user') or {}
+
+    reconciliation = BankReconciliation(
+        reconciliation_date=date.today(),
+        bank_statement_balance=bank_statement_balance,
+        outstanding_deposits=outstanding_deposits_total,
+        unpresented_cheques=unpresented_cheques_total,
+        adjusted_bank_balance=adjusted_bank_balance,
+        cash_book_balance=cash_book_balance,
+        difference=difference,
+        status='Completed',
+        prepared_by=user.get('full_name') or user.get('username')
+    )
+
+    db.session.add(reconciliation)
+    db.session.commit()
+
+    log_audit(
+        'COMPLETE_BANK_RECONCILIATION',
+        'BankReconciliation',
+        reconciliation.id,
+        f'Bank reconciliation completed as at {reconciliation.reconciliation_date}'
+    )
+
+    flash('Bank reconciliation marked as completed.')
+    return redirect(url_for('bank_reconciliation_statement'))
 
 @app.route('/accounting/year-end')
 @login_required
