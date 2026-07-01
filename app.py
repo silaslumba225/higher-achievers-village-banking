@@ -1108,7 +1108,8 @@ def settings():
 @login_required
 @role_required('dashboard')
 def dashboard():
-    members = Member.query.count()
+     return redirect(url_for('executive_dashboard'))
+    """ members = Member.query.count()
     active_members = Member.query.filter_by(status='Active').count()
     contribution_total = money(db.session.query(db.func.coalesce(db.func.sum(Contribution.amount), 0)).scalar())
     month = date.today().strftime('%Y-%m')
@@ -1277,7 +1278,7 @@ def dashboard():
     monthly_welfare_labels = [row[0] for row in monthly_welfare_rows]
     monthly_welfare_values = [float(row[1]) for row in monthly_welfare_rows]
 
-    return render_template('dashboard.html', **locals())
+    return render_template('dashboard.html', **locals()) """
 
 @app.route('/executive-dashboard')
 @login_required
