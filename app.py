@@ -1333,13 +1333,15 @@ def executive_dashboard():
     # Financial Performance Chart
     # -----------------------------
 
+    contribution_month = func.to_char(Contribution.paid_on, 'YYYY-MM')
+
     monthly_contributions = (
         db.session.query(
-            func.to_char('%Y-%m', Contribution.paid_on),
+            contribution_month,
             func.coalesce(func.sum(Contribution.amount), 0)
         )
-        .group_by(func.to_char('%Y-%m', Contribution.paid_on))
-        .order_by(func.to_char('%Y-%m', Contribution.paid_on))
+        .group_by(contribution_month)
+        .order_by(contribution_month)
         .all()
     )
 
@@ -1347,23 +1349,20 @@ def executive_dashboard():
     contribution_values = [float(v) for _, v in monthly_contributions]
 
 
-    # -----------------------------
-    # Membership Growth
-    # -----------------------------
+    member_month = func.to_char(Member.created_on, 'YYYY-MM')
 
     member_growth = (
         db.session.query(
-            func.to_char('%Y-%m', Member.created_on),
+            member_month,
             func.count(Member.id)
         )
-        .group_by(func.to_char('%Y-%m', Member.created_on))
-        .order_by(func.to_char('%Y-%m', Member.created_on))
+        .group_by(member_month)
+        .order_by(member_month)
         .all()
     )
 
     member_labels = [m for m, _ in member_growth]
     member_values = [v for _, v in member_growth]
-
 
     # -----------------------------
     # Loan Portfolio
