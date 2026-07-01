@@ -6,69 +6,65 @@
 {% block content %}
 
 <style>
-  .exec-top {
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:16px;
-    margin-bottom:20px;
+  .exec-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 18px;
   }
 
-  .exec-title h2 {
-    margin:0;
-    font-size:28px;
-  }
-
-  .exec-title p {
-    color:#667085;
-    margin:6px 0 0;
+  .last-updated {
+    color: #667085;
+    font-size: 13px;
   }
 
   .exec-kpi-grid {
-    display:grid;
-    grid-template-columns:repeat(4, minmax(0, 1fr));
-    gap:16px;
-    margin-bottom:22px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
   }
 
   .exec-kpi {
-    background:#fff;
-    border:1px solid #e5e7f0;
-    border-radius:20px;
-    padding:20px;
-    box-shadow:0 8px 24px rgba(20,20,60,.06);
+    background: #fff;
+    border: 1px solid #e5e7f0;
+    border-radius: 18px;
+    padding: 16px;
+    box-shadow: 0 8px 24px rgba(20,20,60,.06);
+    min-height: 135px;
   }
 
   .exec-kpi .icon {
-    width:46px;
-    height:46px;
-    border-radius:14px;
-    display:grid;
-    place-items:center;
-    font-size:24px;
-    margin-bottom:12px;
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    font-size: 20px;
+    margin-bottom: 10px;
   }
 
   .exec-kpi span {
-    color:#667085;
-    font-size:13px;
-    text-transform:uppercase;
-    font-weight:700;
+    color: #667085;
+    font-size: 12px;
+    text-transform: uppercase;
+    font-weight: 700;
   }
 
   .exec-kpi strong {
-    display:block;
-    margin-top:8px;
-    font-size:26px;
-    color:#101828;
+    display: block;
+    margin-top: 6px;
+    font-size: 24px;
+    color: #101828;
   }
 
   .exec-kpi em {
-    display:block;
-    margin-top:6px;
-    font-style:normal;
-    color:#16a34a;
-    font-size:13px;
+    display: block;
+    margin-top: 5px;
+    font-style: normal;
+    color: #16a34a;
+    font-size: 12px;
   }
 
   .bg-blue { background:#e8f0ff; color:#155eef; }
@@ -78,70 +74,88 @@
   .bg-red { background:#ffe4ea; color:#e63757; }
   .bg-teal { background:#e2f7f5; color:#078b84; }
 
-  .exec-layout {
-    display:grid;
-    grid-template-columns:2fr 1fr;
-    gap:18px;
-    margin-bottom:22px;
-  }
-
   .exec-three {
-    display:grid;
-    grid-template-columns:repeat(3, minmax(0, 1fr));
-    gap:18px;
-    margin-bottom:22px;
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr;
+    gap: 18px;
+    margin-bottom: 20px;
   }
 
   .exec-two {
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:18px;
-    margin-bottom:22px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-bottom: 20px;
   }
 
   .chart-box {
-    height:260px;
-    border-radius:16px;
-    background:linear-gradient(135deg,#f8fafc,#ffffff);
-    border:1px dashed #d0d5dd;
-    display:grid;
-    place-items:center;
-    color:#667085;
-    font-weight:600;
+    height: 250px;
+    border-radius: 16px;
+    background: linear-gradient(135deg,#f8fafc,#ffffff);
+    border: 1px dashed #d0d5dd;
+    display: grid;
+    place-items: center;
+    color: #667085;
+    font-weight: 600;
   }
 
   .alert-row {
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    border-bottom:1px solid #eef0f4;
-    padding:12px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #eef0f4;
+    padding: 12px 0;
   }
 
   .alert-left {
-    display:flex;
-    gap:10px;
-    align-items:center;
+    display: flex;
+    gap: 10px;
+    align-items: center;
   }
 
   .alert-dot {
-    width:34px;
-    height:34px;
-    border-radius:50%;
-    display:grid;
-    place-items:center;
-    color:#fff;
-    font-weight:bold;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-weight: bold;
   }
 
   .dot-good { background:#16a34a; }
   .dot-watch { background:#f59e0b; }
   .dot-danger { background:#dc2626; }
 
+  .ratio-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .ratio-card {
+    border: 1px solid #e5e7f0;
+    border-radius: 14px;
+    padding: 14px;
+    background: #fff;
+  }
+
+  .ratio-card span {
+    display: block;
+    color: #667085;
+    font-size: 12px;
+  }
+
+  .ratio-card strong {
+    display: block;
+    font-size: 20px;
+    margin-top: 5px;
+  }
+
   .quick-grid {
-    display:grid;
-    grid-template-columns:repeat(3, minmax(0, 1fr));
-    gap:12px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
   }
 
   .quick-action {
@@ -164,7 +178,6 @@
 
   @media (max-width:1100px) {
     .exec-kpi-grid,
-    .exec-layout,
     .exec-three,
     .exec-two {
       grid-template-columns:1fr;
@@ -172,23 +185,18 @@
   }
 </style>
 
-<section class="exec-top">
-    <div></div>
-
-    <div>
-        <a class="btn" href="{{ url_for('accounting') }}">
-            📚 Open Accounting
-        </a>
-    </div>
+<section class="exec-toolbar">
+  <span class="last-updated">Last updated: just now</span>
+  <a class="btn primary" href="{{ url_for('accounting') }}">📚 Open Accounting</a>
 </section>
 
 <section class="exec-kpi-grid">
 
   <div class="exec-kpi">
     <div class="icon bg-blue">💰</div>
-    <span>Total Available Cash</span>
+    <span>Total Cash</span>
     <strong>{{ total_cash|kwacha }}</strong>
-    <em>Cash + Bank + Mobile Money</em>
+    <em>Cash + Bank + Mobile</em>
   </div>
 
   <div class="exec-kpi">
@@ -237,25 +245,46 @@
     <div class="icon bg-purple">🤝</div>
     <span>Welfare Fund</span>
     <strong>{{ welfare_fund|kwacha }}</strong>
-    <em>Available welfare balance</em>
+    <em>Available balance</em>
   </div>
 
 </section>
 
-<section class="exec-layout">
+<section class="exec-three">
 
   <div class="panel">
     <div class="panel-head">
       <div>
         <h2>Financial Performance Trend</h2>
-        <p>Contributions, loan interest and expenses trend.</p>
+        <p>Contributions, loan interest and expenses over time.</p>
       </div>
     </div>
-
-    <div class="chart-box">
-      Chart will be connected in the next step
-    </div>
+    <div class="chart-box">Chart.js financial trend will be connected next</div>
   </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Loan Portfolio Summary</h2>
+        <p>Loan portfolio and risk position.</p>
+      </div>
+    </div>
+    <div class="chart-box">Loan portfolio chart</div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Membership Growth</h2>
+        <p>Member registration trend.</p>
+      </div>
+    </div>
+    <div class="chart-box">Membership growth chart</div>
+  </div>
+
+</section>
+
+<section class="exec-three">
 
   <div class="panel">
     <div class="panel-head">
@@ -268,61 +297,22 @@
     <div class="alert-row">
       <div class="alert-left">
         <div class="alert-dot dot-good">✓</div>
-        <div>
-          <strong>Cash position available</strong><br>
-          <small>Total cash: {{ total_cash|kwacha }}</small>
-        </div>
+        <div><strong>Cash position available</strong><br><small>Total cash: {{ total_cash|kwacha }}</small></div>
       </div>
     </div>
 
     <div class="alert-row">
       <div class="alert-left">
         <div class="alert-dot dot-watch">!</div>
-        <div>
-          <strong>Pending welfare claims</strong><br>
-          <small>{{ pending_welfare_claims }} claim(s) awaiting attention</small>
-        </div>
+        <div><strong>Pending welfare claims</strong><br><small>{{ pending_welfare_claims }} claim(s) awaiting review</small></div>
       </div>
     </div>
 
     <div class="alert-row">
       <div class="alert-left">
         <div class="alert-dot dot-good">✓</div>
-        <div>
-          <strong>Accounting ledger active</strong><br>
-          <small>Recent journals available</small>
-        </div>
+        <div><strong>Bank reconciliation module active</strong><br><small>Reconciliation workspace available</small></div>
       </div>
-    </div>
-  </div>
-
-</section>
-
-<section class="exec-three">
-
-  <div class="panel">
-    <div class="panel-head">
-      <div>
-        <h2>Loan Portfolio</h2>
-        <p>Current loan exposure.</p>
-      </div>
-    </div>
-
-    <div class="chart-box">
-      Loan Portfolio Chart
-    </div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-head">
-      <div>
-        <h2>Membership Growth</h2>
-        <p>Member movement over time.</p>
-      </div>
-    </div>
-
-    <div class="chart-box">
-      Membership Growth Chart
     </div>
   </div>
 
@@ -334,24 +324,13 @@
       </div>
     </div>
 
-    <div class="exec-kpi">
-      <span>Member Savings</span>
-      <strong>{{ member_savings|kwacha }}</strong>
-      <em>Member funds liability</em>
-    </div>
-
-    <br>
-
-    <div class="exec-kpi">
-      <span>Active Loans</span>
-      <strong>{{ active_loans }}</strong>
-      <em>Open loan accounts</em>
+    <div class="ratio-grid">
+      <div class="ratio-card"><span>Member Savings</span><strong>{{ member_savings|kwacha }}</strong></div>
+      <div class="ratio-card"><span>Active Loans</span><strong>{{ active_loans }}</strong></div>
+      <div class="ratio-card"><span>Cash Available</span><strong>{{ total_cash|kwacha }}</strong></div>
+      <div class="ratio-card"><span>Current Surplus</span><strong>{{ current_surplus|kwacha }}</strong></div>
     </div>
   </div>
-
-</section>
-
-<section class="exec-two">
 
   <div class="panel">
     <div class="panel-head">
@@ -371,40 +350,44 @@
     </div>
   </div>
 
-  <div class="panel">
-    <div class="panel-head">
-      <div>
-        <h2>Recent Journal Entries</h2>
-        <p>Latest accounting postings.</p>
-      </div>
-    </div>
+</section>
 
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Description</th>
-            <th>Source</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for journal in recent_journals %}
-          <tr>
-            <td>{{ journal.entry_date }}</td>
-            <td>{{ journal.description }}</td>
-            <td>{{ journal.source_type or '-' }}</td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="3">No recent journal entries.</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Recent Journal Entries</h2>
+      <p>Latest accounting postings affecting financial position.</p>
     </div>
+    <a class="btn" href="{{ url_for('accounting') }}">View Accounting</a>
   </div>
 
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Description</th>
+          <th>Source</th>
+          <th>Reference</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for journal in recent_journals %}
+        <tr>
+          <td>{{ journal.entry_date }}</td>
+          <td>{{ journal.description }}</td>
+          <td>{{ journal.source_type or '-' }}</td>
+          <td>{{ journal.source_id or '-' }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4">No recent journal entries.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </section>
 
 {% endblock %}
