@@ -1232,6 +1232,7 @@ def executive_dashboard():
         current_loans=current_loans,
         paid_loans=paid_loans,
         overdue_loans=overdue_loans,
+        today=date.today()
     )
 
 @app.route('/members')

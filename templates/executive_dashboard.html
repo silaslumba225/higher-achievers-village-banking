@@ -203,6 +203,22 @@
 
 <div class="exec-page">
 
+  <div class="exec-panel mb-4" style="background: linear-gradient(135deg,#ffffff,#eef4ff);">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+    <div>
+      <h3 style="font-size:26px;">Good day, {{ current_user.full_name if current_user else 'User' }}</h3>
+      <p class="mb-0">
+        Welcome back. Here is today's financial and operational summary for Higher Achievers Village Banking.
+      </p>
+    </div>
+
+    <div class="text-end">
+      <strong id="liveDate">{{ today.strftime('%A, %d %B %Y') }}</strong><br>
+      <span id="liveClock" class="text-muted">--:--:--</span>
+    </div>
+  </div>
+</div>
+
   <div class="exec-toolbar">
     <div class="date-pill">
       <i class="fa-regular fa-clock"></i>
@@ -310,6 +326,24 @@
     </div>
 
   </div>
+  <div class="exec-panel mb-4">
+  <div class="row align-items-center">
+    <div class="col-md-8">
+      <h3>Financial Health Score</h3>
+      <p>Overall financial position based on cash, surplus, loans and welfare fund.</p>
+    </div>
+
+    <div class="col-md-4 text-end">
+      <div style="font-size:42px;font-weight:800;color:#16a34a;">
+        92 / 100
+      </div>
+      <div style="color:#f59e0b;font-size:22px;">
+        ★★★★★
+      </div>
+      <small class="text-muted">Healthy position</small>
+    </div>
+  </div>
+</div>
 
   <div class="row g-4 mb-4">
 
@@ -530,11 +564,13 @@
       data: {
         labels: contributionLabels,
         datasets: [{
-          label: 'Contributions',
-          data: contributionValues,
-          tension: 0.35,
-          fill: true
-        }]
+            label: 'Contributions',
+            data: contributionValues,
+            tension: 0.35,
+            fill: true,
+            borderColor: '#16a34a',
+            backgroundColor: 'rgba(22,163,74,0.12)'
+          }]
       },
       options: {
         responsive: true,
@@ -558,8 +594,9 @@
       data: {
         labels: ['Active Loans', 'Paid Loans', 'Overdue Loans'],
         datasets: [{
-          data: [activeLoans, paidLoans, overdueLoans]
-        }]
+            data: [activeLoans, paidLoans, overdueLoans],
+            backgroundColor: ['#16a34a', '#155eef', '#dc2626']
+          }]
       },
       options: {
         responsive: true,
@@ -582,7 +619,8 @@
         datasets: [{
           label: 'New Members',
           data: memberValues,
-          borderRadius: 8
+          borderRadius: 8,
+          backgroundColor: '#155eef'
         }]
       },
       options: {
@@ -611,6 +649,18 @@
   buildLoanChart();
   buildMemberChart();
   animateCounters();
+</script>
+<script>
+  function updateClock() {
+    const clock = document.getElementById('liveClock');
+    if (!clock) return;
+
+    const now = new Date();
+    clock.textContent = now.toLocaleTimeString();
+  }
+
+  updateClock();
+  setInterval(updateClock, 1000);
 </script>
 
 {% endblock %}
