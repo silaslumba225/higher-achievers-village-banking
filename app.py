@@ -6,6 +6,7 @@ from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash, Response, session, send_file
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import func
 import csv
 import io
 import os
@@ -1328,6 +1329,55 @@ def executive_dashboard():
         JournalEntry.entry_date.desc(),
         JournalEntry.id.desc()
     ).limit(8).all()
+        # -----------------------------
+    # Financial Performance Chart
+    # -----------------------------
+
+    monthly_contributions = (
+        db.session.query(
+            func.strftime('%Y-%m', Contribution.paid_on),
+            func.coalesce(func.sum(Contribution.amount), 0)
+        )
+        .group_by(func.strftime('%Y-%m', Contribution.paid_on))
+        .order_by(func.strftime('%Y-%m', Contribution.paid_on))
+        .all()
+    )
+
+    contribution_labels = [m for m, _ in monthly_contributions]
+    contribution_values = [float(v) for _, v in monthly_contributions]
+
+
+    # -----------------------------
+    # Membership Growth
+    # -----------------------------
+
+    member_growth = (
+        db.session.query(
+            func.strftime('%Y-%m', Member.created_on),
+            func.count(Member.id)
+        )
+        .group_by(func.strftime('%Y-%m', Member.created_on))
+        .order_by(func.strftime('%Y-%m', Member.created_on))
+        .all()
+    )
+
+    member_labels = [m for m, _ in member_growth]
+    member_values = [v for _, v in member_growth]
+
+
+    # -----------------------------
+    # Loan Portfolio
+    # -----------------------------
+
+    current_loans = Loan.query.filter_by(status='Disbursed').count()
+
+    paid_loans = Loan.query.filter_by(status='Paid').count()
+
+    overdue_loans = Loan.query.filter(
+        Loan.status == 'Disbursed',
+        Loan.balance > 0,
+        Loan.next_due_date < date.today()
+    ).count()
 
     return render_template(
         'executive_dashboard.html',
@@ -1344,7 +1394,14 @@ def executive_dashboard():
         active_members=active_members,
         active_loans=active_loans,
         pending_welfare_claims=pending_welfare_claims,
-        recent_journals=recent_journals
+        recent_journals=recent_journals,
+        contribution_labels=contribution_labels,
+        contribution_values=contribution_values,
+        member_labels=member_labels,
+        member_values=member_values,
+        current_loans=current_loans,
+        paid_loans=paid_loans,
+        overdue_loans=overdue_loans,
     )
 
 @app.route('/members')
