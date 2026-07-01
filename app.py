@@ -1335,11 +1335,11 @@ def executive_dashboard():
 
     monthly_contributions = (
         db.session.query(
-            func.strftime('%Y-%m', Contribution.paid_on),
+            func.to_char('%Y-%m', Contribution.paid_on),
             func.coalesce(func.sum(Contribution.amount), 0)
         )
-        .group_by(func.strftime('%Y-%m', Contribution.paid_on))
-        .order_by(func.strftime('%Y-%m', Contribution.paid_on))
+        .group_by(func.to_char('%Y-%m', Contribution.paid_on))
+        .order_by(func.to_char('%Y-%m', Contribution.paid_on))
         .all()
     )
 
@@ -1353,11 +1353,11 @@ def executive_dashboard():
 
     member_growth = (
         db.session.query(
-            func.strftime('%Y-%m', Member.created_on),
+            func.to_char('%Y-%m', Member.created_on),
             func.count(Member.id)
         )
-        .group_by(func.strftime('%Y-%m', Member.created_on))
-        .order_by(func.strftime('%Y-%m', Member.created_on))
+        .group_by(func.to_char('%Y-%m', Member.created_on))
+        .order_by(func.to_char('%Y-%m', Member.created_on))
         .all()
     )
 
