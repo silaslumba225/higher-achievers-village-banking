@@ -1372,11 +1372,11 @@ def executive_dashboard():
 
     paid_loans = Loan.query.filter_by(status='Paid').count()
 
-    overdue_loans = Loan.query.filter(
-        Loan.status == 'Disbursed',
-        Loan.balance > 0,
-        Loan.next_due_date < date.today()
-    ).count()
+    overdue_loans = 0
+
+    for loan in Loan.query.filter_by(status='Disbursed').all():
+        if loan.balance > 0 and loan.next_due_date and loan.next_due_date < date.today():
+            overdue_loans += 1
 
     return render_template(
         'executive_dashboard.html',
