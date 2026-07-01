@@ -5,389 +5,612 @@
 
 {% block content %}
 
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
+  .exec-page {
+    font-family: inherit;
+  }
+
   .exec-toolbar {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
     align-items: center;
-    gap: 14px;
-    margin-bottom: 18px;
+    gap: 16px;
+    margin-bottom: 22px;
   }
 
-  .last-updated {
+  .exec-toolbar .date-pill {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    padding: 10px 16px;
+    border-radius: 999px;
     color: #667085;
-    font-size: 13px;
+    box-shadow: 0 8px 20px rgba(16, 24, 40, 0.06);
   }
 
-  .exec-kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 14px;
-    margin-bottom: 20px;
+  .kpi-card {
+    border: 0;
+    border-radius: 22px;
+    color: #fff;
+    overflow: hidden;
+    position: relative;
+    min-height: 155px;
+    box-shadow: 0 12px 30px rgba(16, 24, 40, 0.16);
   }
 
-  .exec-kpi {
-    background: #fff;
-    border: 1px solid #e5e7f0;
-    border-radius: 18px;
-    padding: 16px;
-    box-shadow: 0 8px 24px rgba(20,20,60,.06);
-    min-height: 135px;
+  .kpi-card::after {
+    content: "";
+    position: absolute;
+    right: -30px;
+    top: -30px;
+    width: 120px;
+    height: 120px;
+    background: rgba(255,255,255,.16);
+    border-radius: 50%;
   }
 
-  .exec-kpi .icon {
-    width: 38px;
-    height: 38px;
-    border-radius: 12px;
+  .kpi-card .icon-box {
+    width: 46px;
+    height: 46px;
+    border-radius: 16px;
+    background: rgba(255,255,255,.22);
     display: grid;
     place-items: center;
-    font-size: 20px;
-    margin-bottom: 10px;
+    font-size: 22px;
+    margin-bottom: 14px;
   }
 
-  .exec-kpi span {
-    color: #667085;
+  .kpi-card span {
     font-size: 12px;
+    letter-spacing: .06em;
     text-transform: uppercase;
+    opacity: .9;
     font-weight: 700;
   }
 
-  .exec-kpi strong {
+  .kpi-card strong {
     display: block;
+    font-size: 28px;
     margin-top: 6px;
-    font-size: 24px;
-    color: #101828;
+    line-height: 1.1;
   }
 
-  .exec-kpi em {
-    display: block;
-    margin-top: 5px;
-    font-style: normal;
-    color: #16a34a;
-    font-size: 12px;
+  .kpi-card small {
+    opacity: .9;
   }
 
-  .bg-blue { background:#e8f0ff; color:#155eef; }
-  .bg-green { background:#e7f8ec; color:#16803c; }
-  .bg-purple { background:#efe6ff; color:#6d28d9; }
-  .bg-orange { background:#fff0dc; color:#e87800; }
-  .bg-red { background:#ffe4ea; color:#e63757; }
-  .bg-teal { background:#e2f7f5; color:#078b84; }
+  .grad-blue { background: linear-gradient(135deg, #155eef, #0b4fd8); }
+  .grad-green { background: linear-gradient(135deg, #16a34a, #078b38); }
+  .grad-purple { background: linear-gradient(135deg, #7c3aed, #5b21b6); }
+  .grad-orange { background: linear-gradient(135deg, #f97316, #ea580c); }
+  .grad-red { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+  .grad-teal { background: linear-gradient(135deg, #0d9488, #0f766e); }
 
-  .exec-three {
-    display: grid;
-    grid-template-columns: 1.4fr 1fr 1fr;
-    gap: 18px;
-    margin-bottom: 20px;
+  .exec-panel {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 22px;
+    padding: 22px;
+    box-shadow: 0 10px 28px rgba(16, 24, 40, 0.07);
+    height: 100%;
   }
 
-  .exec-two {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 18px;
-    margin-bottom: 20px;
+  .exec-panel h3 {
+    font-size: 18px;
+    margin-bottom: 4px;
   }
 
-  .chart-box {
-    height: 250px;
-    border-radius: 16px;
-    background: linear-gradient(135deg,#f8fafc,#ffffff);
-    border: 1px dashed #d0d5dd;
-    display: grid;
-    place-items: center;
+  .exec-panel p {
     color: #667085;
-    font-weight: 600;
+    margin-bottom: 18px;
   }
 
-  .alert-row {
+  .alert-item {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid #eef0f4;
-    padding: 12px 0;
+    gap: 12px;
+    padding: 13px 0;
+    border-bottom: 1px solid #eef2f7;
   }
 
-  .alert-left {
-    display: flex;
-    gap: 10px;
-    align-items: center;
+  .alert-item:last-child {
+    border-bottom: 0;
   }
 
-  .alert-dot {
-    width: 32px;
-    height: 32px;
+  .alert-icon {
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     display: grid;
     place-items: center;
     color: #fff;
-    font-weight: bold;
   }
 
-  .dot-good { background:#16a34a; }
-  .dot-watch { background:#f59e0b; }
-  .dot-danger { background:#dc2626; }
+  .bg-good { background: #16a34a; }
+  .bg-watch { background: #f59e0b; }
+  .bg-danger2 { background: #dc2626; }
 
-  .ratio-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+  .quick-action {
+    display: block;
+    text-decoration: none;
+    color: #101828;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    padding: 18px 12px;
+    text-align: center;
+    font-weight: 700;
+    transition: .2s;
+  }
+
+  .quick-action:hover {
+    transform: translateY(-3px);
+    background: #fff;
+    box-shadow: 0 10px 24px rgba(16, 24, 40, 0.1);
+  }
+
+  .quick-action i {
+    display: block;
+    font-size: 26px;
+    margin-bottom: 10px;
+    color: #155eef;
   }
 
   .ratio-card {
-    border: 1px solid #e5e7f0;
-    border-radius: 14px;
-    padding: 14px;
-    background: #fff;
+    border-radius: 18px;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    padding: 16px;
   }
 
   .ratio-card span {
-    display: block;
     color: #667085;
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .ratio-card strong {
     display: block;
-    font-size: 20px;
-    margin-top: 5px;
+    font-size: 22px;
+    margin-top: 4px;
   }
 
-  .quick-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
+  .counter {
+    font-variant-numeric: tabular-nums;
   }
 
-  .quick-action {
-    background:#fff;
-    border:1px solid #e5e7f0;
-    border-radius:16px;
-    padding:16px;
-    text-align:center;
-    text-decoration:none;
-    color:#101828;
-    font-weight:700;
+  .table-modern th {
+    color: #667085;
+    font-size: 12px;
+    text-transform: uppercase;
   }
 
-  .quick-action div {
-    font-size:26px;
-    margin-bottom:8px;
+  .table-modern td,
+  .table-modern th {
+    padding: 12px;
+    border-bottom: 1px solid #eef2f7;
   }
 
-  .text-end { text-align:right; }
-
-  @media (max-width:1100px) {
-    .exec-kpi-grid,
-    .exec-three,
-    .exec-two {
-      grid-template-columns:1fr;
+  @media (max-width: 768px) {
+    .exec-toolbar {
+      flex-direction: column;
+      align-items: flex-start;
     }
   }
 </style>
 
-<section class="exec-toolbar">
-  <span class="last-updated">Last updated: just now</span>
-  <a class="btn primary" href="{{ url_for('accounting') }}">📚 Open Accounting</a>
-</section>
+<div class="exec-page">
 
-<section class="exec-kpi-grid">
-
-  <div class="exec-kpi">
-    <div class="icon bg-blue">💰</div>
-    <span>Total Cash</span>
-    <strong>{{ total_cash|kwacha }}</strong>
-    <em>Cash + Bank + Mobile</em>
-  </div>
-
-  <div class="exec-kpi">
-    <div class="icon bg-green">🏦</div>
-    <span>Bank Account</span>
-    <strong>{{ bank_account|kwacha }}</strong>
-    <em>Ledger bank balance</em>
-  </div>
-
-  <div class="exec-kpi">
-    <div class="icon bg-purple">💼</div>
-    <span>Loan Portfolio</span>
-    <strong>{{ loans_receivable|kwacha }}</strong>
-    <em>Outstanding loans</em>
-  </div>
-
-  <div class="exec-kpi">
-    <div class="icon bg-orange">👥</div>
-    <span>Active Members</span>
-    <strong>{{ active_members }}</strong>
-    <em>Registered members</em>
-  </div>
-
-  <div class="exec-kpi">
-    <div class="icon bg-teal">📈</div>
-    <span>Total Income</span>
-    <strong>{{ total_income|kwacha }}</strong>
-    <em>Current year income</em>
-  </div>
-
-  <div class="exec-kpi">
-    <div class="icon bg-red">📉</div>
-    <span>Total Expenses</span>
-    <strong>{{ total_expenses|kwacha }}</strong>
-    <em>Current year expenses</em>
-  </div>
-
-  <div class="exec-kpi">
-    <div class="icon bg-green">📊</div>
-    <span>Current Surplus</span>
-    <strong>{{ current_surplus|kwacha }}</strong>
-    <em>Income less expenses</em>
-  </div>
-
-  <div class="exec-kpi">
-    <div class="icon bg-purple">🤝</div>
-    <span>Welfare Fund</span>
-    <strong>{{ welfare_fund|kwacha }}</strong>
-    <em>Available balance</em>
-  </div>
-
-</section>
-
-<section class="exec-three">
-
-  <div class="panel">
-    <div class="panel-head">
-      <div>
-        <h2>Financial Performance Trend</h2>
-        <p>Contributions, loan interest and expenses over time.</p>
-      </div>
-    </div>
-    <div class="chart-box">Chart.js financial trend will be connected next</div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-head">
-      <div>
-        <h2>Loan Portfolio Summary</h2>
-        <p>Loan portfolio and risk position.</p>
-      </div>
-    </div>
-    <div class="chart-box">Loan portfolio chart</div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-head">
-      <div>
-        <h2>Membership Growth</h2>
-        <p>Member registration trend.</p>
-      </div>
-    </div>
-    <div class="chart-box">Membership growth chart</div>
-  </div>
-
-</section>
-
-<section class="exec-three">
-
-  <div class="panel">
-    <div class="panel-head">
-      <div>
-        <h2>Management Alerts</h2>
-        <p>Items requiring committee attention.</p>
-      </div>
+  <div class="exec-toolbar">
+    <div class="date-pill">
+      <i class="fa-regular fa-clock"></i>
+      Last updated: just now
     </div>
 
-    <div class="alert-row">
-      <div class="alert-left">
-        <div class="alert-dot dot-good">✓</div>
-        <div><strong>Cash position available</strong><br><small>Total cash: {{ total_cash|kwacha }}</small></div>
-      </div>
-    </div>
-
-    <div class="alert-row">
-      <div class="alert-left">
-        <div class="alert-dot dot-watch">!</div>
-        <div><strong>Pending welfare claims</strong><br><small>{{ pending_welfare_claims }} claim(s) awaiting review</small></div>
-      </div>
-    </div>
-
-    <div class="alert-row">
-      <div class="alert-left">
-        <div class="alert-dot dot-good">✓</div>
-        <div><strong>Bank reconciliation module active</strong><br><small>Reconciliation workspace available</small></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-head">
-      <div>
-        <h2>Key Financial Ratios</h2>
-        <p>Executive financial health indicators.</p>
-      </div>
-    </div>
-
-    <div class="ratio-grid">
-      <div class="ratio-card"><span>Member Savings</span><strong>{{ member_savings|kwacha }}</strong></div>
-      <div class="ratio-card"><span>Active Loans</span><strong>{{ active_loans }}</strong></div>
-      <div class="ratio-card"><span>Cash Available</span><strong>{{ total_cash|kwacha }}</strong></div>
-      <div class="ratio-card"><span>Current Surplus</span><strong>{{ current_surplus|kwacha }}</strong></div>
-    </div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-head">
-      <div>
-        <h2>Quick Actions</h2>
-        <p>Common management tasks.</p>
-      </div>
-    </div>
-
-    <div class="quick-grid">
-      <a class="quick-action" href="{{ url_for('members') }}"><div>👥</div>Add Member</a>
-      <a class="quick-action" href="{{ url_for('contributions') }}"><div>💰</div>Contribution</a>
-      <a class="quick-action" href="{{ url_for('loans') }}"><div>🏦</div>New Loan</a>
-      <a class="quick-action" href="{{ url_for('bank_reconciliation') }}"><div>🏛️</div>Bank Recon</a>
-      <a class="quick-action" href="{{ url_for('reports') }}"><div>📄</div>Reports</a>
-      <a class="quick-action" href="{{ url_for('backups') }}"><div>💾</div>Backup</a>
-    </div>
-  </div>
-
-</section>
-
-<section class="panel">
-  <div class="panel-head">
     <div>
-      <h2>Recent Journal Entries</h2>
-      <p>Latest accounting postings affecting financial position.</p>
+      <a class="btn btn-primary" href="{{ url_for('accounting') }}">
+        <i class="fa-solid fa-book"></i> Open Accounting
+      </a>
+      <a class="btn btn-outline-primary" href="{{ url_for('bank_reconciliation') }}">
+        <i class="fa-solid fa-building-columns"></i> Bank Reconciliation
+      </a>
     </div>
-    <a class="btn" href="{{ url_for('accounting') }}">View Accounting</a>
   </div>
 
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Description</th>
-          <th>Source</th>
-          <th>Reference</th>
-        </tr>
-      </thead>
+  <div class="row g-4 mb-4">
 
-      <tbody>
-        {% for journal in recent_journals %}
-        <tr>
-          <td>{{ journal.entry_date }}</td>
-          <td>{{ journal.description }}</td>
-          <td>{{ journal.source_type or '-' }}</td>
-          <td>{{ journal.source_id or '-' }}</td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="4">No recent journal entries.</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <div class="col-xl-3 col-md-6">
+      <div class="card kpi-card grad-blue">
+        <div class="card-body">
+          <div class="icon-box"><i class="fa-solid fa-wallet"></i></div>
+          <span>Total Cash</span>
+          <strong class="counter">{{ total_cash|kwacha }}</strong>
+          <small>Cash + Bank + Mobile Money</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+      <div class="card kpi-card grad-green">
+        <div class="card-body">
+          <div class="icon-box"><i class="fa-solid fa-building-columns"></i></div>
+          <span>Bank Account</span>
+          <strong class="counter">{{ bank_account|kwacha }}</strong>
+          <small>Ledger bank balance</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+      <div class="card kpi-card grad-purple">
+        <div class="card-body">
+          <div class="icon-box"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+          <span>Loan Portfolio</span>
+          <strong class="counter">{{ loans_receivable|kwacha }}</strong>
+          <small>Outstanding loans</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+      <div class="card kpi-card grad-orange">
+        <div class="card-body">
+          <div class="icon-box"><i class="fa-solid fa-users"></i></div>
+          <span>Active Members</span>
+          <strong class="counter">{{ active_members }}</strong>
+          <small>Registered active members</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+      <div class="card kpi-card grad-teal">
+        <div class="card-body">
+          <div class="icon-box"><i class="fa-solid fa-chart-line"></i></div>
+          <span>Total Income</span>
+          <strong class="counter">{{ total_income|kwacha }}</strong>
+          <small>Current year income</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+      <div class="card kpi-card grad-red">
+        <div class="card-body">
+          <div class="icon-box"><i class="fa-solid fa-arrow-trend-down"></i></div>
+          <span>Total Expenses</span>
+          <strong class="counter">{{ total_expenses|kwacha }}</strong>
+          <small>Current year expenses</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+      <div class="card kpi-card grad-green">
+        <div class="card-body">
+          <div class="icon-box"><i class="fa-solid fa-scale-balanced"></i></div>
+          <span>Current Surplus</span>
+          <strong class="counter">{{ current_surplus|kwacha }}</strong>
+          <small>Income less expenses</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+      <div class="card kpi-card grad-purple">
+        <div class="card-body">
+          <div class="icon-box"><i class="fa-solid fa-handshake-angle"></i></div>
+          <span>Welfare Fund</span>
+          <strong class="counter">{{ welfare_fund|kwacha }}</strong>
+          <small>Available welfare balance</small>
+        </div>
+      </div>
+    </div>
+
   </div>
-</section>
+
+  <div class="row g-4 mb-4">
+
+    <div class="col-xl-6">
+      <div class="exec-panel">
+        <h3>Financial Performance Trend</h3>
+        <p>Monthly contributions trend from live contribution records.</p>
+        <canvas id="financialTrendChart" height="140"></canvas>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+      <div class="exec-panel">
+        <h3>Loan Portfolio</h3>
+        <p>Loan accounts by current status.</p>
+        <canvas id="loanPortfolioChart" height="220"></canvas>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+      <div class="exec-panel">
+        <h3>Membership Growth</h3>
+        <p>New members by month.</p>
+        <canvas id="membershipGrowthChart" height="220"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="row g-4 mb-4">
+
+    <div class="col-xl-4">
+      <div class="exec-panel">
+        <h3>Management Alerts</h3>
+        <p>Items requiring committee attention.</p>
+
+        <div class="alert-item">
+          <div class="alert-icon bg-good"><i class="fa-solid fa-check"></i></div>
+          <div>
+            <strong>Cash position available</strong><br>
+            <small>Total cash: {{ total_cash|kwacha }}</small>
+          </div>
+        </div>
+
+        <div class="alert-item">
+          <div class="alert-icon bg-watch"><i class="fa-solid fa-exclamation"></i></div>
+          <div>
+            <strong>Pending welfare claims</strong><br>
+            <small>{{ pending_welfare_claims }} claim(s) awaiting review</small>
+          </div>
+        </div>
+
+        <div class="alert-item">
+          <div class="alert-icon bg-good"><i class="fa-solid fa-building-columns"></i></div>
+          <div>
+            <strong>Bank reconciliation available</strong><br>
+            <small>Monthly reconciliation workflow active</small>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="col-xl-4">
+      <div class="exec-panel">
+        <h3>Financial Health Indicators</h3>
+        <p>Key balances and operational indicators.</p>
+
+        <div class="row g-3">
+          <div class="col-6">
+            <div class="ratio-card">
+              <span>Member Savings</span>
+              <strong>{{ member_savings|kwacha }}</strong>
+            </div>
+          </div>
+
+          <div class="col-6">
+            <div class="ratio-card">
+              <span>Active Loans</span>
+              <strong>{{ active_loans }}</strong>
+            </div>
+          </div>
+
+          <div class="col-6">
+            <div class="ratio-card">
+              <span>Cash Available</span>
+              <strong>{{ total_cash|kwacha }}</strong>
+            </div>
+          </div>
+
+          <div class="col-6">
+            <div class="ratio-card">
+              <span>Surplus</span>
+              <strong>{{ current_surplus|kwacha }}</strong>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="col-xl-4">
+      <div class="exec-panel">
+        <h3>Quick Actions</h3>
+        <p>Common management tasks.</p>
+
+        <div class="row g-3">
+          <div class="col-6">
+            <a class="quick-action" href="{{ url_for('members') }}">
+              <i class="fa-solid fa-user-plus"></i>
+              Add Member
+            </a>
+          </div>
+
+          <div class="col-6">
+            <a class="quick-action" href="{{ url_for('contributions') }}">
+              <i class="fa-solid fa-coins"></i>
+              Contribution
+            </a>
+          </div>
+
+          <div class="col-6">
+            <a class="quick-action" href="{{ url_for('loans') }}">
+              <i class="fa-solid fa-hand-holding-dollar"></i>
+              New Loan
+            </a>
+          </div>
+
+          <div class="col-6">
+            <a class="quick-action" href="{{ url_for('bank_reconciliation') }}">
+              <i class="fa-solid fa-building-columns"></i>
+              Bank Recon
+            </a>
+          </div>
+
+          <div class="col-6">
+            <a class="quick-action" href="{{ url_for('reports') }}">
+              <i class="fa-solid fa-file-lines"></i>
+              Reports
+            </a>
+          </div>
+
+          <div class="col-6">
+            <a class="quick-action" href="{{ url_for('backups') }}">
+              <i class="fa-solid fa-database"></i>
+              Backup
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <div class="exec-panel">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h3>Recent Journal Entries</h3>
+        <p class="mb-0">Latest accounting postings affecting the financial position.</p>
+      </div>
+
+      <a class="btn btn-outline-primary" href="{{ url_for('accounting') }}">
+        View Accounting
+      </a>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-modern align-middle">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Source</th>
+            <th>Reference</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for journal in recent_journals %}
+          <tr>
+            <td>{{ journal.entry_date }}</td>
+            <td>{{ journal.description }}</td>
+            <td>{{ journal.source_type or '-' }}</td>
+            <td>{{ journal.source_id or '-' }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4">No recent journal entries.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const contributionLabels = {{ contribution_labels|default([])|tojson }};
+  const contributionValues = {{ contribution_values|default([])|tojson }};
+
+  const memberLabels = {{ member_labels|default([])|tojson }};
+  const memberValues = {{ member_values|default([])|tojson }};
+
+  const currentLoans = {{ current_loans|default(0) }};
+  const paidLoans = {{ paid_loans|default(0) }};
+  const overdueLoans = {{ overdue_loans|default(0) }};
+  const activeLoans = {{ active_loans|default(0) }};
+
+  function buildLineChart() {
+    const ctx = document.getElementById('financialTrendChart');
+
+    if (!ctx) return;
+
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: contributionLabels,
+        datasets: [{
+          label: 'Contributions',
+          data: contributionValues,
+          tension: 0.35,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: true }
+        },
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  function buildLoanChart() {
+    const ctx = document.getElementById('loanPortfolioChart');
+
+    if (!ctx) return;
+
+    new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Active Loans', 'Paid Loans', 'Overdue Loans'],
+        datasets: [{
+          data: [activeLoans, paidLoans, overdueLoans]
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: 'bottom' }
+        }
+      }
+    });
+  }
+
+  function buildMemberChart() {
+    const ctx = document.getElementById('membershipGrowthChart');
+
+    if (!ctx) return;
+
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: memberLabels,
+        datasets: [{
+          label: 'New Members',
+          data: memberValues,
+          borderRadius: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  function animateCounters() {
+    document.querySelectorAll('.counter').forEach(function(el) {
+      el.style.transition = 'opacity .4s ease';
+      el.style.opacity = 0;
+      setTimeout(function() {
+        el.style.opacity = 1;
+      }, 120);
+    });
+  }
+
+  buildLineChart();
+  buildLoanChart();
+  buildMemberChart();
+  animateCounters();
+</script>
 
 {% endblock %}
