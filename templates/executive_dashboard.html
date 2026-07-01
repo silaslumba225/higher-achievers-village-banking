@@ -1,196 +1,264 @@
 {% extends 'base.html' %}
 
 {% block page_title %}Executive Dashboard{% endblock %}
-{% block subtitle %}Financial overview for the Chairperson, Treasurer and Management Committee{% endblock %}
+{% block subtitle %}Management command centre for Higher Achievers Village Banking{% endblock %}
 
 {% block content %}
 
 <style>
-  .exec-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 16px;
-    margin-bottom: 20px;
+  .exec-top {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:16px;
+    margin-bottom:20px;
   }
 
-  .exec-card {
-    background: #fff;
-    border: 1px solid #e5e7f0;
-    border-radius: 18px;
-    padding: 20px;
-    box-shadow: 0 8px 24px rgba(20, 20, 60, 0.06);
+  .exec-title h2 {
+    margin:0;
+    font-size:28px;
   }
 
-  .exec-card span {
-    display: block;
-    color: #667085;
-    font-size: 14px;
+  .exec-title p {
+    color:#667085;
+    margin:6px 0 0;
   }
 
-  .exec-card strong {
-    display: block;
-    margin-top: 8px;
-    font-size: 24px;
-    color: #101828;
+  .exec-kpi-grid {
+    display:grid;
+    grid-template-columns:repeat(4, minmax(0, 1fr));
+    gap:16px;
+    margin-bottom:22px;
   }
 
-  .exec-card em {
-    display: block;
-    margin-top: 6px;
-    font-style: normal;
-    color: #667085;
-    font-size: 13px;
+  .exec-kpi {
+    background:#fff;
+    border:1px solid #e5e7f0;
+    border-radius:20px;
+    padding:20px;
+    box-shadow:0 8px 24px rgba(20,20,60,.06);
   }
 
-  .exec-section {
-    margin-bottom: 24px;
+  .exec-kpi .icon {
+    width:46px;
+    height:46px;
+    border-radius:14px;
+    display:grid;
+    place-items:center;
+    font-size:24px;
+    margin-bottom:12px;
+  }
+
+  .exec-kpi span {
+    color:#667085;
+    font-size:13px;
+    text-transform:uppercase;
+    font-weight:700;
+  }
+
+  .exec-kpi strong {
+    display:block;
+    margin-top:8px;
+    font-size:26px;
+    color:#101828;
+  }
+
+  .exec-kpi em {
+    display:block;
+    margin-top:6px;
+    font-style:normal;
+    color:#16a34a;
+    font-size:13px;
+  }
+
+  .bg-blue { background:#e8f0ff; color:#155eef; }
+  .bg-green { background:#e7f8ec; color:#16803c; }
+  .bg-purple { background:#efe6ff; color:#6d28d9; }
+  .bg-orange { background:#fff0dc; color:#e87800; }
+  .bg-red { background:#ffe4ea; color:#e63757; }
+  .bg-teal { background:#e2f7f5; color:#078b84; }
+
+  .exec-layout {
+    display:grid;
+    grid-template-columns:2fr 1fr;
+    gap:18px;
+    margin-bottom:22px;
+  }
+
+  .exec-three {
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0, 1fr));
+    gap:18px;
+    margin-bottom:22px;
   }
 
   .exec-two {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 18px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:18px;
+    margin-bottom:22px;
   }
 
-  .chart-placeholder {
-    min-height: 220px;
-    border: 2px dashed #d0d5dd;
-    border-radius: 16px;
-    display: grid;
-    place-items: center;
-    color: #667085;
-    background: #f9fafb;
+  .chart-box {
+    height:260px;
+    border-radius:16px;
+    background:linear-gradient(135deg,#f8fafc,#ffffff);
+    border:1px dashed #d0d5dd;
+    display:grid;
+    place-items:center;
+    color:#667085;
+    font-weight:600;
   }
 
-  .text-end {
-    text-align: right;
+  .alert-row {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    border-bottom:1px solid #eef0f4;
+    padding:12px 0;
   }
 
-  @media (max-width: 1100px) {
-    .exec-grid,
+  .alert-left {
+    display:flex;
+    gap:10px;
+    align-items:center;
+  }
+
+  .alert-dot {
+    width:34px;
+    height:34px;
+    border-radius:50%;
+    display:grid;
+    place-items:center;
+    color:#fff;
+    font-weight:bold;
+  }
+
+  .dot-good { background:#16a34a; }
+  .dot-watch { background:#f59e0b; }
+  .dot-danger { background:#dc2626; }
+
+  .quick-grid {
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0, 1fr));
+    gap:12px;
+  }
+
+  .quick-action {
+    background:#fff;
+    border:1px solid #e5e7f0;
+    border-radius:16px;
+    padding:16px;
+    text-align:center;
+    text-decoration:none;
+    color:#101828;
+    font-weight:700;
+  }
+
+  .quick-action div {
+    font-size:26px;
+    margin-bottom:8px;
+  }
+
+  .text-end { text-align:right; }
+
+  @media (max-width:1100px) {
+    .exec-kpi-grid,
+    .exec-layout,
+    .exec-three,
     .exec-two {
-      grid-template-columns: 1fr;
+      grid-template-columns:1fr;
     }
   }
 </style>
 
-<section class="panel exec-section">
-  <div class="panel-head">
-    <div>
-      <h2>Executive Financial Dashboard</h2>
-      <p>Live summary of cash position, loan portfolio, member funds and financial performance.</p>
-    </div>
+<section class="exec-top">
+  <div class="exec-title">
+    <h2>Executive Dashboard</h2>
+    <p>Live financial and operational overview for the Management Committee.</p>
+  </div>
 
-    <a class="btn" href="{{ url_for('dashboard') }}">← Back to Main Dashboard</a>
+  <div>
+    <a class="btn" href="{{ url_for('accounting') }}">Open Accounting</a>
   </div>
 </section>
 
-<section class="exec-section">
-  <h2>Cash Position</h2>
+<section class="exec-kpi-grid">
 
-  <div class="exec-grid">
-    <div class="exec-card">
-      <span>Cash on Hand</span>
-      <strong>{{ cash_on_hand|kwacha }}</strong>
-      <em>Physical cash balance</em>
-    </div>
-
-    <div class="exec-card">
-      <span>Bank Account</span>
-      <strong>{{ bank_account|kwacha }}</strong>
-      <em>Ledger bank balance</em>
-    </div>
-
-    <div class="exec-card">
-      <span>Mobile Money</span>
-      <strong>{{ mobile_money|kwacha }}</strong>
-      <em>Mobile wallet balance</em>
-    </div>
-
-    <div class="exec-card">
-      <span>Total Available Cash</span>
-      <strong>{{ total_cash|kwacha }}</strong>
-      <em>Cash + Bank + Mobile Money</em>
-    </div>
+  <div class="exec-kpi">
+    <div class="icon bg-blue">💰</div>
+    <span>Total Available Cash</span>
+    <strong>{{ total_cash|kwacha }}</strong>
+    <em>Cash + Bank + Mobile Money</em>
   </div>
+
+  <div class="exec-kpi">
+    <div class="icon bg-green">🏦</div>
+    <span>Bank Account</span>
+    <strong>{{ bank_account|kwacha }}</strong>
+    <em>Ledger bank balance</em>
+  </div>
+
+  <div class="exec-kpi">
+    <div class="icon bg-purple">💼</div>
+    <span>Loan Portfolio</span>
+    <strong>{{ loans_receivable|kwacha }}</strong>
+    <em>Outstanding loans</em>
+  </div>
+
+  <div class="exec-kpi">
+    <div class="icon bg-orange">👥</div>
+    <span>Active Members</span>
+    <strong>{{ active_members }}</strong>
+    <em>Registered members</em>
+  </div>
+
+  <div class="exec-kpi">
+    <div class="icon bg-teal">📈</div>
+    <span>Total Income</span>
+    <strong>{{ total_income|kwacha }}</strong>
+    <em>Current year income</em>
+  </div>
+
+  <div class="exec-kpi">
+    <div class="icon bg-red">📉</div>
+    <span>Total Expenses</span>
+    <strong>{{ total_expenses|kwacha }}</strong>
+    <em>Current year expenses</em>
+  </div>
+
+  <div class="exec-kpi">
+    <div class="icon bg-green">📊</div>
+    <span>Current Surplus</span>
+    <strong>{{ current_surplus|kwacha }}</strong>
+    <em>Income less expenses</em>
+  </div>
+
+  <div class="exec-kpi">
+    <div class="icon bg-purple">🤝</div>
+    <span>Welfare Fund</span>
+    <strong>{{ welfare_fund|kwacha }}</strong>
+    <em>Available welfare balance</em>
+  </div>
+
 </section>
 
-<section class="exec-section">
-  <h2>Portfolio & Member Funds</h2>
+<section class="exec-layout">
 
-  <div class="exec-grid">
-    <div class="exec-card">
-      <span>Loans Receivable</span>
-      <strong>{{ loans_receivable|kwacha }}</strong>
-      <em>Outstanding loan portfolio</em>
-    </div>
-
-    <div class="exec-card">
-      <span>Member Savings</span>
-      <strong>{{ member_savings|kwacha }}</strong>
-      <em>Member contributions liability</em>
-    </div>
-
-    <div class="exec-card">
-      <span>Welfare Fund</span>
-      <strong>{{ welfare_fund|kwacha }}</strong>
-      <em>Available welfare fund balance</em>
-    </div>
-
-    <div class="exec-card">
-      <span>Active Loans</span>
-      <strong>{{ active_loans }}</strong>
-      <em>Currently disbursed or partially paid</em>
-    </div>
-  </div>
-</section>
-
-<section class="exec-section">
-  <h2>Performance & Operations</h2>
-
-  <div class="exec-grid">
-    <div class="exec-card">
-      <span>Total Income</span>
-      <strong>{{ total_income|kwacha }}</strong>
-      <em>Current year income</em>
-    </div>
-
-    <div class="exec-card">
-      <span>Total Expenses</span>
-      <strong>{{ total_expenses|kwacha }}</strong>
-      <em>Current year expenses</em>
-    </div>
-
-    <div class="exec-card">
-      <span>Current Surplus</span>
-      <strong>{{ current_surplus|kwacha }}</strong>
-      <em>Income less expenses</em>
-    </div>
-
-    <div class="exec-card">
-      <span>Active Members</span>
-      <strong>{{ active_members }}</strong>
-      <em>Registered members</em>
-    </div>
-  </div>
-</section>
-
-<div class="exec-two">
-
-  <section class="panel">
+  <div class="panel">
     <div class="panel-head">
       <div>
-        <h2>Financial Trends</h2>
-        <p>Charts will be added in the next step.</p>
+        <h2>Financial Performance Trend</h2>
+        <p>Contributions, loan interest and expenses trend.</p>
       </div>
     </div>
 
-    <div class="chart-placeholder">
-      Contributions, loan portfolio and cash trend charts
+    <div class="chart-box">
+      Chart will be connected in the next step
     </div>
-  </section>
+  </div>
 
-  <section class="panel">
+  <div class="panel">
     <div class="panel-head">
       <div>
         <h2>Management Alerts</h2>
@@ -198,54 +266,146 @@
       </div>
     </div>
 
-    <div class="exec-grid" style="grid-template-columns: 1fr;">
-      <div class="exec-card">
-        <span>Pending Welfare Claims</span>
-        <strong>{{ pending_welfare_claims }}</strong>
-        <em>Claims awaiting review or approval</em>
+    <div class="alert-row">
+      <div class="alert-left">
+        <div class="alert-dot dot-good">✓</div>
+        <div>
+          <strong>Cash position available</strong><br>
+          <small>Total cash: {{ total_cash|kwacha }}</small>
+        </div>
       </div>
     </div>
-  </section>
 
-</div>
-
-<section class="panel" style="margin-top: 20px;">
-  <div class="panel-head">
-    <div>
-      <h2>Recent Journal Entries</h2>
-      <p>Latest accounting postings affecting the financial position.</p>
+    <div class="alert-row">
+      <div class="alert-left">
+        <div class="alert-dot dot-watch">!</div>
+        <div>
+          <strong>Pending welfare claims</strong><br>
+          <small>{{ pending_welfare_claims }} claim(s) awaiting attention</small>
+        </div>
+      </div>
     </div>
 
-    <a class="btn" href="{{ url_for('accounting') }}">Open Accounting</a>
+    <div class="alert-row">
+      <div class="alert-left">
+        <div class="alert-dot dot-good">✓</div>
+        <div>
+          <strong>Accounting ledger active</strong><br>
+          <small>Recent journals available</small>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Description</th>
-          <th>Source</th>
-          <th>Reference</th>
-        </tr>
-      </thead>
+</section>
 
-      <tbody>
-        {% for journal in recent_journals %}
-        <tr>
-          <td>{{ journal.entry_date }}</td>
-          <td>{{ journal.description }}</td>
-          <td>{{ journal.source_type or '-' }}</td>
-          <td>{{ journal.source_id or '-' }}</td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="4">No recent journal entries.</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+<section class="exec-three">
+
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Loan Portfolio</h2>
+        <p>Current loan exposure.</p>
+      </div>
+    </div>
+
+    <div class="chart-box">
+      Loan Portfolio Chart
+    </div>
   </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Membership Growth</h2>
+        <p>Member movement over time.</p>
+      </div>
+    </div>
+
+    <div class="chart-box">
+      Membership Growth Chart
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Key Financial Ratios</h2>
+        <p>Executive financial health indicators.</p>
+      </div>
+    </div>
+
+    <div class="exec-kpi">
+      <span>Member Savings</span>
+      <strong>{{ member_savings|kwacha }}</strong>
+      <em>Member funds liability</em>
+    </div>
+
+    <br>
+
+    <div class="exec-kpi">
+      <span>Active Loans</span>
+      <strong>{{ active_loans }}</strong>
+      <em>Open loan accounts</em>
+    </div>
+  </div>
+
+</section>
+
+<section class="exec-two">
+
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Quick Actions</h2>
+        <p>Common management tasks.</p>
+      </div>
+    </div>
+
+    <div class="quick-grid">
+      <a class="quick-action" href="{{ url_for('members') }}"><div>👥</div>Add Member</a>
+      <a class="quick-action" href="{{ url_for('contributions') }}"><div>💰</div>Contribution</a>
+      <a class="quick-action" href="{{ url_for('loans') }}"><div>🏦</div>New Loan</a>
+      <a class="quick-action" href="{{ url_for('bank_reconciliation') }}"><div>🏛️</div>Bank Recon</a>
+      <a class="quick-action" href="{{ url_for('reports') }}"><div>📄</div>Reports</a>
+      <a class="quick-action" href="{{ url_for('backups') }}"><div>💾</div>Backup</a>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Recent Journal Entries</h2>
+        <p>Latest accounting postings.</p>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Source</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for journal in recent_journals %}
+          <tr>
+            <td>{{ journal.entry_date }}</td>
+            <td>{{ journal.description }}</td>
+            <td>{{ journal.source_type or '-' }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="3">No recent journal entries.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
 </section>
 
 {% endblock %}
