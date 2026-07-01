@@ -1349,7 +1349,7 @@ def executive_dashboard():
     contribution_values = [float(v) for _, v in monthly_contributions]
 
 
-    member_month = func.to_char(Member.created_on, 'YYYY-MM')
+    member_month = func.to_char(Member.created_at, 'YYYY-MM')
 
     member_growth = (
         db.session.query(
