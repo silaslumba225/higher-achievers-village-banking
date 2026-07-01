@@ -1375,7 +1375,7 @@ def executive_dashboard():
     overdue_loans = 0
 
     for loan in Loan.query.filter_by(status='Disbursed').all():
-        if loan.balance > 0 and loan.next_due_date and loan.next_due_date < date.today():
+        if loan.balance > 0 and loan.due_on and loan.due_on < date.today():
             overdue_loans += 1
 
     return render_template(
