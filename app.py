@@ -1228,6 +1228,48 @@ def executive_dashboard():
         group_health_colour = "danger"
         group_health_message = "The group has no available cash."
 
+    action_items = []
+
+    if overdue_loans > 0:
+        action_items.append({
+            "level": "danger",
+            "icon": "fa-clock",
+            "title": f"{overdue_loans} loan(s) need follow-up",
+            "message": "Some loan repayments may be overdue.",
+            "link": url_for("loans"),
+            "button": "Review Loans"
+        })
+
+    if pending_welfare_claims > 0:
+        action_items.append({
+            "level": "watch",
+            "icon": "fa-heart",
+            "title": f"{pending_welfare_claims} welfare claim(s) waiting",
+            "message": "Review pending emergency fund requests.",
+            "link": url_for("welfare"),
+            "button": "Review Claims"
+        })
+
+    if total_cash <= 0:
+        action_items.append({
+            "level": "danger",
+            "icon": "fa-wallet",
+            "title": "No money available",
+            "message": "The group currently has no available cash.",
+            "link": url_for("contributions"),
+            "button": "Record Savings"
+        })
+
+    if not action_items:
+        action_items.append({
+            "level": "good",
+            "icon": "fa-circle-check",
+            "title": "Nothing urgent today",
+            "message": "Your group has no urgent items requiring attention.",
+            "link": url_for("executive_dashboard"),
+            "button": "View Overview"
+        })
+
     return render_template(
         'executive_dashboard.html',
         cash_on_hand=cash_on_hand,
@@ -1254,7 +1296,8 @@ def executive_dashboard():
         today=date.today(),
         group_health=group_health,
         group_health_colour=group_health_colour,
-        group_health_message=group_health_message
+        group_health_message=group_health_message,
+        action_items=action_items
     )
 
 @app.route('/members')

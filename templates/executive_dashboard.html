@@ -289,35 +289,25 @@
   <div class="row g-4 mb-4">
 
     <div class="col-xl-6">
-      <div class="go-panel">
-        <h3><i class="fa-solid fa-triangle-exclamation text-warning"></i> Needs Attention</h3>
-        <p>Things the committee may need to follow up.</p>
+      <h3><i class="fa-solid fa-triangle-exclamation text-warning"></i> Action Centre</h3>
+      <p>Important things your committee should look at today.</p>
 
-        <div class="attention-item">
-          <div class="round-icon watch"><i class="fa-solid fa-heart"></i></div>
-          <div>
-            <strong>Welfare claims waiting</strong><br>
-            <span class="text-muted-small">{{ pending_welfare_claims }} claim(s) need review.</span>
-          </div>
+      {% for item in action_items %}
+      <div class="attention-item">
+        <div class="round-icon {{ item.level }}">
+          <i class="fa-solid {{ item.icon }}"></i>
         </div>
 
-        <div class="attention-item">
-          <div class="round-icon danger"><i class="fa-solid fa-clock"></i></div>
-          <div>
-            <strong>Loans needing follow-up</strong><br>
-            <span class="text-muted-small">{{ overdue_loans|default(0) }} loan(s) may need attention.</span>
-          </div>
+        <div style="flex:1;">
+          <strong>{{ item.title }}</strong><br>
+          <span class="text-muted-small">{{ item.message }}</span>
         </div>
 
-        <div class="attention-item">
-          <div class="round-icon good"><i class="fa-solid fa-building-columns"></i></div>
-          <div>
-            <strong>Bank checking is available</strong><br>
-            <span class="text-muted-small">You can review bank reconciliation from the Bank workspace.</span>
-          </div>
-        </div>
-
+        <a class="btn btn-sm btn-outline-primary" href="{{ item.link }}">
+          {{ item.button }}
+        </a>
       </div>
+      {% endfor %}
     </div>
 
     <div class="col-xl-6">
