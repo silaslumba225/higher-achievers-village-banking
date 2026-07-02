@@ -310,6 +310,35 @@
       {% endfor %}
     </div>
 
+    <div class="go-panel">
+  <h3>
+    <i class="fa-solid fa-list-check text-primary"></i>
+    Today's Checklist
+  </h3>
+
+  <p>Simple tasks to help you run the group today.</p>
+
+  {% for task in today_checklist %}
+  <div class="attention-item">
+    <div class="round-icon {{ 'good' if task.done else 'watch' }}">
+      <i class="fa-solid {{ task.icon }}"></i>
+    </div>
+
+    <div style="flex:1;">
+      <strong>
+        {% if task.done %}✓ {% else %}☐ {% endif %}
+        {{ task.title }}
+      </strong><br>
+      <span class="text-muted-small">{{ task.message }}</span>
+    </div>
+
+    <a class="btn btn-sm btn-outline-primary" href="{{ task.link }}">
+      Open
+    </a>
+  </div>
+  {% endfor %}
+</div>
+
     <div class="col-xl-6">
       <div class="go-panel">
         <h3><i class="fa-solid fa-bell text-primary"></i> Today's Group Activity</h3>

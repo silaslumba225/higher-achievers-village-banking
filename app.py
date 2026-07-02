@@ -1270,6 +1270,58 @@ def executive_dashboard():
             "button": "View Overview"
         })
 
+    today_checklist = []
+
+    today_checklist.append({
+        "done": False,
+        "icon": "fa-coins",
+        "title": "Record today's savings",
+        "message": "Enter member savings received today.",
+        "link": url_for("contributions")
+    })
+
+    if overdue_loans > 0:
+        today_checklist.append({
+            "done": False,
+            "icon": "fa-hand-holding-dollar",
+            "title": "Follow up overdue loans",
+            "message": f"{overdue_loans} loan(s) need attention.",
+            "link": url_for("loans")
+        })
+    else:
+        today_checklist.append({
+            "done": True,
+            "icon": "fa-circle-check",
+            "title": "Loan follow-up checked",
+            "message": "No overdue loan follow-up required.",
+            "link": url_for("loans")
+        })
+
+    if pending_welfare_claims > 0:
+        today_checklist.append({
+            "done": False,
+            "icon": "fa-heart",
+            "title": "Review welfare claims",
+            "message": f"{pending_welfare_claims} claim(s) waiting.",
+            "link": url_for("welfare")
+        })
+    else:
+        today_checklist.append({
+            "done": True,
+            "icon": "fa-heart-circle-check",
+            "title": "Emergency fund checked",
+            "message": "No pending welfare claims.",
+            "link": url_for("welfare")
+        })
+
+    today_checklist.append({
+        "done": False,
+        "icon": "fa-building-columns",
+        "title": "Check bank position",
+        "message": "Review bank reconciliation when needed.",
+        "link": url_for("bank_reconciliation")
+    })
+
     return render_template(
         'executive_dashboard.html',
         cash_on_hand=cash_on_hand,
@@ -1297,7 +1349,8 @@ def executive_dashboard():
         group_health=group_health,
         group_health_colour=group_health_colour,
         group_health_message=group_health_message,
-        action_items=action_items
+        action_items=action_items,
+        today_checklist=today_checklist
     )
 
 @app.route('/members')
