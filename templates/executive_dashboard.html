@@ -206,10 +206,13 @@
       </div>
 
       <div class="text-end">
-        <div class="health-pill">
-          <i class="fa-solid fa-circle-check"></i>
-          Group is Healthy
-        </div>
+        <div class="health-pill {{ group_health_colour }}">
+            <i class="fa-solid fa-circle-check"></i>
+            {{ group_health }}
+          </div>
+          <div class="text-muted-small mt-2">
+            {{ group_health_message }}
+          </div>
         <div class="text-muted-small mt-2" id="liveClock">Loading time...</div>
       </div>
     </div>

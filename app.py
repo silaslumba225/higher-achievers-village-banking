@@ -1209,6 +1209,25 @@ def executive_dashboard():
         if loan.balance > 0 and loan.due_on and loan.due_on < date.today():
             overdue_loans += 1
 
+    group_health = "Healthy"
+    group_health_colour = "good"
+    group_health_message = "Your group is doing well today."
+
+    if overdue_loans > 0:
+        group_health = "Needs Attention"
+        group_health_colour = "watch"
+        group_health_message = f"{overdue_loans} loan(s) need follow-up."
+
+    if pending_welfare_claims > 0:
+        group_health = "Needs Attention"
+        group_health_colour = "watch"
+        group_health_message = f"{pending_welfare_claims} welfare claim(s) need review."
+
+    if total_cash <= 0:
+        group_health = "Action Needed"
+        group_health_colour = "danger"
+        group_health_message = "The group has no available cash."
+
     return render_template(
         'executive_dashboard.html',
         cash_on_hand=cash_on_hand,
@@ -1232,7 +1251,10 @@ def executive_dashboard():
         current_loans=current_loans,
         paid_loans=paid_loans,
         overdue_loans=overdue_loans,
-        today=date.today()
+        today=date.today(),
+        group_health=group_health,
+        group_health_colour=group_health_colour,
+        group_health_message=group_health_message
     )
 
 @app.route('/members')
