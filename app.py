@@ -1271,6 +1271,9 @@ def executive_dashboard():
         pending_welfare_claims=pending_welfare_claims,
         next_meeting=next_meeting,
         today_activity=today_activity,
+        active_loans=active_loans,
+        active_members=active_members,
+        welfare_fund=welfare_fund
     )
 
     dashboard_data = dashboard_service.build()

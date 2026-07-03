@@ -408,6 +408,28 @@
 
       {% endif %}
 
+   <div class="go-panel mb-4">
+  <h3>
+    <i class="fa-solid fa-brain text-primary"></i>
+    Smart Recommendations
+  </h3>
+
+  <p>Helpful suggestions based on how your group is doing today.</p>
+
+  {% for item in smart_recommendations %}
+  <div class="attention-item">
+    <div class="round-icon {{ item.level }}">
+      <i class="fa-solid {{ item.icon }}"></i>
+    </div>
+
+    <div>
+      <strong>{{ item.title }}</strong><br>
+      <span class="text-muted-small">{{ item.message }}</span>
+    </div>
+  </div>
+  {% endfor %}
+</div>   
+
   <div class="row g-4 mb-4">
 
     <div class="col-xl-3 col-md-6">

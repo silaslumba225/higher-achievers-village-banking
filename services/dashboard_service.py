@@ -9,12 +9,25 @@ class DashboardService:
     It receives values from app.py and returns plain dictionaries for rendering.
     """
 
-    def __init__(self, total_cash, overdue_loans, pending_welfare_claims, next_meeting=None, today_activity=None):
+    def __init__(
+    self,
+        total_cash,
+        overdue_loans,
+        pending_welfare_claims,
+        next_meeting=None,
+        today_activity=None,
+        active_loans=0,
+        active_members=0,
+        welfare_fund=0
+    ):
         self.total_cash = total_cash
         self.overdue_loans = overdue_loans
         self.pending_welfare_claims = pending_welfare_claims
         self.next_meeting = next_meeting
         self.today_activity = today_activity or []
+        self.active_loans = active_loans
+        self.active_members = active_members
+        self.welfare_fund = welfare_fund
 
     def build_daily_briefing(self):
         hour = datetime.now().hour
@@ -334,7 +347,60 @@ class DashboardService:
                 "agenda": self.next_meeting.agenda
                 }
             }
-        
+    def build_smart_recommendations(self):
+        recommendations = []
+
+        if self.total_cash <= 0:
+            recommendations.append({
+                "level": "danger",
+                "icon": "fa-wallet",
+                "title": "Record savings before lending",
+                "message": "The group has no available cash. Record savings or deposits before approving new loans."
+            })
+
+        elif self.total_cash > 0 and self.overdue_loans == 0:
+            recommendations.append({
+                "level": "good",
+                "icon": "fa-hand-holding-dollar",
+                "title": "The group may consider lending",
+                "message": "Cash is available and there are no overdue loans. Review loan applications carefully before approving."
+            })
+
+        if self.overdue_loans > 0:
+            recommendations.append({
+                "level": "watch",
+                "icon": "fa-phone",
+                "title": "Follow up loan repayments",
+                "message": f"{self.overdue_loans} loan(s) need follow-up. Contact members before approving more lending."
+            })
+
+        if self.pending_welfare_claims > 0:
+            recommendations.append({
+                "level": "watch",
+                "icon": "fa-heart",
+                "title": "Review emergency fund requests",
+                "message": f"{self.pending_welfare_claims} request(s) are waiting. The committee should review them soon."
+            })
+
+        if self.active_members == 0:
+            recommendations.append({
+                "level": "watch",
+                "icon": "fa-users",
+                "title": "Add members",
+                "message": "No active members are recorded yet. Start by registering members of the group."
+            })
+
+        if not recommendations:
+            recommendations.append({
+                "level": "good",
+                "icon": "fa-circle-check",
+                "title": "Keep going",
+                "message": "Your group looks stable. Continue recording savings, repayments and meeting decisions."
+            })
+
+        return {
+            "smart_recommendations": recommendations
+        }    
 
     def build(self):
         dashboard_data = {}
@@ -348,5 +414,6 @@ class DashboardService:
         dashboard_data.update(self.build_success_celebrations())
         dashboard_data.update(self.build_meeting_countdown())
         dashboard_data.update(self.build_today_activity())
+        dashboard_data.update(self.build_smart_recommendations())
         
         return dashboard_data
