@@ -248,6 +248,46 @@
     <i class="fa-solid fa-lightbulb text-warning"></i>
     Today’s Assistant
   </h3>
+  <div class="go-panel mb-4">
+  <h3>
+    <i class="fa-solid fa-calendar-days text-primary"></i>
+    Meeting Countdown
+  </h3>
+
+  {% if meeting_countdown.has_meeting %}
+    <p>{{ meeting_countdown.message }}</p>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+      <div>
+        <strong>{{ meeting_countdown.meeting_type }}</strong><br>
+        <span class="text-muted-small">
+          {{ meeting_countdown.meeting_date.strftime('%A, %d %B %Y') }}
+        </span>
+
+        {% if meeting_countdown.agenda %}
+        <div class="text-muted-small mt-2">
+          Agenda: {{ meeting_countdown.agenda }}
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="text-end">
+        <div style="font-size:38px;font-weight:800;color:#155eef;">
+          {{ meeting_countdown.days_remaining }}
+        </div>
+        <span class="text-muted-small">
+          day(s) remaining
+        </span>
+      </div>
+    </div>
+  {% else %}
+    <p>{{ meeting_countdown.message }}</p>
+
+    <a href="{{ url_for('meetings') }}" class="btn btn-sm btn-outline-primary">
+      Schedule Meeting
+    </a>
+  {% endif %}
+</div>
 
   <p>Helpful guidance for running your group today.</p>
 
@@ -284,6 +324,7 @@
       </span>
     </div>
   </div>
+  
 
   <div class="progress mt-3" style="height:16px;border-radius:999px;">
     <div class="progress-bar bg-{{ group_pulse_colour }}"
@@ -300,7 +341,7 @@
     <i class="fa-solid fa-clipboard-check text-primary"></i>
     How Your Group Is Doing
   </h3>
-
+  
   <p>A simple health check of the main parts of your village banking group.</p>
 
   <div class="row g-3">
@@ -321,6 +362,51 @@
     {% endfor %}
   </div>
 </div>
+      {% if celebrations %}
+
+      <div class="go-panel mb-4">
+
+      <h3>
+
+      <i class="fa-solid fa-award text-warning"></i>
+
+      Success Celebrations
+
+      </h3>
+
+      <p>
+      Let's celebrate what your group is doing well.
+      </p>
+
+      {% for item in celebrations %}
+
+      <div class="attention-item">
+
+      <div class="round-icon good">
+
+      <i class="fa-solid {{ item.icon }}"></i>
+
+      </div>
+
+      <div>
+
+      <strong>{{ item.title }}</strong><br>
+
+      <span class="text-muted-small">
+
+      {{ item.message }}
+
+      </span>
+
+      </div>
+
+      </div>
+
+      {% endfor %}
+
+      </div>
+
+      {% endif %}
 
   <div class="row g-4 mb-4">
 

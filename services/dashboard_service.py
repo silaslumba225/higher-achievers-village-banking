@@ -9,10 +9,11 @@ class DashboardService:
     It receives values from app.py and returns plain dictionaries for rendering.
     """
 
-    def __init__(self, total_cash, overdue_loans, pending_welfare_claims):
+    def __init__(self, total_cash, overdue_loans, pending_welfare_claims, next_meeting=None):
         self.total_cash = total_cash
         self.overdue_loans = overdue_loans
         self.pending_welfare_claims = pending_welfare_claims
+        self.next_meeting = next_meeting
 
     def build_daily_briefing(self):
         hour = datetime.now().hour
@@ -260,7 +261,75 @@ class DashboardService:
 
         return {
             "health_items": health_items
-        } 
+        }
+
+    def build_success_celebrations(self):
+
+        celebrations = []
+
+        if self.overdue_loans == 0:
+            celebrations.append({
+            "icon": "fa-trophy",
+            "title": "Excellent!",
+            "message": "Your group has no overdue loans."
+        })
+
+        if self.total_cash > 0:
+         celebrations.append({
+            "icon": "fa-wallet",
+            "title": "Money Available",
+            "message": "The group has funds available for lending."
+        })
+
+        if self.pending_welfare_claims == 0:
+            celebrations.append({
+            "icon": "fa-heart",
+            "title": "Well Done!",
+            "message": "No welfare requests are waiting."
+        })
+
+        return {
+        "celebrations": celebrations
+     } 
+    
+    def build_meeting_countdown(self):
+        if not self.next_meeting:
+            return {
+                "meeting_countdown": {
+                    "has_meeting": False,
+                    "title": "No meeting scheduled",
+                    "message": "No upcoming meeting has been recorded yet.",
+                    "days_remaining": None,
+                    "meeting_date": None,
+                    "meeting_type": None,
+                    "agenda": None
+                }
+            }
+
+        today = datetime.now().date()
+        days_remaining = (self.next_meeting.meeting_date - today).days
+
+        if days_remaining == 0:
+            message = "The meeting is today. Remember to record attendance and resolutions."
+        elif days_remaining == 1:
+            message = "The meeting is tomorrow. Prepare the agenda and reports."
+        elif days_remaining <= 7:
+            message = "The meeting is coming soon. Start preparing committee reports."
+        else:
+            message = "There is enough time to prepare for this meeting."
+
+        return {
+            "meeting_countdown": {
+                "has_meeting": True,
+                "title": "Next Meeting",
+                "message": message,
+                "days_remaining": days_remaining,
+                "meeting_date": self.next_meeting.meeting_date,
+                "meeting_type": self.next_meeting.meeting_type,
+                "agenda": self.next_meeting.agenda
+                }
+            }
+        
 
     def build(self):
         dashboard_data = {}
@@ -271,5 +340,7 @@ class DashboardService:
         dashboard_data.update(self.build_action_centre())
         dashboard_data.update(self.build_today_assistant())
         dashboard_data.update(self.build_group_health_check())
+        dashboard_data.update(self.build_success_celebrations())
+        dashboard_data.update(self.build_meeting_countdown())
         
         return dashboard_data

@@ -1121,6 +1121,12 @@ def executive_dashboard():
         b['account'].code: b['balance']
         for b in balances
     }
+    # Get the next scheduled meeting
+    next_meeting = Meeting.query.filter(
+        Meeting.meeting_date >= date.today()
+    ).order_by(
+        Meeting.meeting_date.asc()
+    ).first()
 
     cash_on_hand = money(balance_map.get('1000', Decimal('0.00')))
     bank_account = money(balance_map.get('1010', Decimal('0.00')))
@@ -1211,10 +1217,11 @@ def executive_dashboard():
             overdue_loans += 1
 
     dashboard_service = DashboardService(
-    total_cash=total_cash,
-    overdue_loans=overdue_loans,
-    pending_welfare_claims=pending_welfare_claims
-        )
+        total_cash=total_cash,
+        overdue_loans=overdue_loans,
+        pending_welfare_claims=pending_welfare_claims,
+        next_meeting=next_meeting
+    )
 
     dashboard_data = dashboard_service.build()
 
