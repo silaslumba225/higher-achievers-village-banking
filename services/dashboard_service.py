@@ -1,30 +1,108 @@
-def build_group_health(total_cash, overdue_loans, pending_welfare_claims):
-    group_health = "Healthy"
-    group_health_colour = "good"
-    group_health_message = "Your group is doing well today."
+from datetime import datetime
 
-    if overdue_loans > 0:
-        group_health = "Needs Attention"
-        group_health_colour = "watch"
-        group_health_message = f"{overdue_loans} loan(s) need follow-up."
 
-    if pending_welfare_claims > 0:
-        group_health = "Needs Attention"
-        group_health_colour = "watch"
-        group_health_message = f"{pending_welfare_claims} welfare claim(s) need review."
+class DashboardService:
+    """
+    Builds the intelligent data used by the Group Overview workspace.
 
-    if total_cash <= 0:
-        group_health = "Action Needed"
-        group_health_colour = "danger"
-        group_health_message = "The group has no available cash."
+    This service should remain independent of Flask routes and templates.
+    It receives values from app.py and returns plain dictionaries for rendering.
+    """
 
-    return {
-        "group_health": group_health,
-        "group_health_colour": group_health_colour,
-        "group_health_message": group_health_message
-    }
+    def __init__(self, total_cash, overdue_loans, pending_welfare_claims):
+        self.total_cash = total_cash
+        self.overdue_loans = overdue_loans
+        self.pending_welfare_claims = pending_welfare_claims
 
-def build_action_centre(self):
+    def build_daily_briefing(self):
+        hour = datetime.now().hour
+
+        if hour < 12:
+            greeting = "Good Morning"
+        elif hour < 17:
+            greeting = "Good Afternoon"
+        else:
+            greeting = "Good Evening"
+
+        recommendation = "Your group is progressing well today."
+
+        if self.total_cash <= 0:
+            recommendation = "Record today's savings before issuing any new loans."
+        elif self.overdue_loans > 0:
+            recommendation = f"I recommend following up {self.overdue_loans} overdue loan(s) today."
+        elif self.pending_welfare_claims > 0:
+            recommendation = f"There are {self.pending_welfare_claims} welfare request(s) waiting."
+
+        return {
+            "greeting": greeting,
+            "briefing_title": f"{greeting}, Treasurer.",
+            "briefing_message": "Welcome back. Here's today's summary of your village banking group.",
+            "recommendation": recommendation,
+        }
+
+    def build_group_health(self):
+        group_health = "Healthy"
+        group_health_colour = "good"
+        group_health_message = "Your group is doing well today."
+
+        if self.overdue_loans > 0:
+            group_health = "Needs Attention"
+            group_health_colour = "watch"
+            group_health_message = f"{self.overdue_loans} loan(s) need follow-up."
+
+        if self.pending_welfare_claims > 0:
+            group_health = "Needs Attention"
+            group_health_colour = "watch"
+            group_health_message = f"{self.pending_welfare_claims} welfare claim(s) need review."
+
+        if self.total_cash <= 0:
+            group_health = "Action Needed"
+            group_health_colour = "danger"
+            group_health_message = "The group has no available cash."
+
+        return {
+            "group_health": group_health,
+            "group_health_colour": group_health_colour,
+            "group_health_message": group_health_message,
+        }
+
+    def build_group_pulse(self):
+        score = 100
+
+        if self.total_cash <= 0:
+            score -= 20
+
+        if self.overdue_loans > 0:
+            score -= 20
+
+        if self.pending_welfare_claims > 0:
+            score -= 20
+
+        if score >= 90:
+            status = "Excellent"
+            colour = "success"
+            message = "Your group is strong and running well."
+        elif score >= 70:
+            status = "Good"
+            colour = "primary"
+            message = "Your group is doing well, with a few things to watch."
+        elif score >= 50:
+            status = "Needs Attention"
+            colour = "warning"
+            message = "Some matters need committee attention."
+        else:
+            status = "Action Required"
+            colour = "danger"
+            message = "The group needs urgent follow-up."
+
+        return {
+            "group_pulse": score,
+            "group_pulse_status": status,
+            "group_pulse_colour": colour,
+            "group_pulse_message": message,
+        }
+
+    def build_action_centre(self):
         action_items = []
 
         if self.overdue_loans > 0:
@@ -34,7 +112,7 @@ def build_action_centre(self):
                 "title": f"{self.overdue_loans} loan(s) need follow-up",
                 "message": "Some loan repayments may be overdue.",
                 "link": "loans",
-                "button": "Review Loans"
+                "button": "Review Loans",
             })
 
         if self.pending_welfare_claims > 0:
@@ -44,7 +122,7 @@ def build_action_centre(self):
                 "title": f"{self.pending_welfare_claims} welfare claim(s) waiting",
                 "message": "Review pending emergency fund requests.",
                 "link": "welfare",
-                "button": "Review Claims"
+                "button": "Review Claims",
             })
 
         if self.total_cash <= 0:
@@ -54,7 +132,7 @@ def build_action_centre(self):
                 "title": "No money available",
                 "message": "The group currently has no available cash.",
                 "link": "contributions",
-                "button": "Record Savings"
+                "button": "Record Savings",
             })
 
         if not action_items:
@@ -64,24 +142,14 @@ def build_action_centre(self):
                 "title": "Nothing urgent today",
                 "message": "Your group has no urgent items requiring attention.",
                 "link": "executive_dashboard",
-                "button": "View Overview"
+                "button": "View Overview",
             })
 
         return {
-            "action_items": action_items
-        }    
+            "action_items": action_items,
+        }
 
-def build(self):
-        dashboard_data = {}
-        dashboard_data.update(self.build_daily_briefing())
-        dashboard_data.update(self.build_group_health())
-        dashboard_data.update(self.build_action_centre())
-        dashboard_data.update(self.build_today_assistant())
-        dashboard_data.update(self.build_group_pulse())
-
-        return dashboard_data
-
-def build_today_assistant(self):
+    def build_today_assistant(self):
         assistant_messages = []
 
         if self.total_cash <= 0:
@@ -89,7 +157,7 @@ def build_today_assistant(self):
                 "level": "danger",
                 "icon": "fa-wallet",
                 "title": "Record savings first",
-                "message": "The group has no money available. Start by recording today's savings."
+                "message": "The group has no money available. Start by recording today's savings.",
             })
 
         if self.overdue_loans > 0:
@@ -97,7 +165,7 @@ def build_today_assistant(self):
                 "level": "watch",
                 "icon": "fa-hand-holding-dollar",
                 "title": "Follow up loan repayments",
-                "message": f"{self.overdue_loans} loan(s) may need follow-up today."
+                "message": f"{self.overdue_loans} loan(s) may need follow-up today.",
             })
 
         if self.pending_welfare_claims > 0:
@@ -105,7 +173,7 @@ def build_today_assistant(self):
                 "level": "watch",
                 "icon": "fa-heart",
                 "title": "Review emergency fund requests",
-                "message": f"{self.pending_welfare_claims} request(s) are waiting for review."
+                "message": f"{self.pending_welfare_claims} request(s) are waiting for review.",
             })
 
         if not assistant_messages:
@@ -113,91 +181,20 @@ def build_today_assistant(self):
                 "level": "good",
                 "icon": "fa-circle-check",
                 "title": "Your group looks fine today",
-                "message": "There are no urgent issues. You may continue with savings, loans, or reports."
+                "message": "There are no urgent issues. You may continue with savings, loans, or reports.",
             })
 
         return {
-            "assistant_messages": assistant_messages
+            "assistant_messages": assistant_messages,
         }
-def build_group_pulse(self):
-    score = 100
 
-    if self.total_cash <= 0:
-        score -= 20
+    def build(self):
+        dashboard_data = {}
 
-    if self.overdue_loans > 0:
-        score -= 20
+        dashboard_data.update(self.build_daily_briefing())
+        dashboard_data.update(self.build_group_health())
+        dashboard_data.update(self.build_group_pulse())
+        dashboard_data.update(self.build_action_centre())
+        dashboard_data.update(self.build_today_assistant())
 
-    if self.pending_welfare_claims > 0:
-        score -= 20
-
-    if score >= 90:
-        status = "Excellent"
-        colour = "success"
-
-    elif score >= 70:
-        status = "Good"
-        colour = "primary"
-
-    elif score >= 50:
-        status = "Needs Attention"
-        colour = "warning"
-
-    else:
-        status = "Action Required"
-        colour = "danger"
-
-    return {
-        "group_pulse": score,
-        "group_pulse_status": status,
-        "group_pulse_colour": colour
-    }        
-
-from datetime import datetime
-
-def build_daily_briefing(self):
-
-    hour = datetime.now().hour
-
-    if hour < 12:
-        greeting = "Good Morning"
-
-    elif hour < 17:
-        greeting = "Good Afternoon"
-
-    else:
-        greeting = "Good Evening"
-
-    recommendation = "Your group is progressing well today."
-
-    if self.overdue_loans > 0:
-        recommendation = (
-            f"I recommend following up "
-            f"{self.overdue_loans} overdue loan(s) today."
-        )
-
-    elif self.pending_welfare_claims > 0:
-        recommendation = (
-            f"There are "
-            f"{self.pending_welfare_claims} welfare request(s) waiting."
-        )
-
-    elif self.total_cash <= 0:
-        recommendation = (
-            "Record today's savings before issuing any new loans."
-        )
-
-    return {
-
-        "greeting": greeting,
-
-        "briefing_title":
-            f"{greeting}, Treasurer.",
-
-        "briefing_message":
-            "Welcome back. Here's today's summary of your village banking group.",
-
-        "recommendation":
-            recommendation
-
-    }
+        return dashboard_data
