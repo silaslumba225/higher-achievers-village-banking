@@ -295,6 +295,32 @@
     </div>
   </div>
 </div>
+<div class="go-panel mb-4">
+  <h3>
+    <i class="fa-solid fa-clipboard-check text-primary"></i>
+    How Your Group Is Doing
+  </h3>
+
+  <p>A simple health check of the main parts of your village banking group.</p>
+
+  <div class="row g-3">
+    {% for item in health_items %}
+    <div class="col-xl-4 col-md-6">
+      <div class="attention-item" style="border:1px solid #eef2f7;border-radius:16px;padding:14px;height:100%;">
+        <div class="round-icon {{ item.level }}">
+          <i class="fa-solid {{ item.icon }}"></i>
+        </div>
+
+        <div>
+          <strong>{{ item.label }}</strong><br>
+          <span class="badge bg-light text-dark">{{ item.status }}</span><br>
+          <span class="text-muted-small">{{ item.message }}</span>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
 
   <div class="row g-4 mb-4">
 

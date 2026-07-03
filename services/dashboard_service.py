@@ -187,6 +187,80 @@ class DashboardService:
         return {
             "assistant_messages": assistant_messages,
         }
+    
+    def build_group_health_check(self):
+        health_items = []
+
+        if self.total_cash > 0:
+            health_items.append({
+                "label": "Cash Position",
+                "status": "Strong",
+                "level": "good",
+                "icon": "fa-wallet",
+                "message": "The group has money available."
+            })
+        else:
+            health_items.append({
+                "label": "Cash Position",
+                "status": "Action Needed",
+                "level": "danger",
+                "icon": "fa-wallet",
+                "message": "The group has no money available."
+            })
+
+        if self.overdue_loans == 0:
+            health_items.append({
+                "label": "Loan Recovery",
+                "status": "Healthy",
+                "level": "good",
+                "icon": "fa-hand-holding-dollar",
+                "message": "No overdue loans need follow-up."
+            })
+        else:
+            health_items.append({
+                "label": "Loan Recovery",
+                "status": "Needs Attention",
+                "level": "watch",
+                "icon": "fa-hand-holding-dollar",
+                "message": f"{self.overdue_loans} loan(s) need follow-up."
+            })
+
+        if self.pending_welfare_claims == 0:
+            health_items.append({
+                "label": "Emergency Fund",
+                "status": "Healthy",
+                "level": "good",
+                "icon": "fa-heart",
+                "message": "No emergency fund requests are waiting."
+            })
+        else:
+            health_items.append({
+                "label": "Emergency Fund",
+                "status": "Needs Review",
+                "level": "watch",
+                "icon": "fa-heart",
+                "message": f"{self.pending_welfare_claims} request(s) are waiting."
+            })
+
+        health_items.append({
+            "label": "Membership",
+            "status": "Active",
+            "level": "good",
+            "icon": "fa-users",
+            "message": "Member records are being tracked."
+        })
+
+        health_items.append({
+            "label": "Savings",
+            "status": "Open",
+            "level": "good",
+            "icon": "fa-coins",
+            "message": "Savings can be recorded today."
+        })
+
+        return {
+            "health_items": health_items
+        } 
 
     def build(self):
         dashboard_data = {}
@@ -196,5 +270,6 @@ class DashboardService:
         dashboard_data.update(self.build_group_pulse())
         dashboard_data.update(self.build_action_centre())
         dashboard_data.update(self.build_today_assistant())
-
+        dashboard_data.update(self.build_group_health_check())
+        
         return dashboard_data
