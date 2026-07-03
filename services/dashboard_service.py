@@ -9,11 +9,12 @@ class DashboardService:
     It receives values from app.py and returns plain dictionaries for rendering.
     """
 
-    def __init__(self, total_cash, overdue_loans, pending_welfare_claims, next_meeting=None):
+    def __init__(self, total_cash, overdue_loans, pending_welfare_claims, next_meeting=None, today_activity=None):
         self.total_cash = total_cash
         self.overdue_loans = overdue_loans
         self.pending_welfare_claims = pending_welfare_claims
         self.next_meeting = next_meeting
+        self.today_activity = today_activity or []
 
     def build_daily_briefing(self):
         hour = datetime.now().hour
@@ -262,6 +263,10 @@ class DashboardService:
         return {
             "health_items": health_items
         }
+    def build_today_activity(self):
+        return {
+        "today_activity": self.today_activity
+        }
 
     def build_success_celebrations(self):
 
@@ -342,5 +347,6 @@ class DashboardService:
         dashboard_data.update(self.build_group_health_check())
         dashboard_data.update(self.build_success_celebrations())
         dashboard_data.update(self.build_meeting_countdown())
+        dashboard_data.update(self.build_today_activity())
         
         return dashboard_data

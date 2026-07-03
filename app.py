@@ -1215,12 +1215,62 @@ def executive_dashboard():
     for loan in Loan.query.filter_by(status='Disbursed').all():
         if loan.balance > 0 and loan.due_on and loan.due_on < date.today():
             overdue_loans += 1
+    today = date.today()
+    today_activity = []
+
+    today_contributions = Contribution.query.filter(
+        Contribution.paid_on == today
+    ).order_by(
+        Contribution.id.desc()
+    ).limit(5).all()
+
+    for c in today_contributions:
+        today_activity.append({
+            "icon": "fa-coins",
+            "level": "good",
+            "title": f"{c.member.full_name} saved {money(c.amount)}",
+            "time": "Today",
+            "message": "Savings recorded."
+        })
+
+    today_members = Member.query.filter(
+        Member.created_at == today
+    ).order_by(
+        Member.id.desc()
+    ).limit(5).all()
+
+    for m in today_members:
+        today_activity.append({
+            "icon": "fa-user-plus",
+            "level": "blue",
+            "title": f"{m.full_name} joined the group",
+            "time": "Today",
+            "message": "New member registered."
+        })
+
+        today_loans = Loan.query.filter(
+            Loan.approved_on == today
+        ).order_by(
+            Loan.id.desc()
+        ).limit(5).all()
+
+    for loan in today_loans:
+        today_activity.append({
+            "icon": "fa-hand-holding-dollar",
+            "level": "purple",
+            "title": f"Loan approved for {loan.member.full_name}",
+            "time": "Today",
+            "message": f"Amount approved: {money(loan.principal)}"
+        })
+
+    today_activity = today_activity[:8]
 
     dashboard_service = DashboardService(
         total_cash=total_cash,
         overdue_loans=overdue_loans,
         pending_welfare_claims=pending_welfare_claims,
         next_meeting=next_meeting
+        today_activity=today_activity
     )
 
     dashboard_data = dashboard_service.build()
