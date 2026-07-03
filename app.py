@@ -1234,7 +1234,7 @@ def executive_dashboard():
         })
 
     today_members = Member.query.filter(
-        Member.created_at == today
+    Member.created_at == today
     ).order_by(
         Member.id.desc()
     ).limit(5).all()
@@ -1248,11 +1248,11 @@ def executive_dashboard():
             "message": "New member registered."
         })
 
-        today_loans = Loan.query.filter(
-            Loan.approved_on == today
-        ).order_by(
-            Loan.id.desc()
-        ).limit(5).all()
+    today_loans = Loan.query.filter(
+        Loan.approved_on == today
+    ).order_by(
+        Loan.id.desc()
+    ).limit(5).all()
 
     for loan in today_loans:
         today_activity.append({
@@ -1269,8 +1269,8 @@ def executive_dashboard():
         total_cash=total_cash,
         overdue_loans=overdue_loans,
         pending_welfare_claims=pending_welfare_claims,
-        next_meeting=next_meeting
-        today_activity=today_activity
+        next_meeting=next_meeting,
+        today_activity=today_activity,
     )
 
     dashboard_data = dashboard_service.build()
