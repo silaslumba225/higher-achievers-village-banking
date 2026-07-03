@@ -23,6 +23,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from bank_import import import_bank_statement
+from services.dashboard_service import DashboardService
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'change-this-secret-key')
@@ -1209,67 +1210,15 @@ def executive_dashboard():
         if loan.balance > 0 and loan.due_on and loan.due_on < date.today():
             overdue_loans += 1
 
-    group_health = "Healthy"
-    group_health_colour = "good"
-    group_health_message = "Your group is doing well today."
+    dashboard_service = DashboardService(
+    total_cash=total_cash,
+    overdue_loans=overdue_loans,
+    pending_welfare_claims=pending_welfare_claims
+        )
 
-    if overdue_loans > 0:
-        group_health = "Needs Attention"
-        group_health_colour = "watch"
-        group_health_message = f"{overdue_loans} loan(s) need follow-up."
+    dashboard_data = dashboard_service.build()
 
-    if pending_welfare_claims > 0:
-        group_health = "Needs Attention"
-        group_health_colour = "watch"
-        group_health_message = f"{pending_welfare_claims} welfare claim(s) need review."
-
-    if total_cash <= 0:
-        group_health = "Action Needed"
-        group_health_colour = "danger"
-        group_health_message = "The group has no available cash."
-
-    action_items = []
-
-    if overdue_loans > 0:
-        action_items.append({
-            "level": "danger",
-            "icon": "fa-clock",
-            "title": f"{overdue_loans} loan(s) need follow-up",
-            "message": "Some loan repayments may be overdue.",
-            "link": url_for("loans"),
-            "button": "Review Loans"
-        })
-
-    if pending_welfare_claims > 0:
-        action_items.append({
-            "level": "watch",
-            "icon": "fa-heart",
-            "title": f"{pending_welfare_claims} welfare claim(s) waiting",
-            "message": "Review pending emergency fund requests.",
-            "link": url_for("welfare"),
-            "button": "Review Claims"
-        })
-
-    if total_cash <= 0:
-        action_items.append({
-            "level": "danger",
-            "icon": "fa-wallet",
-            "title": "No money available",
-            "message": "The group currently has no available cash.",
-            "link": url_for("contributions"),
-            "button": "Record Savings"
-        })
-
-    if not action_items:
-        action_items.append({
-            "level": "good",
-            "icon": "fa-circle-check",
-            "title": "Nothing urgent today",
-            "message": "Your group has no urgent items requiring attention.",
-            "link": url_for("executive_dashboard"),
-            "button": "View Overview"
-        })
-
+   
     today_checklist = []
 
     today_checklist.append({
@@ -1346,10 +1295,7 @@ def executive_dashboard():
         paid_loans=paid_loans,
         overdue_loans=overdue_loans,
         today=date.today(),
-        group_health=group_health,
-        group_health_colour=group_health_colour,
-        group_health_message=group_health_message,
-        action_items=action_items,
+        **dashboard_data,
         today_checklist=today_checklist
     )
 
