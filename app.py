@@ -1526,7 +1526,7 @@ def member_profile(member_id):
         member_health = "High Attention"
         member_health_level = "danger"
 
-        intelligence = MemberIntelligenceService(
+    intelligence = MemberIntelligenceService(
         member=member,
         total_contributions=total_contributions,
         loan_balance=loan_balance,
