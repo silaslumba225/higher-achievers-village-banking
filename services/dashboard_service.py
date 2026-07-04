@@ -354,85 +354,78 @@ class DashboardService:
 
         if self.total_cash <= 0:
             recommendations.append({
-                "priority": "high",
                 "level": "danger",
                 "icon": "fa-wallet",
                 "title": "Record savings before lending",
-                "message": "The group has no money available. Record savings or deposits before approving new loans.",
+                "message": "The group has no available cash. Record savings or deposits before approving new loans.",
                 "action": "Record Savings",
                 "link": "contributions"
             })
 
-        elif self.total_cash > 0:
+        elif self.total_cash > 0 and self.overdue_loans == 0:
             recommendations.append({
-                "priority": "good",
                 "level": "good",
-                "icon": "fa-circle-check",
-                "title": "Cash is available",
-                "message": "The group has money available. New loans may be considered if approved by the committee.",
+                "icon": "fa-hand-holding-dollar",
+                "title": "The group may consider lending",
+                "message": "Cash is available and there are no overdue loans. Review loan applications carefully before approving.",
                 "action": "View Loans",
                 "link": "loans"
             })
 
         if self.overdue_loans > 0:
             recommendations.append({
-                "priority": "high",
-                "level": "danger",
-                "icon": "fa-triangle-exclamation",
-                "title": "Follow up overdue loans",
-                "message": f"{self.overdue_loans} loan(s) need follow-up before approving additional lending.",
+                "level": "watch",
+                "icon": "fa-phone",
+                "title": "Follow up loan repayments",
+                "message": f"{self.overdue_loans} loan(s) need follow-up. Contact members before approving more lending.",
                 "action": "Review Loans",
-                "link": "loans"
-            })
-        else:
-            recommendations.append({
-                "priority": "good",
-                "level": "good",
-                "icon": "fa-thumbs-up",
-                "title": "Loan recovery looks good",
-                "message": "There are no overdue loans requiring attention today.",
-                "action": "View Loans",
                 "link": "loans"
             })
 
         if self.pending_welfare_claims > 0:
             recommendations.append({
-                "priority": "medium",
                 "level": "watch",
                 "icon": "fa-heart",
                 "title": "Review emergency fund requests",
-                "message": f"{self.pending_welfare_claims} emergency fund request(s) are waiting for review.",
-                "action": "Review Requests",
+                "message": f"{self.pending_welfare_claims} request(s) are waiting. The committee should review them soon.",
+                "action": "Open Emergency Fund",
                 "link": "welfare"
             })
 
+        if getattr(self, "active_members", 0) == 0:
+            recommendations.append({
+                "level": "watch",
+                "icon": "fa-users",
+                "title": "Add members",
+                "message": "No active members are recorded yet. Start by registering members of the group.",
+                "action": "Add Members",
+                "link": "members"
+            })
+
         if self.next_meeting:
-            today = datetime.now().date()
-            days_remaining = (self.next_meeting.meeting_date - today).days
+            days_remaining = (self.next_meeting.meeting_date - datetime.now().date()).days
 
             if days_remaining == 0:
                 recommendations.append({
-                    "priority": "medium",
                     "level": "watch",
                     "icon": "fa-calendar-check",
-                    "title": "Meeting is today",
-                    "message": "Remember to record attendance, resolutions and any loan decisions after the meeting.",
+                    "title": "Committee meeting is today",
+                    "message": "Remember to record attendance, resolutions and loan decisions after the meeting.",
                     "action": "Open Meetings",
                     "link": "meetings"
                 })
+
             elif days_remaining <= 7:
                 recommendations.append({
-                    "priority": "medium",
-                    "level": "watch",
+                    "level": "good",
                     "icon": "fa-calendar-days",
                     "title": "Prepare for the next meeting",
-                    "message": f"Your next meeting is in {days_remaining} day(s). Prepare the cash summary, loan report and savings report.",
+                    "message": f"The next committee meeting is in {days_remaining} day(s). Prepare the agenda and reports.",
                     "action": "Open Meetings",
                     "link": "meetings"
                 })
         else:
             recommendations.append({
-                "priority": "medium",
                 "level": "watch",
                 "icon": "fa-calendar-plus",
                 "title": "Schedule the next meeting",
@@ -441,10 +434,31 @@ class DashboardService:
                 "link": "meetings"
             })
 
+        if self.total_cash > 0 and self.overdue_loans == 0 and self.pending_welfare_claims == 0:
+            recommendations.append({
+                "level": "good",
+                "icon": "fa-award",
+                "title": "Excellent progress",
+                "message": "Your group is operating well today. Keep up the good governance and accurate record keeping.",
+                "action": "View Reports",
+                "link": "reports"
+            })
+
+        if not recommendations:
+            recommendations.append({
+                "level": "good",
+                "icon": "fa-circle-check",
+                "title": "Keep going",
+                "message": "Your group looks stable. Continue recording savings, repayments and meeting decisions.",
+                "action": "Record Savings",
+                "link": "contributions"
+            })
+
         return {
             "smart_recommendations": recommendations[:5]
-        }  
-
+        }
+    
+    
     def build(self):
         dashboard_data = {}
 

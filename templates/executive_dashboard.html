@@ -417,17 +417,21 @@
   <p>Helpful suggestions based on how your group's current position.</p>
 
   {% for item in smart_recommendations %}
-  <div class="attention-item">
-    <div class="round-icon {{ item.level }}">
-      <i class="fa-solid {{ item.icon }}"></i>
-    </div>
+    <div class="attention-item">
+      <div class="round-icon {{ item.level }}">
+        <i class="fa-solid {{ item.icon }}"></i>
+      </div>
 
-    <div style="flex:1">
-      <strong>{{ item.title }}</strong><br>
-      <span class="text-muted-small">{{ item.message }}</span>
+      <div style="flex:1;">
+        <strong>{{ item.title }}</strong><br>
+        <span class="text-muted-small">{{ item.message }}</span>
+      </div>
+
+      <a class="btn btn-sm btn-outline-primary" href="{{ url_for(item.link) }}">
+        {{ item.action }}
+      </a>
     </div>
-  </div>
-  {% endfor %}
+    {% endfor %}
 </div>   
 
   <div class="row g-4 mb-4">
