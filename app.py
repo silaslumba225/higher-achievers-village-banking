@@ -1861,22 +1861,6 @@ def loans():
         issued = parse_date(request.form.get('issued_on'))
         due = parse_date(request.form.get('due_on')) or issued + timedelta(days=30)
 
-        active_loans = Loan.query.filter(
-            Loan.status.in_(["Disbursed", "Partially Paid"])
-        ).all()
-        loan_intelligence = LoanIntelligenceService(
-            total_loans=total_loans,
-            applied_loans=applied_loans,
-            approved_loans=approved_loans,
-            disbursed_loans=disbursed_loans,
-            paid_loans=paid_loans,
-            overdue_loans=overdue_loans,
-            portfolio_balance=portfolio_balance,
-            active_loans=active_loans
-        )
-
-        loan_data = loan_intelligence.build()
-
         l = Loan(
             member_id=int(request.form['member_id']),
             principal=money(request.form['principal']),
@@ -1936,6 +1920,23 @@ def loans():
             overdue_loans += 1
 
     portfolio_balance = money(portfolio_balance)
+
+    active_loans = Loan.query.filter(
+            Loan.status.in_(["Disbursed", "Partially Paid"])
+        ).all()
+    
+    loan_intelligence = LoanIntelligenceService(
+            total_loans=total_loans,
+            applied_loans=applied_loans,
+            approved_loans=approved_loans,
+            disbursed_loans=disbursed_loans,
+            paid_loans=paid_loans,
+            overdue_loans=overdue_loans,
+            portfolio_balance=portfolio_balance,
+            active_loans=active_loans
+        )
+    
+    loan_data = loan_intelligence.build()
 
     return render_template(
         "loans.html",
