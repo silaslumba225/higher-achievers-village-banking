@@ -24,6 +24,7 @@ from reportlab.lib.units import mm
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from bank_import import import_bank_statement
 from services.dashboard_service import DashboardService
+from services.member_intelligence_service import MemberIntelligenceService
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'change-this-secret-key')
@@ -1525,8 +1526,20 @@ def member_profile(member_id):
         member_health = "High Attention"
         member_health_level = "danger"
 
+        intelligence = MemberIntelligenceService(
+        member=member,
+        total_contributions=total_contributions,
+        loan_balance=loan_balance,
+        fine_balance=fine_balance,
+        recent_contributions=recent_contributions,
+        recent_loans=recent_loans,
+        recent_fines=recent_fines
+    )
+
+    intelligence_data = intelligence.build()
+
     return render_template(
-        'member_profile.html',
+        "member_profile.html",
         member=member,
         total_contributions=total_contributions,
         savings_interest=savings_interest,
@@ -1537,10 +1550,7 @@ def member_profile(member_id):
         recent_contributions=recent_contributions,
         recent_loans=recent_loans,
         recent_fines=recent_fines,
-        member_health=member_health,
-        member_health_level=member_health_level,
-        member_health_score=member_health_score,
-        member_health_message=member_health_message,
+        **intelligence_data
     )
 
 @app.route('/members/new', methods=['GET','POST'])
