@@ -1893,13 +1893,46 @@ def loans():
         per_page=per_page,
         error_out=False
     )
+    # -------------------------------------------------
+# Loan Intelligence Centre Summary
+# -------------------------------------------------
+
+    total_loans = Loan.query.count()
+
+    applied_loans = Loan.query.filter_by(status='Applied').count()
+
+    approved_loans = Loan.query.filter_by(status='Approved').count()
+
+    disbursed_loans = Loan.query.filter_by(status='Disbursed').count()
+
+    paid_loans = Loan.query.filter_by(status='Paid').count()
+
+    overdue_loans = 0
+
+    portfolio_balance = Decimal("0.00")
+
+    for loan in Loan.query.filter_by(status="Disbursed").all():
+
+        portfolio_balance += loan.balance
+
+        if loan.balance > 0 and loan.due_on and loan.due_on < date.today():
+            overdue_loans += 1
+
+    portfolio_balance = money(portfolio_balance)
 
     return render_template(
         'loans.html',
         loans=pagination.items,
         pagination=pagination,
         members=Member.query.order_by(Member.full_name).all(),
-        settings=get_settings()
+        settings=get_settings(),
+        total_loans=total_loans,
+        applied_loans=applied_loans,
+        approved_loans=approved_loans,
+        disbursed_loans=disbursed_loans,
+        paid_loans=paid_loans,
+        overdue_loans=overdue_loans,
+        portfolio_balance=portfolio_balance,
     )
 
 @app.route('/loans/<int:loan_id>/statement.pdf')
