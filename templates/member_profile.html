@@ -1,96 +1,344 @@
 {% extends 'base.html' %}
+
 {% block page_title %}Member Profile{% endblock %}
-{% block subtitle %}Detailed member account summary{% endblock %}
+{% block subtitle %}A complete view of this member's position in the group{% endblock %}
 
 {% block content %}
 
-<div class="actions">
-  <a class="btn" href="{{ url_for('members') }}">← Back to Members</a>
-  <a class="btn" href="{{ url_for('member_edit', member_id=member.id) }}">Edit Member</a>
-  <a class="btn" href="{{ url_for('member_statement_pdf', member_id=member.id) }}">Download Statement</a>
-   <a class="btn" href="{{ url_for('member_savings_statement', member_id=member.id) }}">
-  Savings Statement
-</a>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+
+<style>
+  .mp-hero {
+    background: linear-gradient(135deg,#155eef,#0f3fa8);
+    color: white;
+    border-radius: 24px;
+    padding: 28px;
+    margin-bottom: 24px;
+    box-shadow: 0 12px 28px rgba(16,24,40,.15);
+  }
+
+  .mp-panel {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 24px;
+    padding: 22px;
+    box-shadow: 0 10px 26px rgba(16,24,40,.07);
+    margin-bottom: 24px;
+    height: 100%;
+  }
+
+  .mp-card {
+    border: 0;
+    border-radius: 22px;
+    color: #fff;
+    box-shadow: 0 12px 28px rgba(16,24,40,.14);
+  }
+
+  .mp-card span {
+    font-size: 12px;
+    text-transform: uppercase;
+    font-weight: 800;
+    opacity: .9;
+  }
+
+  .mp-card strong {
+    display: block;
+    font-size: 28px;
+    margin-top: 6px;
+  }
+
+  .grad-green { background: linear-gradient(135deg,#16a34a,#087a34); }
+  .grad-purple { background: linear-gradient(135deg,#7c3aed,#4c1d95); }
+  .grad-orange { background: linear-gradient(135deg,#f97316,#c2410c); }
+  .grad-red { background: linear-gradient(135deg,#ef4444,#b91c1c); }
+
+  .status-pill {
+    padding: 7px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  .status-active { background:#dcfce7; color:#166534; }
+  .status-inactive { background:#fee2e2; color:#991b1b; }
+
+  .timeline-item {
+    display: flex;
+    gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid #eef2f7;
+  }
+
+  .timeline-icon {
+    min-width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: #fff;
+  }
+
+  .good { background:#16a34a; }
+  .purple { background:#7c3aed; }
+  .watch { background:#f59e0b; }
+  .danger { background:#dc2626; }
+
+  .quick-action {
+    display: block;
+    text-decoration: none;
+    color: #101828;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    padding: 16px 12px;
+    text-align: center;
+    font-weight: 800;
+    transition: .2s;
+  }
+
+  .quick-action:hover {
+    background: #fff;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px rgba(16,24,40,.10);
+  }
+
+  .quick-action i {
+    display: block;
+    font-size: 24px;
+    margin-bottom: 8px;
+    color: #155eef;
+  }
+</style>
+
+<div class="mp-hero">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+    <div>
+      <h2 class="mb-2">{{ member.full_name }}</h2>
+      <p class="mb-1">Member No: <strong>{{ member.member_no }}</strong></p>
+      <p class="mb-0">{{ member.member_type or 'Ordinary Member' }}{% if member.committee_position %} • {{ member.committee_position }}{% endif %}</p>
+    </div>
+
+    <div class="text-end">
+      {% if member.status == 'Active' %}
+        <span class="status-pill status-active">Active Member</span>
+      {% else %}
+        <span class="status-pill status-inactive">{{ member.status }}</span>
+      {% endif %}
+      <div class="mt-3">
+        <a class="btn btn-light" href="{{ url_for('member_edit', member_id=member.id) }}">
+          <i class="fa-solid fa-pen"></i> Edit Member
+        </a>
+      </div>
+    </div>
+  </div>
 </div>
 
-<section class="panel">
-  <h2>{{ member.full_name }}</h2>
-  <p><strong>Member No:</strong> {{ member.member_no }}</p>
-  <p><strong>Phone:</strong> {{ member.phone or '-' }}</p>
-  <p><strong>NRC/ID:</strong> {{ member.national_id or '-' }}</p>
-  <p><strong>Group:</strong> {{ member.group_name or '-' }}</p>
-  <p><strong>Status:</strong> {{ member.status }}</p>
-  <p><strong>Type:</strong> {{ member.member_type or 'Ordinary Member' }}</p>
-  <p><strong>Committee Position:</strong> {{ member.committee_position or '-' }}</p>
-</section>
+<div class="row g-4 mb-4">
+  <div class="col-xl-3 col-md-6">
+    <div class="card mp-card grad-green">
+      <div class="card-body">
+        <span>Total Savings</span>
+        <strong>{{ total_contributions|kwacha }}</strong>
+        <small>Member savings recorded</small>
+      </div>
+    </div>
+  </div>
 
-<section class="kpi-grid">
-  <div class="kpi"><span>Total Contributions</span><strong>{{ total_contributions|kwacha }}</strong></div>
-  <div class="kpi"><span>Savings Interest</span><strong>{{ savings_interest|kwacha }}</strong></div>
-  <div class="kpi"><span>Loan Balance</span><strong>{{ loan_balance|kwacha }}</strong></div>
-  <div class="kpi"><span>Fine Balance</span><strong>{{ fine_balance|kwacha }}</strong></div>
-  <div class="kpi"><span>Welfare Contributions</span><strong>{{ welfare_contributions|kwacha }}</strong></div>
-  <div class="kpi accent"><span>Welfare Paid</span><strong>{{ welfare_paid|kwacha }}</strong></div>
-</section>
+  <div class="col-xl-3 col-md-6">
+    <div class="card mp-card grad-purple">
+      <div class="card-body">
+        <span>Savings Interest</span>
+        <strong>{{ savings_interest|kwacha }}</strong>
+        <small>Interest earned on savings</small>
+      </div>
+    </div>
+  </div>
 
-<section class="panel">
-  <h2>Recent Contributions</h2>
- 
-  <table>
-    <thead><tr><th>Date</th><th>Month</th><th>Method</th><th>Reference</th><th>Amount</th></tr></thead>
-    <tbody>
+  <div class="col-xl-3 col-md-6">
+    <div class="card mp-card grad-orange">
+      <div class="card-body">
+        <span>Loan Balance</span>
+        <strong>{{ loan_balance|kwacha }}</strong>
+        <small>Amount still owing</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-md-6">
+    <div class="card mp-card grad-red">
+      <div class="card-body">
+        <span>Outstanding Fines</span>
+        <strong>{{ fine_balance|kwacha }}</strong>
+        <small>Unpaid fines and penalties</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+
+  <div class="col-xl-5">
+    <div class="mp-panel">
+      <h3><i class="fa-solid fa-user text-primary"></i> Member Details</h3>
+      <hr>
+
+      <p><strong>Phone:</strong> {{ member.phone or '-' }}</p>
+      <p><strong>NRC / ID:</strong> {{ member.national_id or '-' }}</p>
+      <p><strong>Group:</strong> {{ member.group_name or '-' }}</p>
+      <p><strong>Member Type:</strong> {{ member.member_type or 'Ordinary Member' }}</p>
+      <p><strong>Committee Position:</strong> {{ member.committee_position or '-' }}</p>
+      <p><strong>Joined:</strong> {{ member.created_at.strftime('%d %B %Y') if member.created_at else '-' }}</p>
+    </div>
+  </div>
+
+  <div class="col-xl-7">
+    <div class="mp-panel">
+      <h3><i class="fa-solid fa-lightbulb text-warning"></i> Higher Achievers Assistant</h3>
+      <p class="text-muted">Simple guidance about this member.</p>
+
+      {% if loan_balance > 0 %}
+        <div class="timeline-item">
+          <div class="timeline-icon watch"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+          <div>
+            <strong>Loan balance exists</strong><br>
+            <span class="text-muted">This member currently has an outstanding loan balance.</span>
+          </div>
+        </div>
+      {% else %}
+        <div class="timeline-item">
+          <div class="timeline-icon good"><i class="fa-solid fa-circle-check"></i></div>
+          <div>
+            <strong>No outstanding loan balance</strong><br>
+            <span class="text-muted">This member currently has no outstanding loan balance.</span>
+          </div>
+        </div>
+      {% endif %}
+
+      {% if fine_balance > 0 %}
+        <div class="timeline-item">
+          <div class="timeline-icon danger"><i class="fa-solid fa-triangle-exclamation"></i></div>
+          <div>
+            <strong>Fines need attention</strong><br>
+            <span class="text-muted">This member has unpaid fines or penalties.</span>
+          </div>
+        </div>
+      {% else %}
+        <div class="timeline-item">
+          <div class="timeline-icon good"><i class="fa-solid fa-thumbs-up"></i></div>
+          <div>
+            <strong>Good standing</strong><br>
+            <span class="text-muted">No unpaid fines are currently shown for this member.</span>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<div class="mp-panel">
+  <h3><i class="fa-solid fa-bolt text-primary"></i> Quick Actions</h3>
+  <p class="text-muted">Common actions for this member.</p>
+
+  <div class="row g-3">
+    <div class="col-xl-2 col-md-4 col-6">
+      <a class="quick-action" href="{{ url_for('contributions') }}">
+        <i class="fa-solid fa-coins"></i>
+        Record Savings
+      </a>
+    </div>
+
+    <div class="col-xl-2 col-md-4 col-6">
+      <a class="quick-action" href="{{ url_for('loans') }}">
+        <i class="fa-solid fa-hand-holding-dollar"></i>
+        Loans
+      </a>
+    </div>
+
+    <div class="col-xl-2 col-md-4 col-6">
+      <a class="quick-action" href="{{ url_for('member_savings_statement', member_id=member.id) }}">
+        <i class="fa-solid fa-file-lines"></i>
+        Savings Statement
+      </a>
+    </div>
+
+    <div class="col-xl-2 col-md-4 col-6">
+      <a class="quick-action" href="{{ url_for('welfare') }}">
+        <i class="fa-solid fa-heart"></i>
+        Emergency Fund
+      </a>
+    </div>
+
+    <div class="col-xl-2 col-md-4 col-6">
+      <a class="quick-action" href="{{ url_for('member_edit', member_id=member.id) }}">
+        <i class="fa-solid fa-pen"></i>
+        Edit Details
+      </a>
+    </div>
+
+    <div class="col-xl-2 col-md-4 col-6">
+      <a class="quick-action" href="{{ url_for('members') }}">
+        <i class="fa-solid fa-arrow-left"></i>
+        Back to Members
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <div class="col-xl-4">
+    <div class="mp-panel">
+      <h3>Recent Savings</h3>
       {% for c in recent_contributions %}
-      <tr>
-        <td>{{ c.paid_on }}</td>
-        <td>{{ c.month }}</td>
-        <td>{{ c.method }}</td>
-        <td>{{ c.reference or '-' }}</td>
-        <td>{{ c.amount|kwacha }}</td>
-      </tr>
+        <div class="timeline-item">
+          <div class="timeline-icon good"><i class="fa-solid fa-coins"></i></div>
+          <div>
+            <strong>{{ c.amount|kwacha }}</strong><br>
+            <span class="text-muted">{{ c.paid_on }}</span>
+          </div>
+        </div>
       {% else %}
-      <tr><td colspan="5">No recent contributions.</td></tr>
+        <p class="text-muted">No recent savings recorded.</p>
       {% endfor %}
-    </tbody>
-  </table>
-</section>
+    </div>
+  </div>
 
-<section class="panel">
-  <h2>Recent Loans</h2>
-  <table>
-    <thead><tr><th>Issued</th><th>Principal</th><th>Total Due</th><th>Balance</th><th>Status</th></tr></thead>
-    <tbody>
+  <div class="col-xl-4">
+    <div class="mp-panel">
+      <h3>Recent Loans</h3>
       {% for l in recent_loans %}
-      <tr>
-        <td>{{ l.issued_on }}</td>
-        <td>{{ l.principal|kwacha }}</td>
-        <td>{{ l.total_due|kwacha }}</td>
-        <td>{{ l.balance|kwacha }}</td>
-        <td>{{ l.status }}</td>
-      </tr>
+        <div class="timeline-item">
+          <div class="timeline-icon purple"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+          <div>
+            <strong>{{ l.principal|kwacha }}</strong><br>
+            <span class="text-muted">{{ l.status }} • {{ l.issued_on }}</span>
+          </div>
+        </div>
       {% else %}
-      <tr><td colspan="5">No recent loans.</td></tr>
+        <p class="text-muted">No recent loans recorded.</p>
       {% endfor %}
-    </tbody>
-  </table>
-</section>
+    </div>
+  </div>
 
-<section class="panel">
-  <h2>Recent Fines</h2>
-  <table>
-    <thead><tr><th>Category</th><th>Amount</th><th>Balance</th><th>Status</th></tr></thead>
-    <tbody>
+  <div class="col-xl-4">
+    <div class="mp-panel">
+      <h3>Recent Fines</h3>
       {% for f in recent_fines %}
-      <tr>
-        <td>{{ f.category }}</td>
-        <td>{{ f.amount|kwacha }}</td>
-        <td>{{ f.balance|kwacha }}</td>
-        <td>{{ f.status }}</td>
-      </tr>
+        <div class="timeline-item">
+          <div class="timeline-icon watch"><i class="fa-solid fa-triangle-exclamation"></i></div>
+          <div>
+            <strong>{{ f.amount|kwacha }}</strong><br>
+            <span class="text-muted">{{ f.status }}</span>
+          </div>
+        </div>
       {% else %}
-      <tr><td colspan="4">No recent fines.</td></tr>
+        <p class="text-muted">No recent fines recorded.</p>
       {% endfor %}
-    </tbody>
-  </table>
-</section>
+    </div>
+  </div>
+
+</div>
 
 {% endblock %}
