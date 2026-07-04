@@ -25,6 +25,7 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from bank_import import import_bank_statement
 from services.dashboard_service import DashboardService
 from services.member_intelligence_service import MemberIntelligenceService
+from services.loan_intelligence_service import LoanIntelligenceService
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'change-this-secret-key')
@@ -1860,6 +1861,22 @@ def loans():
         issued = parse_date(request.form.get('issued_on'))
         due = parse_date(request.form.get('due_on')) or issued + timedelta(days=30)
 
+        active_loans = Loan.query.filter(
+            Loan.status.in_(["Disbursed", "Partially Paid"])
+        ).all()
+        loan_intelligence = LoanIntelligenceService(
+            total_loans=total_loans,
+            applied_loans=applied_loans,
+            approved_loans=approved_loans,
+            disbursed_loans=disbursed_loans,
+            paid_loans=paid_loans,
+            overdue_loans=overdue_loans,
+            portfolio_balance=portfolio_balance,
+            active_loans=active_loans
+        )
+
+        loan_data = loan_intelligence.build()
+
         l = Loan(
             member_id=int(request.form['member_id']),
             principal=money(request.form['principal']),
@@ -1921,11 +1938,12 @@ def loans():
     portfolio_balance = money(portfolio_balance)
 
     return render_template(
-        'loans.html',
+        "loans.html",
         loans=pagination.items,
         pagination=pagination,
         members=Member.query.order_by(Member.full_name).all(),
         settings=get_settings(),
+
         total_loans=total_loans,
         applied_loans=applied_loans,
         approved_loans=approved_loans,
@@ -1933,6 +1951,8 @@ def loans():
         paid_loans=paid_loans,
         overdue_loans=overdue_loans,
         portfolio_balance=portfolio_balance,
+
+        **loan_data
     )
 
 @app.route('/loans/<int:loan_id>/statement.pdf')

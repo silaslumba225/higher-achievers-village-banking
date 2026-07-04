@@ -157,6 +157,121 @@ Manage lending, monitor portfolio health and support committee decisions.
     </div>
   </div>
 </div>
+<div class="loan-panel">
+  <h3>
+    <i class="fa-solid fa-heart-pulse text-primary"></i>
+    Portfolio Health
+  </h3>
+
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+    <div>
+      <p class="text-muted mb-1">
+        Overall health of the loan portfolio.
+      </p>
+
+      <h2 class="mb-0">
+        {{ portfolio_health_status }}
+      </h2>
+    </div>
+
+    <div class="text-end">
+      <div style="font-size:42px;font-weight:800;">
+        {{ portfolio_health_score }}%
+      </div>
+
+      <span class="badge bg-{{ portfolio_health_colour }}">
+        {{ portfolio_health_status }}
+      </span>
+    </div>
+  </div>
+
+  <div class="progress mt-3" style="height:16px;border-radius:999px;">
+    <div class="progress-bar bg-{{ portfolio_health_colour }}"
+         style="width: {{ portfolio_health_score }}%;">
+    </div>
+  </div>
+</div>
+<div class="loan-panel">
+  <h3>
+    <i class="fa-solid fa-brain text-primary"></i>
+    Higher Achievers Loan Assistant
+  </h3>
+
+  <p class="text-muted">
+    Helpful guidance for managing the loan portfolio.
+  </p>
+
+  {% for item in loan_assistant %}
+  <div class="alert alert-{{ 'danger' if item.level == 'danger' else 'warning' if item.level == 'watch' else 'success' }}">
+    <strong>
+      <i class="fa-solid {{ item.icon }}"></i>
+      {{ item.title }}
+    </strong><br>
+    {{ item.message }}
+  </div>
+  {% endfor %}
+</div>
+<div class="row g-4 mb-4">
+
+  <div class="col-xl-6">
+    <div class="loan-panel h-100">
+      <h3>
+        <i class="fa-solid fa-shield-halved text-primary"></i>
+        Loan Risk Monitor
+      </h3>
+
+      <p class="text-muted">
+        Loans that may need closer attention.
+      </p>
+
+      {% for item in loan_risk_monitor %}
+      <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+        <div>
+          <strong>{{ item.member }}</strong><br>
+          <small class="text-muted">{{ item.loan_no }}</small>
+        </div>
+
+        <span class="badge bg-{{ item.colour }}">
+          {{ item.level }} Risk
+        </span>
+      </div>
+      {% else %}
+      <p class="text-muted mb-0">No active loans to monitor.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="col-xl-6">
+    <div class="loan-panel h-100">
+      <h3>
+        <i class="fa-solid fa-calendar-days text-primary"></i>
+        Collection Calendar
+      </h3>
+
+      <p class="text-muted">
+        Loan repayments due within the next 7 days.
+      </p>
+
+      {% for item in collection_calendar %}
+      <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+        <div>
+          <strong>{{ item.member }}</strong><br>
+          <small class="text-muted">
+            {{ item.loan_no }} • Due {{ item.due_on }}
+          </small>
+        </div>
+
+        <span class="badge bg-primary">
+          {{ item.days }} day(s)
+        </span>
+      </div>
+      {% else %}
+      <p class="text-muted mb-0">No loan repayments due in the next 7 days.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
 
 <div class="row g-4 mb-4">
   <div class="col-xl-2 col-md-4 col-6">
