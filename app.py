@@ -1382,12 +1382,31 @@ def members():
         error_out=False
     )
 
+    total_members = Member.query.count()
+    active_members = Member.query.filter_by(status='Active').count()
+    inactive_members = total_members - active_members
+
+    committee_members = Member.query.filter(
+        Member.committee_position.isnot(None),
+        Member.committee_position != ''
+    ).count()
+
+    new_members_this_month = Member.query.filter(
+        db.func.to_char(Member.created_at, 'YYYY-MM') == date.today().strftime('%Y-%m')
+    ).count()
+
     return render_template(
         'members.html',
         members=pagination.items,
         pagination=pagination,
-        q=q
+        q=q,
+        total_members=total_members,
+        active_members=active_members,
+        inactive_members=inactive_members,
+        committee_members=committee_members,
+        new_members_this_month=new_members_this_month
     )
+
 @app.route('/member/<int:member_id>/savings')
 @login_required
 @role_required('members')
@@ -1473,6 +1492,38 @@ def member_profile(member_id):
     recent_contributions = Contribution.query.filter_by(member_id=member.id).order_by(Contribution.paid_on.desc()).limit(5).all()
     recent_loans = Loan.query.filter_by(member_id=member.id).order_by(Loan.issued_on.desc()).limit(5).all()
     recent_fines = FinePenalty.query.filter_by(member_id=member.id).order_by(FinePenalty.id.desc()).limit(5).all()
+    member_health = "Excellent"
+    member_health_level = "good"
+    member_health_score = 100
+    member_health_message = "This member is in good standing."
+
+    if fine_balance > 0:
+        member_health_score -= 20
+        member_health = "Needs Follow-up"
+        member_health_level = "watch"
+        member_health_message = "This member has unpaid fines or penalties."
+
+    if loan_balance > 0:
+        member_health_score -= 15
+        member_health = "Active Borrower"
+        member_health_level = "watch"
+        member_health_message = "This member currently has an outstanding loan balance."
+
+    if member.status != "Active":
+        member_health_score -= 30
+        member_health = "Inactive"
+        member_health_level = "danger"
+        member_health_message = "This member is currently not active."
+
+    if member_health_score >= 85:
+        member_health = "Excellent Member"
+        member_health_level = "good"
+    elif member_health_score >= 60:
+        member_health = "Needs Follow-up"
+        member_health_level = "watch"
+    else:
+        member_health = "High Attention"
+        member_health_level = "danger"
 
     return render_template(
         'member_profile.html',
@@ -1485,7 +1536,11 @@ def member_profile(member_id):
         welfare_paid=welfare_paid,
         recent_contributions=recent_contributions,
         recent_loans=recent_loans,
-        recent_fines=recent_fines
+        recent_fines=recent_fines,
+        member_health=member_health,
+        member_health_level=member_health_level,
+        member_health_score=member_health_score,
+        member_health_message=member_health_message,
     )
 
 @app.route('/members/new', methods=['GET','POST'])

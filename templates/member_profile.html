@@ -340,5 +340,31 @@
   </div>
 
 </div>
+<div class="mp-panel">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+    <div>
+      <h3>
+        <i class="fa-solid fa-heart-pulse text-primary"></i>
+        Member Health
+      </h3>
+      <p class="text-muted mb-0">{{ member_health_message }}</p>
+    </div>
+
+    <div class="text-end">
+      <div style="font-size:38px;font-weight:800;">
+        {{ member_health_score }}%
+      </div>
+      <span class="status-pill {% if member_health_level == 'good' %}status-active{% else %}status-inactive{% endif %}">
+        {{ member_health }}
+      </span>
+    </div>
+  </div>
+
+  <div class="progress mt-3" style="height:14px;border-radius:999px;">
+    <div class="progress-bar {% if member_health_level == 'good' %}bg-success{% elif member_health_level == 'watch' %}bg-warning{% else %}bg-danger{% endif %}"
+         style="width: {{ member_health_score }}%;">
+    </div>
+  </div>
+</div>
 
 {% endblock %}
