@@ -2851,7 +2851,7 @@ def welfare():
         approved_claims=approved_claims,
         paid_claims=paid_claims,
         this_month_contributions=this_month_contributions,
-        this_month_claims_paid=this_month_claims_paid
+        this_month_claims_paid=this_month_claims_paid,
 
         **welfare_data
     )
