@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 class WelfareIntelligenceService:
 
     def __init__(
@@ -33,7 +35,7 @@ class WelfareIntelligenceService:
         if self.balance <= 0:
             score -= 40
 
-        elif self.balance < self.total_paid * 0.20:
+        elif self.balance < self.total_paid * Decimal("0.20"):
             score -= 20
 
         score = max(score, 0)
