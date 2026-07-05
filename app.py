@@ -1752,38 +1752,21 @@ def members_import():
 
     return render_template('members_import.html', results=results)
 
-@app.route('/contributions', methods=['GET','POST'])
+@app.route('/contributions', methods=['GET', 'POST'])
 @login_required
 @role_required('contributions')
 def contributions():
+
     if request.method == 'POST':
-        c = Contribution(member_id=int(request.form['member_id']), month=request.form['month'], amount=money(request.form['amount']), method=request.form['method'], reference=request.form.get('reference'), paid_on=parse_date(request.form.get('paid_on')))
-        db.session.add(c)
-        db.session.flush()
+        c = Contribution(
+            member_id=int(request.form['member_id']),
+            month=request.form['month'],
+            amount=money(request.form['amount']),
+            method=request.form['method'],
+            reference=request.form.get('reference'),
+            paid_on=parse_date(request.form.get('paid_on'))
+        )
 
-        post_to_cash_book(
-                entry_date=c.paid_on,
-                entry_type='In',
-                category='Member Contribution',
-                amount=c.amount,
-                description=f'{c.member.member_no} - {c.member.full_name}',
-                method=c.method,
-                reference=c.reference,
-                source_type='Contribution',
-                source_id=c.id
-            )
-
-        post_journal(
-                entry_date=c.paid_on,
-                description=f'Member contribution - {c.member.member_no} - {c.member.full_name}',
-                debit_account_code=cash_account(c.method),
-                credit_account_code='2000',
-                amount=c.amount,
-                source_type='Contribution',
-                source_id=c.id
-            )
-
-        db.session.commit()
         db.session.add(c)
         db.session.flush()
 
@@ -1798,6 +1781,7 @@ def contributions():
             source_type='Contribution',
             source_id=c.id
         )
+
         post_journal(
             entry_date=c.paid_on,
             description=f'Member contribution - {c.member.member_no} - {c.member.full_name}',
@@ -1819,23 +1803,56 @@ def contributions():
 
         flash('Contribution recorded.')
         return redirect(url_for('contributions'))
+
     page = request.args.get('page', 1, type=int)
     per_page = 25
 
     pagination = Contribution.query.order_by(
-                Contribution.paid_on.desc()
-            ).paginate(
-                page=page,
-                per_page=per_page,
-                error_out=False
-            )
+        Contribution.paid_on.desc(),
+        Contribution.id.desc()
+    ).paginate(
+        page=page,
+        per_page=per_page,
+        error_out=False
+    )
+
+    today = date.today()
+    current_month = today.strftime('%Y-%m')
+
+    total_savings = money(
+        db.session.query(
+            db.func.coalesce(db.func.sum(Contribution.amount), 0)
+        ).scalar()
+    )
+
+    this_month_savings = money(
+        db.session.query(
+            db.func.coalesce(db.func.sum(Contribution.amount), 0)
+        )
+        .filter(Contribution.month == current_month)
+        .scalar()
+    )
+
+    saved_this_month = db.session.query(
+        Contribution.member_id
+    ).filter(
+        Contribution.month == current_month
+    ).distinct().count()
+
+    total_members = Member.query.count()
+    missing_this_month = max(total_members - saved_this_month, 0)
 
     return render_template(
-                'contributions.html',
-                contributions=pagination.items,
-                pagination=pagination,
-                members=Member.query.order_by(Member.full_name).all()
-            )
+        'contributions.html',
+        contributions=pagination.items,
+        pagination=pagination,
+        members=Member.query.order_by(Member.full_name).all(),
+        total_savings=total_savings,
+        this_month_savings=this_month_savings,
+        saved_this_month=saved_this_month,
+        missing_this_month=missing_this_month
+    )
+
 # ------------------------------------------------------------
 # LOAN PROCESSING WORKFLOW
 #
