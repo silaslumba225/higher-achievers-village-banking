@@ -150,17 +150,244 @@
     }
   }
 </style>
+<section class="panel">
 
-<!-- <div class="accounting-hero">
-  <div>
-    <h2>General Ledger & Accounting</h2>
-    <p>Manage accounts, cash book transactions, journals and financial reports.</p>
+<h2>💼 Financial Intelligence Centre</h2>
+
+<div class="accounting-kpis">
+
+    <div class="accounting-kpi">
+        <span>Cash Position</span>
+        <strong>{{ cash_total|kwacha }}</strong>
+        <em>Cash • Bank • Mobile Money</em>
+    </div>
+
+    <div class="accounting-kpi">
+        <span>Income</span>
+        <strong>{{ income_total|kwacha }}</strong>
+        <em>Total Income</em>
+    </div>
+
+    <div class="accounting-kpi">
+        <span>Expenses</span>
+        <strong>{{ expense_total|kwacha }}</strong>
+        <em>Total Expenses</em>
+    </div>
+
+    <div class="accounting-kpi">
+        <span>Net Surplus</span>
+        <strong>{{ net_surplus|kwacha }}</strong>
+        <em>Income − Expenses</em>
+    </div>
+
+</div>
+
+</section>
+<section class="panel">
+
+  <h2>❤️ Financial Health</h2>
+
+  <h1>{{ financial_health_score }}%</h1>
+
+  <div class="progress" style="height:18px;">
+
+  <div class="progress-bar bg-{{ financial_health_colour }}"
+      style="width:{{ financial_health_score }}%;">
   </div>
 
-  <div class="panel-actions">
-    <a class="btn" href="{{ url_for('export_accounting_csv') }}">Export CSV</a>
   </div>
-</div> -->
+
+  <p style="margin-top:12px;">
+
+  <strong>{{ financial_health_status }}</strong>
+
+  </p>
+
+  </section>
+
+  <section class="panel">
+
+<h2>🤖 Higher Achievers Financial Assistant</h2>
+
+{% for item in financial_assistant %}
+
+<div class="alert alert-{{ item.level }}">
+
+<strong>
+
+<i class="fa-solid {{ item.icon }}"></i>
+
+{{ item.title }}
+
+</strong>
+
+<br>
+
+{{ item.message }}
+
+</div>
+
+{% endfor %}
+
+</section>
+
+<!-- ========================================================= -->
+<!-- Financial Position -->
+<!-- ========================================================= -->
+
+<section class="panel">
+
+    <h2>🏦 Financial Position</h2>
+
+    <div class="accounting-kpis">
+
+        <div class="accounting-kpi">
+            <span>Total Assets</span>
+            <strong>{{ asset_total|kwacha }}</strong>
+            <em>Assets owned by the organisation</em>
+        </div>
+
+        <div class="accounting-kpi">
+            <span>Total Liabilities</span>
+            <strong>{{ liability_total|kwacha }}</strong>
+            <em>Current obligations</em>
+        </div>
+
+        <div class="accounting-kpi">
+            <span>Net Worth</span>
+            <strong>{{ net_worth|kwacha }}</strong>
+            <em>Assets less liabilities</em>
+        </div>
+
+        <div class="accounting-kpi">
+            <span>Asset Cover</span>
+            <strong class="text-{{ asset_cover_colour }}">
+                {{ asset_cover }}
+            </strong>
+            <em>Financial strength</em>
+        </div>
+
+    </div>
+
+</section>
+
+<!-- ========================================================= -->
+<!-- Accounting Integrity -->
+<!-- ========================================================= -->
+
+<section class="panel">
+
+    <h2>⚖️ Accounting Integrity</h2>
+
+    <div class="row">
+
+        <div class="col-md-3">
+
+            <div class="accounting-kpi">
+
+                <span>Integrity Score</span>
+
+                <strong>{{ integrity_score }}%</strong>
+
+                <em>Financial records consistency</em>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-9">
+
+            <ul class="list-group">
+
+                {% for check in integrity_checks %}
+
+                <li class="list-group-item">
+
+                    ✅ {{ check }}
+
+                </li>
+
+                {% endfor %}
+
+            </ul>
+
+        </div>
+
+    </div>
+
+</section>
+
+<!-- ========================================================= -->
+<!-- Liquidity & Financial Ratios -->
+<!-- ========================================================= -->
+
+<section class="panel">
+
+    <h2>💧 Liquidity & Financial Ratios</h2>
+
+    <div class="accounting-kpis">
+
+        <div class="accounting-kpi">
+
+            <span>Cash Reserve</span>
+
+            <strong>{{ cash_months }}</strong>
+
+            <em>Months of operating expenses covered</em>
+
+        </div>
+
+        <div class="accounting-kpi">
+
+            <span>Liquidity</span>
+
+            <strong class="text-{{ liquidity_colour }}">
+                {{ liquidity_status }}
+            </strong>
+
+            <em>Ability to meet short-term obligations</em>
+
+        </div>
+
+        <div class="accounting-kpi">
+
+            <span>Surplus Margin</span>
+
+            <strong>{{ surplus_margin }}%</strong>
+
+            <em>Net surplus as a percentage of income</em>
+
+        </div>
+
+        <div class="accounting-kpi">
+
+            <span>Ledger Status</span>
+
+            {% if total_debits == total_credits %}
+
+                <strong class="text-success">
+
+                    Balanced
+
+                </strong>
+
+            {% else %}
+
+                <strong class="text-danger">
+
+                    Out of Balance
+
+                </strong>
+
+            {% endif %}
+
+            <em>General Ledger health</em>
+
+        </div>
+
+    </div>
+
+</section>
 
 <section>
   <h3 style="margin-bottom: 12px;">Accounting Modules</h3>

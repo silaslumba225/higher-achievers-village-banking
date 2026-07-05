@@ -28,6 +28,7 @@ from services.member_intelligence_service import MemberIntelligenceService
 from services.loan_intelligence_service import LoanIntelligenceService
 from services.welfare_intelligence_service import WelfareIntelligenceService
 from services.meeting_intelligence_service import MeetingIntelligenceService
+from services.financial_intelligence_service import FinancialIntelligenceService
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'change-this-secret-key')
@@ -3856,8 +3857,33 @@ def accounting():
     liability_total = money(sum((b['balance'] for b in balances if b['account'].account_type == 'Liability'), Decimal('0.00')))
     equity_total = money(sum((b['balance'] for b in balances if b['account'].account_type == 'Equity'), Decimal('0.00')))
     cashbook = [b for b in balances if b['account'].code in ['1000','1010','1020']]
+    cash_total = money(
+    sum(
+        (
+            b['balance']
+            for b in cashbook
+        ),
+        Decimal("0.00")
+    )
+)
     log_audit('VIEW_ACCOUNTING', 'Accounting', None, 'General Ledger and Accounting viewed')
-    return render_template('accounting.html', **locals())
+
+    financial_service = FinancialIntelligenceService(
+    cash_total=cash_total,
+    income_total=income_total,
+    expense_total=expense_total,
+    asset_total=asset_total,
+    liability_total=liability_total,
+    equity_total=equity_total,
+    total_debits=total_debits,
+    total_credits=total_credits
+)
+
+    financial_data = financial_service.build()
+
+    return render_template('accounting.html', 
+                           **locals(),
+                           **financial_data)
 
 @app.route('/accounting/cash-book', methods=['GET', 'POST'])
 @login_required
