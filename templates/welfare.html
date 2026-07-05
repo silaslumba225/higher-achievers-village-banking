@@ -3,6 +3,101 @@
 {% block subtitle %}Manage welfare contributions, emergency claims, approvals, payments and fund balance{% endblock %}
 
 {% block content %}
+<div class="row g-3 mb-4">
+
+  <div class="col-md-2">
+    <div class="alert alert-success">
+      <strong>Fund Balance</strong><br>
+      {{ balance|kwacha }}
+    </div>
+  </div>
+
+  <div class="col-md-2">
+    <div class="alert alert-primary">
+      <strong>Total Contributions</strong><br>
+      {{ total_contributions|kwacha }}
+    </div>
+  </div>
+
+  <div class="col-md-2">
+    <div class="alert alert-warning">
+      <strong>Pending Claims</strong><br>
+      {{ pending_claims }}
+    </div>
+  </div>
+
+  <div class="col-md-2">
+    <div class="alert alert-info">
+      <strong>Approved</strong><br>
+      {{ approved_claims }}
+    </div>
+  </div>
+
+  <div class="col-md-2">
+    <div class="alert alert-secondary">
+      <strong>Paid Claims</strong><br>
+      {{ paid_claims }}
+    </div>
+  </div>
+
+  <div class="col-md-2">
+    <div class="alert alert-dark">
+      <strong>This Month</strong><br>
+      {{ this_month_contributions|kwacha }}
+    </div>
+  </div>
+
+</div>
+<div class="panel mb-4">
+
+<h2>
+<i class="fa-solid fa-heart-pulse text-danger"></i>
+Welfare Health
+</h2>
+
+{% if balance > approved_not_paid %}
+<div class="alert alert-success">
+<strong>Healthy</strong><br>
+The welfare fund currently has sufficient resources to support approved claims.
+</div>
+{% else %}
+<div class="alert alert-warning">
+<strong>Attention Required</strong><br>
+Approved claims are approaching the available welfare balance.
+</div>
+{% endif %}
+
+</div>
+<div class="panel mb-4">
+
+<h2>
+<i class="fa-solid fa-brain text-primary"></i>
+Higher Achievers Welfare Assistant
+</h2>
+
+{% if pending_claims > 0 %}
+<div class="alert alert-warning">
+{{ pending_claims }} claim(s) are waiting for committee review.
+</div>
+{% else %}
+<div class="alert alert-success">
+There are no pending welfare claims.
+</div>
+{% endif %}
+
+{% if balance <= 0 %}
+<div class="alert alert-danger">
+The welfare fund has no available balance.
+</div>
+{% endif %}
+
+{% if this_month_contributions > this_month_claims_paid %}
+<div class="alert alert-info">
+This month's contributions currently exceed this month's welfare payments.
+</div>
+{% endif %}
+
+</div>
 <section class="kpi-grid">
   <div class="kpi"><span>Total Welfare Contributions</span><strong>{{ total_contributions|kwacha }}</strong><em>Separate from monthly savings</em></div>
   <div class="kpi"><span>Welfare Support Paid</span><strong>{{ total_paid|kwacha }}</strong><em>Approved and paid claims</em></div>
@@ -38,6 +133,42 @@
       <button type="submit">Record Contribution</button>
     </form>
   </div>
+  <div class="panel mb-4">
+
+<h2>
+  <i class="fa-solid fa-list-check text-primary"></i>
+  Claims Awaiting Review
+  </h2>
+
+  {% for claim in claims if claim.status == 'Pending' %}
+
+  <div class="d-flex justify-content-between border-bottom py-2">
+
+  <div>
+
+  <strong>{{ claim.member.full_name }}</strong><br>
+
+  <small>{{ claim.category }}</small>
+
+  </div>
+
+  <div>
+
+  {{ claim.amount_requested|kwacha }}
+
+  </div>
+
+  </div>
+
+  {% else %}
+
+  <p class="text-muted">
+  No pending claims.
+  </p>
+
+  {% endfor %}
+
+</div>
 
   <div class="panel">
     <h2>Create Welfare Claim</h2>

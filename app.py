@@ -2802,8 +2802,28 @@ def welfare():
     total_paid = money(db.session.query(db.func.coalesce(db.func.sum(WelfareClaim.amount_approved), 0)).filter(WelfareClaim.status == 'Paid').scalar())
     approved_not_paid = money(db.session.query(db.func.coalesce(db.func.sum(WelfareClaim.amount_approved), 0)).filter(WelfareClaim.status == 'Approved').scalar())
     balance = money(total_contributions - total_paid)
+    
+    pending_claims = WelfareClaim.query.filter_by(status='Pending').count()
+    approved_claims = WelfareClaim.query.filter_by(status='Approved').count()
+    paid_claims = WelfareClaim.query.filter_by(status='Paid').count()
+
+    this_month = date.today().strftime('%Y-%m')
+
+    this_month_contributions = money(
+        db.session.query(db.func.coalesce(db.func.sum(WelfareContribution.amount), 0))
+        .filter(WelfareContribution.month == this_month)
+        .scalar()
+    )
+
+    this_month_claims_paid = money(
+        db.session.query(db.func.coalesce(db.func.sum(WelfareClaim.amount_approved), 0))
+        .filter(WelfareClaim.status == 'Paid')
+        .scalar()
+    )
+    
+    
     return render_template(
-        'welfare.html',
+    'welfare.html',
         claims=claims,
         contributions=contributions,
         members=members,
@@ -2813,7 +2833,12 @@ def welfare():
         total_contributions=total_contributions,
         total_paid=total_paid,
         approved_not_paid=approved_not_paid,
-        balance=balance
+        balance=balance,
+        pending_claims=pending_claims,
+        approved_claims=approved_claims,
+        paid_claims=paid_claims,
+        this_month_contributions=this_month_contributions,
+        this_month_claims_paid=this_month_claims_paid
     )
 
 @app.route('/welfare/claims/<int:claim_id>/review', methods=['POST'])
