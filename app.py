@@ -27,6 +27,7 @@ from services.dashboard_service import DashboardService
 from services.member_intelligence_service import MemberIntelligenceService
 from services.loan_intelligence_service import LoanIntelligenceService
 from services.welfare_intelligence_service import WelfareIntelligenceService
+from services.meeting_intelligence_service import MeetingIntelligenceService
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'change-this-secret-key')
@@ -2979,12 +2980,81 @@ def meetings():
     error_out=False
     )
 
+    today = date.today()
+
+    total_meetings = Meeting.query.count()
+
+    next_meeting = Meeting.query.filter(
+        Meeting.meeting_date >= today
+    ).order_by(
+        Meeting.meeting_date.asc()
+    ).first()
+
+    meetings_this_year = Meeting.query.filter(
+        db.extract('year', Meeting.meeting_date) == today.year
+    ).count()
+
+    average_attendance = db.session.query(
+        db.func.coalesce(db.func.avg(Meeting.attendance_count), 0)
+    ).scalar()
+
+    latest_meeting = Meeting.query.order_by(
+        Meeting.meeting_date.desc(),
+        Meeting.id.desc()
+    ).first()
+
+    today = date.today()
+
+    next_meeting = Meeting.query.filter(
+        Meeting.meeting_date >= today
+    ).order_by(
+        Meeting.meeting_date.asc()
+    ).first()
+
+    meetings_this_year = Meeting.query.filter(
+        db.extract('year', Meeting.meeting_date) == today.year
+    ).count()
+
+    total_meetings = Meeting.query.count()
+
+    average_attendance = db.session.query(
+        db.func.coalesce(db.func.avg(Meeting.attendance_count), 0)
+    ).scalar()
+
+    pending_resolutions = Meeting.query.filter(
+        Meeting.resolutions != None,
+        Meeting.resolutions != ''
+    ).count()
+
+    days_to_next = None
+
+    if next_meeting:
+        days_to_next = (
+            next_meeting.meeting_date - today
+        ).days
+
+    meeting_service = MeetingIntelligenceService(
+    next_meeting=next_meeting,
+    days_to_next=days_to_next,
+    average_attendance=average_attendance,
+    pending_resolutions=pending_resolutions,
+    meetings_this_year=meetings_this_year
+)
+
+    meeting_data = meeting_service.build()
+
     return render_template(
     'meetings.html',
     meetings=pagination.items,
-    pagination=pagination
-)
+    pagination=pagination,
 
+    next_meeting=next_meeting,
+    days_to_next=days_to_next,
+    meetings_this_year=meetings_this_year,
+    total_meetings=total_meetings,
+    average_attendance=round(average_attendance or 0),
+    pending_resolutions=pending_resolutions
+)
 
 
 @app.route('/attendance')
