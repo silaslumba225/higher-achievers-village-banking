@@ -26,6 +26,7 @@ from bank_import import import_bank_statement
 from services.dashboard_service import DashboardService
 from services.member_intelligence_service import MemberIntelligenceService
 from services.loan_intelligence_service import LoanIntelligenceService
+from services.welfare_intelligence_service import WelfareIntelligenceService
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'change-this-secret-key')
@@ -2821,6 +2822,18 @@ def welfare():
         .scalar()
     )
     
+    welfare_service = WelfareIntelligenceService(
+        balance=balance,
+        total_contributions=total_contributions,
+        total_paid=total_paid,
+        pending_claims=pending_claims,
+        approved_claims=approved_claims,
+        paid_claims=paid_claims,
+        this_month_contributions=this_month_contributions,
+        this_month_claims_paid=this_month_claims_paid
+    )
+
+    welfare_data = welfare_service.build()
     
     return render_template(
     'welfare.html',
@@ -2839,6 +2852,8 @@ def welfare():
         paid_claims=paid_claims,
         this_month_contributions=this_month_contributions,
         this_month_claims_paid=this_month_claims_paid
+
+        **welfare_data
     )
 
 @app.route('/welfare/claims/<int:claim_id>/review', methods=['POST'])
