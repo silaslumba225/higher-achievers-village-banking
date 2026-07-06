@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Journal Adjustment{% endblock %}
+{% block subtitle %}Correct a misposted journal line without editing history{% endblock %}
+
+{% block content %}
+
+<section class="panel">
+  <div class="actions">
+    <a class="btn" href="{{ url_for('ledger_inquiry') }}">← Back to Ledger Inquiry</a>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Original Posting</h2>
+
+  <table>
+    <tbody>
+      <tr>
+        <th>Date</th>
+        <td>{{ original_entry.entry_date }}</td>
+      </tr>
+      <tr>
+        <th>Description</th>
+        <td>{{ original_entry.description }}</td>
+      </tr>
+      <tr>
+        <th>Account Posted</th>
+        <td>{{ original_line.account.code }} - {{ original_line.account.name }}</td>
+      </tr>
+      <tr>
+        <th>Debit</th>
+        <td>{{ original_line.debit|kwacha }}</td>
+      </tr>
+      <tr>
+        <th>Credit</th>
+        <td>{{ original_line.credit|kwacha }}</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="panel">
+  <h2>Post Adjustment</h2>
+
+  <form method="post" class="form-grid">
+    <label>Correct Account
+      <select name="correct_account_id" required>
+        {% for a in accounts %}
+          <option value="{{ a.id }}">
+            {{ a.code }} - {{ a.name }} ({{ a.account_type }})
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>Reason for Adjustment
+      <textarea name="reason" required placeholder="Example: Reclassify stationery expense wrongly posted to loan receivable"></textarea>
+    </label>
+
+    <button class="btn primary" type="submit">
+      Post Adjustment
+    </button>
+  </form>
+</section>
+
+{% endblock %}

@@ -3262,6 +3262,78 @@ def ledger_inquiry():
         end=end
     )
 
+@app.route('/accounting/journal-adjustment/<int:journal_line_id>', methods=['GET', 'POST'])
+@login_required
+@role_required('accounting')
+def journal_adjustment(journal_line_id):
+    original_line = JournalLine.query.get_or_404(journal_line_id)
+    original_entry = original_line.entry
+
+    accounts = Account.query.filter_by(active=True).order_by(Account.code).all()
+
+    if request.method == 'POST':
+        correct_account = Account.query.get_or_404(
+            int(request.form.get('correct_account_id'))
+        )
+
+        reason = request.form.get('reason', '').strip()
+
+        if not reason:
+            flash('Reason for adjustment is required.', 'error')
+            return redirect(url_for('journal_adjustment', journal_line_id=journal_line_id))
+
+        amount = money(original_line.debit or original_line.credit)
+
+        wrong_account = original_line.account
+
+        # Reclassification adjustment only:
+        # If original line was Debit to wrong account:
+        # Dr correct account, Cr wrong account
+        # If original line was Credit to wrong account:
+        # Dr wrong account, Cr correct account
+
+        if original_line.debit and original_line.debit > 0:
+            debit_account = correct_account
+            credit_account = wrong_account
+        else:
+            debit_account = wrong_account
+            credit_account = correct_account
+
+        adjustment = post_journal(
+            entry_date=date.today(),
+            description=f'Adjustment of JE {original_entry.id}: {reason}',
+            reference=f'ADJ-{original_entry.id}-{original_line.id}',
+            source_type='JournalAdjustment',
+            source_id=original_line.id,
+            lines=[
+                {
+                    'account': debit_account,
+                    'debit': amount
+                },
+                {
+                    'account': credit_account,
+                    'credit': amount
+                }
+            ]
+        )
+
+        log_audit(
+            'POST_JOURNAL_ADJUSTMENT',
+            'JournalEntry',
+            adjustment.id if adjustment else None,
+            f'Adjusted journal line {original_line.id}: {wrong_account.code} to {correct_account.code}. Reason: {reason}'
+        )
+
+        flash('Journal adjustment posted successfully.')
+        return redirect(url_for('ledger_inquiry'))
+
+    return render_template(
+        'journal_adjustment.html',
+        original_line=original_line,
+        original_entry=original_entry,
+        accounts=accounts
+    )
+
 @app.route('/accounting/bank-reconciliation', methods=['GET', 'POST'])
 @login_required
 @role_required('accounting')

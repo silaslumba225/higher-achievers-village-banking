@@ -106,6 +106,8 @@ Journal Posting Audit Trail
 
 <th>User</th>
 
+<th>Action</th>
+
 </tr>
 
 </thead>
@@ -166,6 +168,11 @@ Journal Posting Audit Trail
 
 {{ e.entry.posted_by }}
 
+</td>
+<td>
+  <a class="btn small" href="{{ url_for('journal_adjustment', journal_line_id=e.id) }}">
+    Adjust
+  </a>
 </td>
 
 </tr>
