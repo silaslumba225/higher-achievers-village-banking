@@ -9,6 +9,15 @@ Audit every journal posting
 {% endblock %}
 
 {% block content %}
+<div class="actions">
+  <a class="btn primary" href="{{ url_for('accounting') }}#manual-journal">
+    Pass Correcting Journal
+  </a>
+
+  <a class="btn" href="{{ url_for('accounting') }}">
+    Back to Accounting
+  </a>
+</div>
 <section class="panel">
 
 <form method="get" class="form-grid">
