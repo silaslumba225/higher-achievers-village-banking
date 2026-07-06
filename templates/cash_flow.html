@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block page_title %}Cash Flow Statement{% endblock %}
-{% block subtitle %}Statement of Cash Flows (Direct Method){% endblock %}
+{% block subtitle %}Direct Method Cash Flow Statement{% endblock %}
 
 {% block content %}
 
@@ -15,9 +15,9 @@
 
 <section class="panel">
 
-    <h2>Statement of Cash Flows</h2>
+    <h2>Cash Flow Statement</h2>
 
-    <table>
+    <table class="table">
 
         <thead>
 
@@ -33,10 +33,10 @@
 
         <tbody>
 
-            <tr>
+            <tr class="table-primary">
 
                 <th colspan="2">
-                    Operating Activities – Cash Received
+                    Operating Cash Inflows
                 </th>
 
             </tr>
@@ -55,7 +55,7 @@
 
             {% endfor %}
 
-            <tr>
+            <tr class="table-success">
 
                 <th>Total Cash Received</th>
 
@@ -71,10 +71,10 @@
 
             </tr>
 
-            <tr>
+            <tr class="table-primary">
 
                 <th colspan="2">
-                    Operating Activities – Cash Paid
+                    Operating Cash Outflows
                 </th>
 
             </tr>
@@ -93,7 +93,7 @@
 
             {% endfor %}
 
-            <tr>
+            <tr class="table-danger">
 
                 <th>Total Cash Paid</th>
 
@@ -109,7 +109,7 @@
 
             </tr>
 
-            <tr>
+            <tr class="table-warning">
 
                 <th>Net Cash Flow</th>
 
