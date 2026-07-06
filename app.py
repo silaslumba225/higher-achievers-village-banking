@@ -3960,7 +3960,8 @@ def cash_book():
     accounts = Account.query.filter(
         ~Account.code.in_(['1000', '1010', '1020'])
     ).order_by(Account.code).all()
-
+    
+    
     return render_template(
         'cash_book.html',
         entries=entries,
@@ -4046,11 +4047,11 @@ def balance_sheet():
     for b in balances:
         account = b['account']
 
-    if account.account_type == 'Income':
-        income += b['balance']
+        if account.account_type == 'Income':
+            income += b['balance']
 
-    elif account.account_type == 'Expense':
-        expenses += b['balance']
+        elif account.account_type == 'Expense':
+            expenses += b['balance']
 
     current_surplus = money(income - expenses)
 
@@ -4072,10 +4073,9 @@ def balance_sheet():
     total_assets = money(total_cash + loans_receivable)
 
     total_liabilities = money(member_savings + welfare_fund)
-    total_equity = money(
-        accumulated_surplus +
-        current_surplus
-        )
+
+    total_equity = money(accumulated_surplus + current_surplus)
+
     total_liabilities_equity = money(total_liabilities + total_equity)
 
     difference = money(total_assets - total_liabilities_equity)
@@ -4092,73 +4092,67 @@ def balance_sheet():
         welfare_fund=welfare_fund,
         total_liabilities=total_liabilities,
         accumulated_surplus=accumulated_surplus,
+        current_surplus=current_surplus,
         total_equity=total_equity,
         total_liabilities_equity=total_liabilities_equity,
-        current_surplus=current_surplus,
         difference=difference
     )
+
 @app.route('/accounting/cash-flow')
 @login_required
 @role_required('accounting')
 def cash_flow_statement():
+    entries = CashBookEntry.query.order_by(
+        CashBookEntry.entry_date.asc(),
+        CashBookEntry.id.asc()
+    ).all()
 
-    contributions_cash = money(
-        db.session.query(db.func.coalesce(db.func.sum(Contribution.amount), 0)).scalar()
-    )
-
-    loan_repayments_cash = money(
-        db.session.query(db.func.coalesce(db.func.sum(Repayment.amount), 0)).scalar()
-    )
-
-    fine_payments_cash = money(
-        db.session.query(db.func.coalesce(db.func.sum(FinePayment.amount), 0)).scalar()
-    )
-
-    welfare_contributions_cash = money(
-        db.session.query(db.func.coalesce(db.func.sum(WelfareContribution.amount), 0)).scalar()
-    )
-
-    loan_disbursements_cash = money(
-        db.session.query(db.func.coalesce(db.func.sum(Loan.principal), 0)).scalar()
-    )
-
-    distributions_cash = money(
-        db.session.query(db.func.coalesce(db.func.sum(Distribution.amount), 0)).scalar()
-    )
-
-    welfare_payments_cash = money(
-        db.session.query(db.func.coalesce(db.func.sum(WelfareClaim.amount_approved), 0))
-        .filter(WelfareClaim.status == 'Paid')
-        .scalar()
-    )
+    cash_in_entries = [e for e in entries if e.entry_type == 'In']
+    cash_out_entries = [e for e in entries if e.entry_type == 'Out']
 
     total_cash_in = money(
-        contributions_cash
-        + loan_repayments_cash
-        + fine_payments_cash
-        + welfare_contributions_cash
+        sum((e.amount for e in cash_in_entries), Decimal('0.00'))
     )
 
     total_cash_out = money(
-        loan_disbursements_cash
-        + distributions_cash
-        + welfare_payments_cash
+        sum((e.amount for e in cash_out_entries), Decimal('0.00'))
     )
 
     net_cash_flow = money(total_cash_in - total_cash_out)
 
+    cash_in_by_category = {}
+    cash_out_by_category = {}
+
+    for e in cash_in_entries:
+        category = e.category or 'Unclassified Income'
+        cash_in_by_category[category] = money(
+            cash_in_by_category.get(category, Decimal('0.00')) + e.amount
+        )
+
+    for e in cash_out_entries:
+        category = e.category or 'Unclassified Payments'
+        cash_out_by_category[category] = money(
+            cash_out_by_category.get(category, Decimal('0.00')) + e.amount
+        )
+
+    opening_cash_balance = Decimal("0.00")
+
+    closing_cash_balance = net_cash_flow
+
+    cash_reconciliation_difference = money(
+        closing_cash_balance - net_cash_flow
+    )
+
     return render_template(
         'cash_flow.html',
-        contributions_cash=contributions_cash,
-        loan_repayments_cash=loan_repayments_cash,
-        fine_payments_cash=fine_payments_cash,
-        welfare_contributions_cash=welfare_contributions_cash,
-        loan_disbursements_cash=loan_disbursements_cash,
-        distributions_cash=distributions_cash,
-        welfare_payments_cash=welfare_payments_cash,
+        cash_in_by_category=cash_in_by_category,
+        cash_out_by_category=cash_out_by_category,
         total_cash_in=total_cash_in,
         total_cash_out=total_cash_out,
-        net_cash_flow=net_cash_flow
+        net_cash_flow=net_cash_flow,
+        opening_cash_balance=opening_cash_balance,
+        closing_cash_balance=closing_cash_balance,
+        cash_reconciliation_difference=cash_reconciliation_difference
     )
 
 @app.route('/export/accounting.csv')

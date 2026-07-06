@@ -1,91 +1,239 @@
 {% extends 'base.html' %}
+
 {% block page_title %}Cash Flow Statement{% endblock %}
-{% block subtitle %}Cash inflows, cash outflows and net cash movement{% endblock %}
+{% block subtitle %}Statement of Cash Flows (Direct Method){% endblock %}
 
 {% block content %}
 
 <section class="panel">
-  <div class="actions">
-    <a class="btn" href="{{ url_for('accounting') }}">← Back to Accounting</a>
-  </div>
+    <div class="actions">
+        <a class="btn" href="{{ url_for('accounting') }}">
+            ← Back to Accounting
+        </a>
+    </div>
 </section>
 
 <section class="panel">
-  <h2>Cash Flow Statement</h2>
 
-  <table>
-    <tbody>
-      <tr>
-        <th colspan="2">Cash Inflows</th>
-      </tr>
+    <h2>Statement of Cash Flows</h2>
 
-      <tr>
-        <td>Member Contributions</td>
-        <td>{{ contributions_cash|kwacha }}</td>
-      </tr>
+    <table>
 
-      <tr>
-        <td>Loan Repayments</td>
-        <td>{{ loan_repayments_cash|kwacha }}</td>
-      </tr>
+        <thead>
 
-      <tr>
-        <td>Fine Payments</td>
-        <td>{{ fine_payments_cash|kwacha }}</td>
-      </tr>
+            <tr>
 
-      <tr>
-        <td>Welfare Contributions</td>
-        <td>{{ welfare_contributions_cash|kwacha }}</td>
-      </tr>
+                <th>Description</th>
 
-      <tr>
-        <th>Total Cash In</th>
-        <th>{{ total_cash_in|kwacha }}</th>
-      </tr>
+                <th class="text-end">Amount</th>
 
-      <tr>
-        <td colspan="2">&nbsp;</td>
-      </tr>
+            </tr>
 
-      <tr>
-        <th colspan="2">Cash Outflows</th>
-      </tr>
+        </thead>
 
-      <tr>
-        <td>Loan Disbursements</td>
-        <td>{{ loan_disbursements_cash|kwacha }}</td>
-      </tr>
+        <tbody>
 
-      <tr>
-        <td>Distributions / Share-Out Payments</td>
-        <td>{{ distributions_cash|kwacha }}</td>
-      </tr>
+            <tr>
 
-      <tr>
-        <td>Welfare Payments</td>
-        <td>{{ welfare_payments_cash|kwacha }}</td>
-      </tr>
+                <th colspan="2">
+                    Operating Activities – Cash Received
+                </th>
 
-      <tr>
-        <th>Total Cash Out</th>
-        <th>{{ total_cash_out|kwacha }}</th>
-      </tr>
+            </tr>
 
-      <tr>
-        <td colspan="2">&nbsp;</td>
-      </tr>
+            {% for category, amount in cash_in_by_category.items() %}
 
-      <tr>
-        <th>Net Cash Flow</th>
-        <th>
-          <span class="{% if net_cash_flow >= 0 %}good-text{% else %}bad-text{% endif %}">
-            {{ net_cash_flow|kwacha }}
-          </span>
-        </th>
-      </tr>
-    </tbody>
-  </table>
+            <tr>
+
+                <td>{{ category }}</td>
+
+                <td class="text-end">
+                    {{ amount|kwacha }}
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+            <tr>
+
+                <th>Total Cash Received</th>
+
+                <th class="text-end">
+                    {{ total_cash_in|kwacha }}
+                </th>
+
+            </tr>
+
+            <tr>
+
+                <td colspan="2">&nbsp;</td>
+
+            </tr>
+
+            <tr>
+
+                <th colspan="2">
+                    Operating Activities – Cash Paid
+                </th>
+
+            </tr>
+
+            {% for category, amount in cash_out_by_category.items() %}
+
+            <tr>
+
+                <td>{{ category }}</td>
+
+                <td class="text-end">
+                    {{ amount|kwacha }}
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+            <tr>
+
+                <th>Total Cash Paid</th>
+
+                <th class="text-end">
+                    {{ total_cash_out|kwacha }}
+                </th>
+
+            </tr>
+
+            <tr>
+
+                <td colspan="2">&nbsp;</td>
+
+            </tr>
+
+            <tr>
+
+                <th>Net Cash Flow</th>
+
+                <th class="text-end">
+
+                    <span class="{% if net_cash_flow >= 0 %}good-text{% else %}bad-text{% endif %}">
+
+                        {{ net_cash_flow|kwacha }}
+
+                    </span>
+
+                </th>
+
+            </tr>
+
+        </tbody>
+
+    </table>
+
+</section>
+
+<section class="panel">
+
+    <h2>Cash Flow Summary</h2>
+
+    <div class="accounting-kpis">
+
+        <div class="accounting-kpi">
+
+            <span>Total Cash Received</span>
+
+            <strong>{{ total_cash_in|kwacha }}</strong>
+
+        </div>
+
+        <div class="accounting-kpi">
+
+            <span>Total Cash Paid</span>
+
+            <strong>{{ total_cash_out|kwacha }}</strong>
+
+        </div>
+
+        <div class="accounting-kpi">
+
+            <span>Net Cash Flow</span>
+
+            <strong>
+
+                {{ net_cash_flow|kwacha }}
+
+            </strong>
+
+        </div>
+
+        <div class="accounting-kpi">
+
+            <span>Status</span>
+
+            {% if net_cash_flow >= 0 %}
+
+                <strong class="good-text">
+
+                    Positive
+
+                </strong>
+
+            {% else %}
+
+                <strong class="bad-text">
+
+                    Negative
+
+                </strong>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</section>
+<section class="panel">
+
+    <h2>Cash Reconciliation</h2>
+
+    <table>
+        <tbody>
+            <tr>
+                <td>Opening Cash Balance</td>
+                <td class="text-end">{{ opening_cash_balance|kwacha }}</td>
+            </tr>
+
+            <tr>
+                <td>Add: Net Cash Flow</td>
+                <td class="text-end">{{ net_cash_flow|kwacha }}</td>
+            </tr>
+
+            <tr>
+                <th>Closing Cash Balance</th>
+                <th class="text-end">{{ closing_cash_balance|kwacha }}</th>
+            </tr>
+
+            <tr>
+                <td>Reconciliation Difference</td>
+                <td class="text-end">
+                    <span class="{% if cash_reconciliation_difference == 0 %}good-text{% else %}bad-text{% endif %}">
+                        {{ cash_reconciliation_difference|kwacha }}
+                    </span>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    {% if cash_reconciliation_difference == 0 %}
+        <div class="alert alert-success mt-3">
+            Cash Flow Statement reconciles successfully.
+        </div>
+    {% else %}
+        <div class="alert alert-warning mt-3">
+            Cash Flow Statement does not reconcile. Please review Cash Book entries.
+        </div>
+    {% endif %}
+
 </section>
 
 {% endblock %}

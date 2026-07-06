@@ -372,7 +372,7 @@
                 </strong>
 
             {% else %}
-
+ 
                 <strong class="text-danger">
 
                     Out of Balance
@@ -529,7 +529,7 @@
           </tr>
         </thead>
         <tbody>
-          {% for account in accounts[:10] %}
+          {% for account in account %}
           <tr>
             <td><strong>{{ account.code }}</strong></td>
             <td>{{ account.name }}</td>
@@ -593,6 +593,7 @@
   </div>
 
   <form method="post" class="form-grid">
+    <input type="hidden" name="action" value="account">
     <label>Account Code
       <input name="code" placeholder="Example: 5050" required>
     </label>
