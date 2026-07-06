@@ -3206,6 +3206,61 @@ def reports():
         arrears_pagination=arrears_pagination,
         open_loans=open_loans
     )
+@app.route('/accounting/ledger-inquiry')
+@login_required
+@role_required('accounting')
+def ledger_inquiry():
+
+    account_id = request.args.get('account_id', type=int)
+    source = request.args.get('source', '').strip()
+    start = request.args.get('start')
+    end = request.args.get('end')
+
+    query = JournalLine.query.join(JournalEntry).join(Account)
+
+    if account_id:
+        query = query.filter(JournalLine.account_id == account_id)
+
+    if source:
+        query = query.filter(JournalEntry.source_type == source)
+
+    if start:
+        query = query.filter(
+            JournalEntry.entry_date >= parse_date(start)
+        )
+
+    if end:
+        query = query.filter(
+            JournalEntry.entry_date <= parse_date(end)
+        )
+
+    entries = query.order_by(
+        JournalEntry.entry_date.desc(),
+        JournalEntry.id.desc(),
+        JournalLine.id.desc()
+    ).all()
+
+    accounts = Account.query.filter_by(active=True).order_by(Account.code).all()
+
+    total_debit = money(
+        sum((e.debit for e in entries), Decimal('0.00'))
+    )
+
+    total_credit = money(
+        sum((e.credit for e in entries), Decimal('0.00'))
+    )
+
+    return render_template(
+        'ledger_inquiry.html',
+        entries=entries,
+        accounts=accounts,
+        total_debit=total_debit,
+        total_credit=total_credit,
+        account_id=account_id,
+        source=source,
+        start=start,
+        end=end
+    )
 
 @app.route('/accounting/bank-reconciliation', methods=['GET', 'POST'])
 @login_required
