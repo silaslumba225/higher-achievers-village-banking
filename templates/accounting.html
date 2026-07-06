@@ -645,5 +645,135 @@
     <button class="btn primary" type="submit">Create Account</button>
   </form>
 </section>
+<section class="panel" id="manual-journal">
+
+<div class="panel-head">
+
+<div>
+
+<h2>Manual Journal Entry</h2>
+
+<p>
+Pass correcting journals, year-end adjustments and audit adjustments.
+</p>
+
+</div>
+
+</div>
+
+<form method="post" class="form-grid">
+
+<input type="hidden" name="action" value="journal">
+
+<label>
+
+Journal Date
+
+<input
+type="date"
+name="entry_date"
+required>
+
+</label>
+
+<label>
+
+Reference
+
+<input
+name="reference"
+placeholder="JV-001">
+
+</label>
+
+<label style="grid-column:span 2">
+
+Description
+
+<input
+name="description"
+required>
+
+</label>
+
+<label>
+
+Debit Account
+
+<select
+name="debit_account_id"
+required>
+
+<option value="">
+Select...
+</option>
+
+{% for a in accounts %}
+
+<option value="{{ a.id }}">
+
+{{ a.code }} - {{ a.name }}
+
+</option>
+
+{% endfor %}
+
+</select>
+
+</label>
+
+<label>
+
+Credit Account
+
+<select
+name="credit_account_id"
+required>
+
+<option value="">
+Select...
+</option>
+
+{% for a in accounts %}
+
+<option value="{{ a.id }}">
+
+{{ a.code }} - {{ a.name }}
+
+</option>
+
+{% endfor %}
+
+</select>
+
+</label>
+
+<label>
+
+Amount
+
+<input
+type="number"
+step="0.01"
+name="amount"
+required>
+
+</label>
+
+<div style="align-self:end">
+
+<button
+class="btn primary"
+type="submit">
+
+Post Journal
+
+</button>
+
+</div>
+
+</form>
+
+</section>
 
 {% endblock %}
