@@ -3377,6 +3377,68 @@ def accounting_control_centre():
         accounting_status = "No Activity Yet"
         accounting_status_level = "watch"
 
+    integrity_issues = []
+    integrity_checks = []
+
+    # 1. Unbalanced journals
+    if journals_requiring_review > 0:
+        integrity_issues.append(
+            f'{journals_requiring_review} unbalanced journal(s) found.'
+        )
+    else:
+        integrity_checks.append('All journals are balanced.')
+
+    # 2. Cash Book entries without journals
+    cashbook_without_journal = []
+
+    for cb in CashBookEntry.query.all():
+        exists = JournalEntry.query.filter_by(
+            source_type='CashBook',
+            source_id=str(cb.id)
+        ).first()
+
+        if not exists:
+            cashbook_without_journal.append(cb)
+
+    if cashbook_without_journal:
+        integrity_issues.append(
+            f'{len(cashbook_without_journal)} Cash Book entr(y/ies) have no journal.'
+        )
+    else:
+        integrity_checks.append('All Cash Book entries have matching journals.')
+
+    # 3. Journal entries without lines
+    journals_without_lines = []
+
+    for journal in journals:
+        if not journal.lines:
+            journals_without_lines.append(journal)
+
+    if journals_without_lines:
+        integrity_issues.append(
+            f'{len(journals_without_lines)} journal entr(y/ies) have no lines.'
+        )
+    else:
+        integrity_checks.append('All journals have posting lines.')
+
+    # 4. Trial balance check
+    if total_debit == total_credit:
+        integrity_checks.append('Trial Balance agrees.')
+    else:
+        integrity_issues.append('Trial Balance does not agree.')
+
+    # Accounting health score
+    integrity_score = max(100 - (len(integrity_issues) * 20), 0)
+
+    if integrity_score >= 90:
+        integrity_status = 'Excellent'
+    elif integrity_score >= 70:
+        integrity_status = 'Good'
+    elif integrity_score >= 50:
+        integrity_status = 'Needs Attention'
+    else:
+        integrity_status = 'Critical'
+
     return render_template(
         'accounting_control_centre.html',
         journal_entries_count=journal_entries_count,

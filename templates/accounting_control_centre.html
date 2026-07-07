@@ -93,5 +93,33 @@
     </a>
   </div>
 </section>
+<section class="panel">
+  <h2>Accounting Integrity Checker</h2>
+
+  <h1>{{ integrity_score }}%</h1>
+  <p><strong>{{ integrity_status }}</strong></p>
+
+  {% if integrity_checks %}
+    <h3>Passed Checks</h3>
+    <ul>
+      {% for check in integrity_checks %}
+        <li>✅ {{ check }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  {% if integrity_issues %}
+    <h3>Issues Found</h3>
+    <ul>
+      {% for issue in integrity_issues %}
+        <li>⚠️ {{ issue }}</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="good-text">
+      No accounting integrity issues detected.
+    </p>
+  {% endif %}
+</section>
 
 {% endblock %}
