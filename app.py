@@ -3330,6 +3330,66 @@ def journal_adjustment(journal_line_id):
         original_entry=original_entry,
         accounts=accounts
     )
+@app.route('/accounting/control-centre')
+@login_required
+@role_required('accounting')
+def accounting_control_centre():
+    journal_entries_count = JournalEntry.query.count()
+    journal_lines_count = JournalLine.query.count()
+    cashbook_entries_count = CashBookEntry.query.count()
+    active_accounts_count = Account.query.filter_by(active=True).count()
+
+    manual_adjustments_count = JournalEntry.query.filter_by(
+        source_type='ManualAdjustment'
+    ).count()
+
+    journals = JournalEntry.query.all()
+
+    balanced_journals = 0
+    journals_requiring_review = 0
+
+    for journal in journals:
+        debit_total = money(
+            sum((line.debit for line in journal.lines), Decimal('0.00'))
+        )
+
+        credit_total = money(
+            sum((line.credit for line in journal.lines), Decimal('0.00'))
+        )
+
+        if debit_total == credit_total:
+            balanced_journals += 1
+        else:
+            journals_requiring_review += 1
+
+    last_journal = JournalEntry.query.order_by(
+        JournalEntry.created_at.desc()
+    ).first()
+
+    accounting_status = "Healthy"
+    accounting_status_level = "good"
+
+    if journals_requiring_review > 0:
+        accounting_status = "Needs Review"
+        accounting_status_level = "watch"
+
+    if journal_entries_count == 0:
+        accounting_status = "No Activity Yet"
+        accounting_status_level = "watch"
+
+    return render_template(
+        'accounting_control_centre.html',
+        journal_entries_count=journal_entries_count,
+        journal_lines_count=journal_lines_count,
+        cashbook_entries_count=cashbook_entries_count,
+        active_accounts_count=active_accounts_count,
+        manual_adjustments_count=manual_adjustments_count,
+        balanced_journals=balanced_journals,
+        journals_requiring_review=journals_requiring_review,
+        last_journal=last_journal,
+        accounting_status=accounting_status,
+        accounting_status_level=accounting_status_level
+    )
 
 @app.route('/accounting/bank-reconciliation', methods=['GET', 'POST'])
 @login_required

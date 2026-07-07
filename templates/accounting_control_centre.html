@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Accounting Control Centre{% endblock %}
+{% block subtitle %}Monitor accounting health, journals and posting integrity{% endblock %}
+
+{% block content %}
+
+<section class="panel">
+  <h2>Accounting Health Dashboard</h2>
+
+  <p>
+    Current accounting status:
+    <strong>{{ accounting_status }}</strong>
+  </p>
+</section>
+
+<section class="accounting-kpis">
+
+  <div class="accounting-kpi">
+    <span>Journal Entries</span>
+    <strong>{{ journal_entries_count }}</strong>
+    <em>Total journal headers</em>
+  </div>
+
+  <div class="accounting-kpi">
+    <span>Journal Lines</span>
+    <strong>{{ journal_lines_count }}</strong>
+    <em>Total debit and credit postings</em>
+  </div>
+
+  <div class="accounting-kpi">
+    <span>Balanced Journals</span>
+    <strong>{{ balanced_journals }}</strong>
+    <em>Journals where debits equal credits</em>
+  </div>
+
+  <div class="accounting-kpi">
+    <span>Needs Review</span>
+    <strong>{{ journals_requiring_review }}</strong>
+    <em>Unbalanced journals</em>
+  </div>
+
+</section>
+
+<section class="accounting-kpis">
+
+  <div class="accounting-kpi">
+    <span>Cash Book Entries</span>
+    <strong>{{ cashbook_entries_count }}</strong>
+    <em>Cash movements recorded</em>
+  </div>
+
+  <div class="accounting-kpi">
+    <span>Manual Adjustments</span>
+    <strong>{{ manual_adjustments_count }}</strong>
+    <em>Correcting journals posted</em>
+  </div>
+
+  <div class="accounting-kpi">
+    <span>Active Accounts</span>
+    <strong>{{ active_accounts_count }}</strong>
+    <em>Accounts in Chart of Accounts</em>
+  </div>
+
+  <div class="accounting-kpi">
+    <span>Last Posting User</span>
+    <strong>
+      {{ last_journal.posted_by if last_journal else '-' }}
+    </strong>
+    <em>Most recent journal poster</em>
+  </div>
+
+</section>
+
+<section class="panel">
+  <h2>Quick Actions</h2>
+
+  <div class="actions">
+    <a class="btn primary" href="{{ url_for('accounting') }}">
+      Financial Intelligence Centre
+    </a>
+
+    <a class="btn" href="{{ url_for('ledger_inquiry') }}">
+      Ledger Inquiry
+    </a>
+
+    <a class="btn" href="{{ url_for('trial_balance') }}">
+      Trial Balance
+    </a>
+
+    <a class="btn" href="{{ url_for('cash_book') }}">
+      Cash Book
+    </a>
+  </div>
+</section>
+
+{% endblock %}
