@@ -3938,23 +3938,42 @@ def accounting():
                 log_audit('CREATE_ACCOUNT', 'Account', code, f'Account {code} - {name} created')
                 flash('Account created successfully.')
             return redirect(url_for('accounting'))
+       
         if action == 'journal':
             entry_date = parse_date(request.form.get('entry_date'))
-            description = request.form.get('description','').strip()
-            reference = request.form.get('reference','').strip()
+            description = request.form.get('description', '').strip()
+            reference = request.form.get('reference', '').strip()
+
             debit_account = Account.query.get(int(request.form.get('debit_account_id') or 0))
             credit_account = Account.query.get(int(request.form.get('credit_account_id') or 0))
+
             amount = money(request.form.get('amount') or 0)
+
             if not description or not debit_account or not credit_account or amount <= 0:
                 flash('Description, debit account, credit account and amount are required.', 'error')
+
             else:
-                entry = post_journal(entry_date, description, reference, 'Manual', f'{datetime.utcnow().timestamp()}', [
-                    {'account': debit_account, 'debit': amount},
-                    {'account': credit_account, 'credit': amount},
-                ])
-                log_audit('POST_MANUAL_JOURNAL', 'JournalEntry', entry.id if entry else None, f'Manual journal posted: {description}')
+                entry = post_journal(
+                    entry_date=entry_date,
+                    description=description,
+                    debit_account_code=debit_account.code,
+                    credit_account_code=credit_account.code,
+                    amount=amount,
+                    reference=reference,
+                    source_type='Manual',
+                    source_id=f'{datetime.utcnow().timestamp()}'
+                )
+
+                log_audit(
+                    'POST_MANUAL_JOURNAL',
+                    'JournalEntry',
+                    entry.id if entry else None,
+                    f'Manual journal posted: {description}'
+                )
+
                 flash('Manual journal entry posted successfully.')
-            return redirect(url_for('accounting'))
+
+        return redirect(url_for('accounting'))
 
     start = request.args.get('start')
     end = request.args.get('end')
