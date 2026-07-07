@@ -3259,6 +3259,56 @@ def ledger_inquiry():
         start=start,
         end=end
     )
+@app.route('/accounting/general-ledger/<int:account_id>')
+@login_required
+@role_required('accounting')
+def general_ledger(account_id):
+
+    account = Account.query.get_or_404(account_id)
+
+    lines = (
+        JournalLine.query
+        .join(JournalEntry)
+        .filter(JournalLine.account_id == account.id)
+        .order_by(
+            JournalEntry.entry_date,
+            JournalEntry.id,
+            JournalLine.id
+        )
+        .all()
+    )
+
+    running_balance = Decimal('0.00')
+    ledger = []
+
+    for line in lines:
+
+        debit = money(line.debit)
+        credit = money(line.credit)
+
+        if account.normal_balance == 'Debit':
+            running_balance += debit
+            running_balance -= credit
+        else:
+            running_balance += credit
+            running_balance -= debit
+
+        ledger.append({
+            'date': line.entry.entry_date,
+            'description': line.entry.description,
+            'reference': line.entry.reference,
+            'source': line.entry.source_type,
+            'debit': debit,
+            'credit': credit,
+            'balance': money(running_balance),
+            'journal_id': line.entry.id
+        })
+
+    return render_template(
+        'general_ledger.html',
+        account=account,
+        ledger=ledger
+    )
 
 @app.route('/accounting/journal-adjustment/<int:journal_line_id>', methods=['GET', 'POST'])
 @login_required

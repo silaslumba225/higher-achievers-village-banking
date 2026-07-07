@@ -144,7 +144,16 @@ Journal Posting Audit Trail
 
 <br>
 
+<a href="{{ url_for('general_ledger',
+account_id=e.account.id) }}">
+
+{{ e.account.code }}
+
+-
+
 {{ e.account.name }}
+
+</a>
 
 </td>
 
