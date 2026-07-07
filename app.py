@@ -3283,14 +3283,7 @@ def journal_adjustment(journal_line_id):
             return redirect(url_for('journal_adjustment', journal_line_id=journal_line_id))
 
         amount = money(original_line.debit or original_line.credit)
-
         wrong_account = original_line.account
-
-        # Reclassification adjustment only:
-        # If original line was Debit to wrong account:
-        # Dr correct account, Cr wrong account
-        # If original line was Credit to wrong account:
-        # Dr wrong account, Cr correct account
 
         if original_line.debit and original_line.debit > 0:
             debit_account = correct_account
@@ -3299,21 +3292,24 @@ def journal_adjustment(journal_line_id):
             debit_account = wrong_account
             credit_account = correct_account
 
+        description = (
+            f"Reclassification adjustment: "
+            f"{wrong_account.code} {wrong_account.name} to "
+            f"{correct_account.code} {correct_account.name}. "
+            f"Reason: {reason}"
+        )
+
+        reference = f"ADJ-JL-{original_line.id}"
+
         adjustment = post_journal(
-            entry_date=date.today(),
-            description=f'Adjustment of JE {original_entry.id}: {reason}',
-            reference=f'ADJ-{original_entry.id}-{original_line.id}',
-            source_type='JournalAdjustment',
-            source_id=original_line.id,
-            lines=[
-                {
-                    'account': debit_account,
-                    'debit': amount
-                },
-                {
-                    'account': credit_account,
-                    'credit': amount
-                }
+            date.today(),
+            description,
+            reference,
+            'ManualAdjustment',
+            f'{original_line.id}-{datetime.utcnow().timestamp()}',
+            [
+                {'account': debit_account, 'debit': amount},
+                {'account': credit_account, 'credit': amount},
             ]
         )
 
