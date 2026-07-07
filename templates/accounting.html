@@ -650,6 +650,15 @@
 <div class="panel-head">
 
 <div>
+  <a class="module-tile" href="{{ url_for('accounting_control_centre') }}">
+  <div class="module-icon bg-red">🛡️</div>
+  <div>
+    <h3>Accounting Control Centre</h3>
+    <p>Monitor journal health, posting integrity and accounting controls.</p>
+  </div>
+  <div class="module-arrow">›</div>
+</a>
+
 
 <h2>Manual Journal Entry</h2>
 
@@ -775,13 +784,5 @@ Post Journal
 </form>
 
 </section>
-<a class="module-tile" href="{{ url_for('accounting_control_centre') }}">
-  <div class="module-icon bg-red">🛡️</div>
-  <div>
-    <h3>Accounting Control Centre</h3>
-    <p>Monitor journal health, posting integrity and accounting controls.</p>
-  </div>
-  <div class="module-arrow">›</div>
-</a>
 
 {% endblock %}
