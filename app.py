@@ -3319,7 +3319,10 @@ def journal_adjustment(journal_line_id):
         )
 
         flash('Journal adjustment posted successfully.')
-        return redirect(url_for('ledger_inquiry'))
+        return redirect(url_for(
+                'ledger_inquiry',
+                account_id=wrong_account.id
+            ))
 
     return render_template(
         'journal_adjustment.html',
