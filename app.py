@@ -3462,6 +3462,29 @@ def accounting_control_centre():
         accounting_status=accounting_status,
         accounting_status_level=accounting_status_level
     )
+@app.route('/accounting/journal-voucher/<int:journal_id>')
+@login_required
+@role_required('accounting')
+def journal_voucher(journal_id):
+    journal = JournalEntry.query.get_or_404(journal_id)
+
+    total_debit = money(
+        sum((line.debit for line in journal.lines), Decimal('0.00'))
+    )
+
+    total_credit = money(
+        sum((line.credit for line in journal.lines), Decimal('0.00'))
+    )
+
+    is_balanced = total_debit == total_credit
+
+    return render_template(
+        'journal_voucher.html',
+        journal=journal,
+        total_debit=total_debit,
+        total_credit=total_credit,
+        is_balanced=is_balanced
+    )
 
 @app.route('/accounting/bank-reconciliation', methods=['GET', 'POST'])
 @login_required

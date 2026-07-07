@@ -188,7 +188,9 @@ Journal Posting Audit Trail
     Adjust
   </a>
 </td>
-
+<a class="btn small" href="{{ url_for('journal_voucher', journal_id=e.entry.id) }}">
+  Voucher
+</a>
 </tr>
 
 {% endfor %}

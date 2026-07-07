@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Journal Voucher{% endblock %}
+{% block subtitle %}Full debit and credit details for this journal entry{% endblock %}
+
+{% block content %}
+
+<section class="panel">
+  <div class="actions">
+    <a class="btn" href="{{ url_for('ledger_inquiry') }}">← Back to Ledger Inquiry</a>
+    <a class="btn" href="{{ url_for('accounting') }}">Accounting</a>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Journal Voucher JV-{{ '%06d'|format(journal.id) }}</h2>
+
+  <p><strong>Date:</strong> {{ journal.entry_date }}</p>
+  <p><strong>Description:</strong> {{ journal.description }}</p>
+  <p><strong>Reference:</strong> {{ journal.reference or '-' }}</p>
+  <p><strong>Source:</strong> {{ journal.source_type or '-' }} {{ journal.source_id or '' }}</p>
+  <p><strong>Posted By:</strong> {{ journal.posted_by or '-' }}</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Account Code</th>
+        <th>Account Name</th>
+        <th>Memo</th>
+        <th>Debit</th>
+        <th>Credit</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for line in journal.lines %}
+      <tr>
+        <td><strong>{{ line.account.code }}</strong></td>
+        <td>{{ line.account.name }}</td>
+        <td>{{ line.memo or '-' }}</td>
+        <td>{{ line.debit|kwacha }}</td>
+        <td>{{ line.credit|kwacha }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+
+    <tfoot>
+      <tr>
+        <th colspan="3">Totals</th>
+        <th>{{ total_debit|kwacha }}</th>
+        <th>{{ total_credit|kwacha }}</th>
+      </tr>
+      <tr>
+        <th colspan="3">Status</th>
+        <th colspan="2">
+          {% if is_balanced %}
+            <span class="good-text">Balanced</span>
+          {% else %}
+            <span class="bad-text">Out of Balance</span>
+          {% endif %}
+        </th>
+      </tr>
+    </tfoot>
+  </table>
+</section>
+
+{% endblock %}
