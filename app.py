@@ -780,21 +780,71 @@ def cash_account_for_method(method):
     return account_by_code('1000')
 
 
-def post_journal(entry_date, description, reference, source_type, source_id, lines):
-    if source_type and source_id and JournalEntry.query.filter_by(source_type=source_type, source_id=str(source_id)).first():
+def post_journal(
+    entry_date=None,
+    description='',
+    reference='',
+    source_type='',
+    source_id=None,
+    lines=None,
+    debit_account_code=None,
+    credit_account_code=None,
+    amount=None
+):
+    if source_type and source_id and JournalEntry.query.filter_by(
+        source_type=source_type,
+        source_id=str(source_id)
+    ).first():
         return None
-    debit_total = money(sum((money(line.get('debit', 0)) for line in lines), Decimal('0.00')))
-    credit_total = money(sum((money(line.get('credit', 0)) for line in lines), Decimal('0.00')))
+
+    if lines is None:
+        debit_account = Account.query.filter_by(code=debit_account_code).first()
+        credit_account = Account.query.filter_by(code=credit_account_code).first()
+
+        if not debit_account or not credit_account:
+            raise Exception(
+                f'Chart of Accounts missing: {debit_account_code} or {credit_account_code}'
+            )
+
+        lines = [
+            {'account': debit_account, 'debit': money(amount)},
+            {'account': credit_account, 'credit': money(amount)}
+        ]
+
+    debit_total = money(
+        sum((money(line.get('debit', 0)) for line in lines), Decimal('0.00'))
+    )
+
+    credit_total = money(
+        sum((money(line.get('credit', 0)) for line in lines), Decimal('0.00'))
+    )
+
     if debit_total != credit_total:
         raise ValueError('Journal entry is not balanced.')
-    entry = JournalEntry(entry_date=entry_date or date.today(), description=description, reference=reference, source_type=source_type, source_id=str(source_id) if source_id is not None else None, posted_by=(session.get('user') or {}).get('username'))
+
+    entry = JournalEntry(
+        entry_date=entry_date or date.today(),
+        description=description,
+        reference=reference,
+        source_type=source_type,
+        source_id=str(source_id) if source_id is not None else None,
+        posted_by=(session.get('user') or {}).get('username')
+    )
+
     db.session.add(entry)
     db.session.flush()
+
     for line in lines:
-        db.session.add(JournalLine(journal_entry_id=entry.id, account_id=line['account'].id, debit=money(line.get('debit', 0)), credit=money(line.get('credit', 0)), memo=line.get('memo')))
+        db.session.add(JournalLine(
+            journal_entry_id=entry.id,
+            account_id=line['account'].id,
+            debit=money(line.get('debit', 0)),
+            credit=money(line.get('credit', 0)),
+            memo=line.get('memo')
+        ))
+
     db.session.commit()
     return entry
-
 
 def sync_operational_transactions_to_gl():
     seed_chart_of_accounts()
@@ -972,58 +1022,6 @@ def post_to_cash_book(
 
     db.session.add(entry)
 
-def post_journal(
-    entry_date,
-    description,
-    debit_account_code,
-    credit_account_code,
-    amount,
-    source_type='',
-    source_id=None
-):
-    amount = money(amount)
-
-    debit_account = Account.query.filter_by(
-        code=debit_account_code
-    ).first()
-
-    credit_account = Account.query.filter_by(
-        code=credit_account_code
-    ).first()
-
-    if not debit_account or not credit_account:
-        raise Exception(
-            f'Chart of Accounts missing: '
-            f'{debit_account_code} or {credit_account_code}'
-        )
-
-    journal = JournalEntry(
-        entry_date=entry_date,
-        description=description,
-        source_type=source_type,
-        source_id=source_id
-    )
-
-    db.session.add(journal)
-    db.session.flush()
-
-    db.session.add(
-        JournalLine(
-            journal_entry_id=journal.id,
-            account_id=debit_account.id,
-            debit=amount,
-            credit=Decimal('0.00')
-        )
-    )
-
-    db.session.add(
-        JournalLine(
-            journal_entry_id=journal.id,
-            account_id=credit_account.id,
-            debit=Decimal('0.00'),
-            credit=amount
-        )
-    )
 def cash_account(method):
     if method == 'Bank Transfer':
         return '1010'
