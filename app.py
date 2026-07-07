@@ -3421,6 +3421,16 @@ def accounting_control_centre():
     else:
         integrity_checks.append('All journals have posting lines.')
 
+    balances = ledger_balances()
+
+    total_debit = money(
+        sum((b['debit'] for b in balances), Decimal('0.00'))
+    )
+
+    total_credit = money(
+        sum((b['credit'] for b in balances), Decimal('0.00'))
+    )
+
     # 4. Trial balance check
     if total_debit == total_credit:
         integrity_checks.append('Trial Balance agrees.')
