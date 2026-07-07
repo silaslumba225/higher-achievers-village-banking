@@ -121,9 +121,7 @@ Journal Posting Audit Trail
 <th>User</th>
 
 <th>Action</th>
-<a class="btn small" href="{{ url_for('journal_voucher', journal_id=e.entry.id) }}">
-  Voucher
-</a>
+
 </tr>
 
 </thead>
@@ -189,6 +187,9 @@ Journal Posting Audit Trail
   <a class="btn small" href="{{ url_for('journal_adjustment', journal_line_id=e.id) }}">
     Adjust
   </a>
+  <a class="btn small" href="{{ url_for('journal_voucher', journal_id=e.entry.id) }}">
+  Voucher
+</a>
 </td>
 
 </tr>
