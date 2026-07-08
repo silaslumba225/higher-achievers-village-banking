@@ -2534,13 +2534,38 @@ def distributions():
         per_page=per_page,
         error_out=False
     )
+    total_paid = money(
+        db.session.query(db.func.coalesce(db.func.sum(Distribution.amount), 0)).scalar()
+    )
+
+    members_paid = db.session.query(Distribution.member_id).distinct().count()
+    total_members = Member.query.count()
+    members_not_paid = max(total_members - members_paid, 0)
+
+    bank_paid = money(db.session.query(db.func.coalesce(db.func.sum(Distribution.amount), 0)).filter(Distribution.method == 'Bank Transfer').scalar())
+    mobile_paid = money(db.session.query(db.func.coalesce(db.func.sum(Distribution.amount), 0)).filter(Distribution.method.in_(['Mobile Money', 'Airtel Money', 'MTN Money'])).scalar())
+    cash_paid = money(db.session.query(db.func.coalesce(db.func.sum(Distribution.amount), 0)).filter(Distribution.method == 'Cash').scalar())
+
+    missing_references = Distribution.query.filter(
+        (Distribution.reference == None) | (Distribution.reference == '')
+    ).count()
+
+    payment_progress = 0 if total_members == 0 else round((members_paid / total_members) * 100)
 
     return render_template(
-        'distributions.html',
-        distributions=pagination.items,
-        pagination=pagination,
-        members=Member.query.order_by(Member.full_name).all()
-    )
+    'distributions.html',
+    distributions=pagination.items,
+    pagination=pagination,
+    members=Member.query.order_by(Member.full_name).all(),
+    total_paid=total_paid,
+    members_paid=members_paid,
+    members_not_paid=members_not_paid,
+    bank_paid=bank_paid,
+    mobile_paid=mobile_paid,
+    cash_paid=cash_paid,
+    missing_references=missing_references,
+    payment_progress=payment_progress
+)
 
 @app.route('/fines', methods=['GET','POST'])
 @login_required
@@ -5341,6 +5366,16 @@ def shareout():
         - expenses
         - distributions_total
     )
+    eligible_members = 0
+    members_requiring_review = 0
+
+    highest_shareout = Decimal("0.00")
+    lowest_shareout = None
+
+    total_net_payable = Decimal("0.00")
+
+    readiness_score = 100
+    readiness_messages = []
 
     rows = []
 
@@ -5400,6 +5435,55 @@ def shareout():
         total_deductions = money(outstanding_loans + fine_balance)
 
         net_payable = money(gross_shareout - total_deductions)
+        total_net_payable += net_payable
+
+        if net_payable >= 0:
+            eligible_members += 1
+        else:
+            members_requiring_review += 1
+
+        if gross_shareout > highest_shareout:
+            highest_shareout = gross_shareout
+
+        if lowest_shareout is None or gross_shareout < lowest_shareout:
+            lowest_shareout = gross_shareout
+
+        average_shareout = money(
+            Decimal("0.00")
+            if eligible_members == 0
+            else total_net_payable / eligible_members
+        )  
+        if members_requiring_review > 0:
+            readiness_score -= 25
+            readiness_messages.append(
+                f"{members_requiring_review} member(s) require review."
+            )
+
+        if shareout_fund <= 0:
+            readiness_score = 0
+            readiness_messages.append(
+                "No distributable fund available."
+            )
+
+        if eligible_members == 0:
+            readiness_score = 0
+            readiness_messages.append(
+                "No eligible members."
+            )
+
+        distribution_ready = readiness_score >= 75
+
+        if distribution_ready:
+            recommendation = "Proceed with Distribution"
+        else:
+            recommendation = "Do Not Distribute Yet"
+
+        average_contribution = money(
+            Decimal("0.00")
+            if len(contrib_rows) == 0
+            else total_contributions / len(contrib_rows)
+        )
+
         net_status = 'surplus' if net_payable >= 0 else 'loss'
 
         rows.append({
