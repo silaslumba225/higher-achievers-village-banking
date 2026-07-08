@@ -2552,6 +2552,32 @@ def distributions():
 
     payment_progress = 0 if total_members == 0 else round((members_paid / total_members) * 100)
 
+    today = date.today()
+
+    today_paid = money(
+        db.session.query(
+            db.func.coalesce(db.func.sum(Distribution.amount), 0)
+        )
+        .filter(Distribution.paid_on == today)
+        .scalar()
+    )
+
+    today_transactions = Distribution.query.filter(
+        Distribution.paid_on == today
+    ).count()
+
+    largest_distribution = Distribution.query.order_by(
+    Distribution.amount.desc()
+        ).first()
+    if members_not_paid == 0:
+        distribution_message = "Distribution completed successfully."
+    elif payment_progress >= 75:
+        distribution_message = "Distribution is progressing well."
+    elif payment_progress >= 25:
+        distribution_message = "Continue processing outstanding payments."
+    else:
+        distribution_message = "Distribution has only just begun."
+
     return render_template(
     'distributions.html',
     distributions=pagination.items,
@@ -2564,7 +2590,8 @@ def distributions():
     mobile_paid=mobile_paid,
     cash_paid=cash_paid,
     missing_references=missing_references,
-    payment_progress=payment_progress
+    payment_progress=payment_progress,
+    distribution_message=distribution_message,
 )
 
 @app.route('/fines', methods=['GET','POST'])

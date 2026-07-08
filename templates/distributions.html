@@ -42,4 +42,74 @@
     </div>
   {% endif %}
 </div>
+<div class="panel">
+    <h2>Distribution Progress</h2>
+
+    <div style="background:#e9ecef;border-radius:12px;height:28px;overflow:hidden;">
+        <div style="
+            width:{{ payment_progress }}%;
+            background:#28a745;
+            color:white;
+            height:28px;
+            line-height:28px;
+            text-align:center;
+            font-weight:bold;">
+            {{ payment_progress }}%
+        </div>
+    </div>
+
+    <p style="margin-top:10px;">
+        {{ members_paid }} of {{ members_paid + members_not_paid }}
+        members have received their distribution.
+    </p>
+</div>
+<div class="panel">
+    <h2>Today's Activity</h2>
+
+    <p><strong>Total Paid Today</strong></p>
+    <h3>{{ today_paid|kwacha }}</h3>
+
+    <p>{{ today_transactions }} payment(s) processed today.</p>
+</div>
+<div class="panel">
+
+<h2>Largest Distribution</h2>
+
+{% if largest_distribution %}
+
+<p>
+
+<strong>
+
+{{ largest_distribution.member.full_name }}
+
+</strong>
+
+</p>
+
+<h3>
+
+{{ largest_distribution.amount|kwacha }}
+
+</h3>
+
+{% else %}
+
+<p>No distributions recorded.</p>
+
+{% endif %}
+
+</div>
+<div class="panel">
+
+<h2>Committee Recommendation</h2>
+
+<div class="alert alert-info">
+
+{{ distribution_message }}
+
+</div>
+
+</div>
+
 {% endblock %}
