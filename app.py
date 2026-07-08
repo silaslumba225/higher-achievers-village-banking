@@ -1443,6 +1443,36 @@ def member_savings_statement(member_id):
 
     savings_balance = money(total_contributions + total_interest - total_distributions)
 
+    loan_balance = money(
+    sum(
+        (l.balance for l in Loan.query.filter_by(member_id=member.id).all()),
+        Decimal('0.00')
+        )
+    )
+
+    fine_balance = money(
+        sum(
+            (
+                f.balance
+                for f in FinePenalty.query.filter_by(member_id=member.id).all()
+                if f.status != 'Waived'
+            ),
+            Decimal('0.00')
+        )
+    )
+
+    last_contribution = contributions[0] if contributions else None
+
+    if savings_balance > 0 and loan_balance <= 0 and fine_balance <= 0:
+        member_statement_status = "Good Standing"
+        member_statement_message = "This member has savings and no outstanding loans or fines."
+    elif loan_balance > 0 or fine_balance > 0:
+        member_statement_status = "Needs Review"
+        member_statement_message = "This member has outstanding balances requiring attention."
+    else:
+        member_statement_status = "No Savings Activity"
+        member_statement_message = "No active savings balance is currently shown."
+
     return render_template(
         'member_savings_statement.html',
         member=member,
@@ -1452,7 +1482,12 @@ def member_savings_statement(member_id):
         total_contributions=total_contributions,
         total_interest=total_interest,
         total_distributions=total_distributions,
-        savings_balance=savings_balance
+        savings_balance=savings_balance,
+        loan_balance=loan_balance,
+        fine_balance=fine_balance,
+        last_contribution=last_contribution,
+        member_statement_status=member_statement_status,
+        member_statement_message=member_statement_message
     )
 
 @app.route('/member/<int:member_id>')
@@ -2591,7 +2626,7 @@ def distributions():
     cash_paid=cash_paid,
     missing_references=missing_references,
     payment_progress=payment_progress,
-    distribution_message=distribution_message,
+    
 )
 
 @app.route('/fines', methods=['GET','POST'])

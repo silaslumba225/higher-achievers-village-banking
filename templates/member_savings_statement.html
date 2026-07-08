@@ -8,6 +8,41 @@
 <div class="actions">
   <a class="btn" href="{{ url_for('member_profile', member_id=member.id) }}">← Back to Profile</a>
 </div>
+<section class="panel">
+  <h2>Member Statement Intelligence</h2>
+
+  <div class="kpi-grid">
+    <div class="kpi">
+      <span>Status</span>
+      <strong>{{ member_statement_status }}</strong>
+    </div>
+
+    <div class="kpi">
+      <span>Loan Balance</span>
+      <strong>{{ loan_balance|kwacha }}</strong>
+    </div>
+
+    <div class="kpi">
+      <span>Fine Balance</span>
+      <strong>{{ fine_balance|kwacha }}</strong>
+    </div>
+
+    <div class="kpi accent">
+      <span>Last Contribution</span>
+      <strong>
+        {% if last_contribution %}
+          {{ last_contribution.paid_on }}
+        {% else %}
+          -
+        {% endif %}
+      </strong>
+    </div>
+  </div>
+
+  <p style="margin-top:12px;">
+    {{ member_statement_message }}
+  </p>
+</section>
 
 <section class="panel">
   <h2>{{ member.full_name }}</h2>
