@@ -1,115 +1,190 @@
 {% extends 'base.html' %}
-{% block page_title %}Member Distributions{% endblock %}
-{% block subtitle %}Track payments by bank transfer, mobile money and cash{% endblock %}
+
+{% block page_title %}Distribution Payments{% endblock %}
+{% block subtitle %}Record share-out payments and monitor distribution progress{% endblock %}
+
 {% block content %}
-<div class="panel">
+
+<div class="decision-hero">
   <h2>Distribution Payments Decision Centre</h2>
+  <p>
+    Record member payments, monitor payment progress, and help the committee
+    complete the distribution successfully.
+  </p>
+</div>
 
-  <div class="row g-3">
-    <div class="col-md-3"><div class="alert alert-primary"><strong>Total Paid</strong><br>{{ total_paid|kwacha }}</div></div>
-    <div class="col-md-3"><div class="alert alert-success"><strong>Members Paid</strong><br>{{ members_paid }}</div></div>
-    <div class="col-md-3"><div class="alert alert-warning"><strong>Not Yet Paid</strong><br>{{ members_not_paid }}</div></div>
-    <div class="col-md-3"><div class="alert alert-info"><strong>Progress</strong><br>{{ payment_progress }}%</div></div>
+<div class="decision-grid">
+  <div class="decision-card">
+    <span>Total Paid</span>
+    <strong>{{ total_paid|kwacha }}</strong>
+  </div>
+
+  <div class="decision-card good">
+    <span>Members Paid</span>
+    <strong>{{ members_paid }}</strong>
+  </div>
+
+  <div class="decision-card warning">
+    <span>Not Yet Paid</span>
+    <strong>{{ members_not_paid }}</strong>
+  </div>
+
+  <div class="decision-card">
+    <span>Progress</span>
+    <strong>{{ payment_progress }}%</strong>
   </div>
 </div>
 
-<div class="panel">
-  <h2>Payment Method Summary</h2>
+<section class="panel">
+  <h2>Distribution Progress</h2>
 
-  <div class="row g-3">
-    <div class="col-md-4"><div class="alert alert-secondary"><strong>Bank Transfers</strong><br>{{ bank_paid|kwacha }}</div></div>
-    <div class="col-md-4"><div class="alert alert-secondary"><strong>Mobile Money</strong><br>{{ mobile_paid|kwacha }}</div></div>
-    <div class="col-md-4"><div class="alert alert-secondary"><strong>Cash</strong><br>{{ cash_paid|kwacha }}</div></div>
+  <div class="decision-progress">
+    <div class="decision-progress-bar" style="width: {{ payment_progress }}%;">
+      {{ payment_progress }}%
+    </div>
+  </div>
+
+  <p style="margin-top:10px;">
+    {{ members_paid }} of {{ members_paid + members_not_paid }} members have received their distribution.
+  </p>
+</section>
+
+<div class="decision-grid">
+  <div class="decision-card">
+    <span>Bank Transfers</span>
+    <strong>{{ bank_paid|kwacha }}</strong>
+  </div>
+
+  <div class="decision-card">
+    <span>Mobile Money</span>
+    <strong>{{ mobile_paid|kwacha }}</strong>
+  </div>
+
+  <div class="decision-card">
+    <span>Cash Payments</span>
+    <strong>{{ cash_paid|kwacha }}</strong>
+  </div>
+
+  <div class="decision-card warning">
+    <span>Missing References</span>
+    <strong>{{ missing_references }}</strong>
   </div>
 </div>
 
-<div class="panel">
-  <h2>Distribution Assistant</h2>
+<div class="decision-assistant {% if members_not_paid == 0 and missing_references == 0 %}good{% elif missing_references > 0 %}danger{% else %}warning{% endif %}">
+  <h3>Committee Assistant</h3>
+
+  <p>{{ distribution_message }}</p>
 
   {% if members_not_paid > 0 %}
-    <div class="alert alert-warning">
-      {{ members_not_paid }} member(s) have not yet received their distribution.
-    </div>
-  {% else %}
-    <div class="alert alert-success">
-      All registered members have received distribution payments.
-    </div>
+    <p>⚠ {{ members_not_paid }} member(s) have not yet received their distribution.</p>
   {% endif %}
 
   {% if missing_references > 0 %}
-    <div class="alert alert-danger">
-      {{ missing_references }} payment(s) have no reference number.
-    </div>
+    <p>⚠ {{ missing_references }} payment(s) have no reference number.</p>
   {% endif %}
 </div>
-<div class="panel">
-    <h2>Distribution Progress</h2>
 
-    <div style="background:#e9ecef;border-radius:12px;height:28px;overflow:hidden;">
-        <div style="
-            width:{{ payment_progress }}%;
-            background:#28a745;
-            color:white;
-            height:28px;
-            line-height:28px;
-            text-align:center;
-            font-weight:bold;">
-            {{ payment_progress }}%
-        </div>
+<section class="panel highlight">
+  <div class="panel-head">
+    <div>
+      <h2>Record Distribution Payment</h2>
+      <p class="muted">Record payment after the committee has approved the share-out.</p>
+    </div>
+  </div>
+
+  <form method="post" class="form-grid">
+    <label>Member
+      <select name="member_id" required>
+        {% for m in members %}
+          <option value="{{ m.id }}">{{ m.member_no }} - {{ m.full_name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>Amount
+      <input type="number" step="0.01" name="amount" required>
+    </label>
+
+    <label>Method
+      <select name="method" required>
+        {% for p in payment_methods %}
+          <option>{{ p }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>Reference
+      <input name="reference" placeholder="Transaction reference">
+    </label>
+
+    <label>Authorized By
+      <input name="authorized_by" placeholder="Chairperson / Treasurer">
+    </label>
+
+    <label>Paid On
+      <input type="date" name="paid_on">
+    </label>
+
+    <button class="btn primary" type="submit">Record Distribution</button>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Distribution Register</h2>
+      <p class="muted">Recent distribution payments made to members.</p>
     </div>
 
-    <p style="margin-top:10px;">
-        {{ members_paid }} of {{ members_paid + members_not_paid }}
-        members have received their distribution.
-    </p>
+    <span class="badge">{{ distributions|length }} Records</span>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Member</th>
+          <th>Method</th>
+          <th>Reference</th>
+          <th>Authorized By</th>
+          <th>Amount</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for d in distributions %}
+        <tr>
+          <td>{{ d.paid_on }}</td>
+          <td>{{ d.member.full_name }}</td>
+          <td>{{ d.method }}</td>
+          <td>{{ d.reference or '-' }}</td>
+          <td>{{ d.authorized_by or '-' }}</td>
+          <td>{{ d.amount|kwacha }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6">No distributions recorded yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{% if pagination %}
+<div class="actions">
+  {% if pagination.has_prev %}
+    <a class="btn" href="{{ url_for('distributions', page=pagination.prev_num) }}">← Previous</a>
+  {% endif %}
+
+  <span class="badge">Page {{ pagination.page }} of {{ pagination.pages }}</span>
+
+  {% if pagination.has_next %}
+    <a class="btn" href="{{ url_for('distributions', page=pagination.next_num) }}">Next →</a>
+  {% endif %}
 </div>
-<div class="panel">
-    <h2>Today's Activity</h2>
-
-    <p><strong>Total Paid Today</strong></p>
-    <h3>{{ today_paid|kwacha }}</h3>
-
-    <p>{{ today_transactions }} payment(s) processed today.</p>
-</div>
-<div class="panel">
-
-<h2>Largest Distribution</h2>
-
-{% if largest_distribution %}
-
-<p>
-
-<strong>
-
-{{ largest_distribution.member.full_name }}
-
-</strong>
-
-</p>
-
-<h3>
-
-{{ largest_distribution.amount|kwacha }}
-
-</h3>
-
-{% else %}
-
-<p>No distributions recorded.</p>
-
 {% endif %}
-
-</div>
-<div class="panel">
-
-<h2>Committee Recommendation</h2>
-
-<div class="alert alert-info">
-
-{{ distribution_message }}
-
-</div>
-
-</div>
 
 {% endblock %}
