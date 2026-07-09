@@ -779,6 +779,12 @@ def get_system_settings():
 
     return settings
 
+@app.context_processor
+def inject_system_settings():
+    return {
+        'settings': get_system_settings()
+    }
+
 def log_audit(action, entity=None, entity_id=None, details=None):
     user = session.get('user') or {}
     try:
