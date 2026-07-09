@@ -1357,6 +1357,49 @@ def executive_dashboard():
         .limit(10)
         .all()
     )
+    # -----------------------------
+    # Members Requiring Follow-up
+    # -----------------------------
+
+    current_month = date.today().strftime("%Y-%m")
+
+    saved_this_month_ids = [
+        r[0]
+        for r in db.session.query(Contribution.member_id)
+            .filter(Contribution.month == current_month)
+            .distinct()
+            .all()
+    ]
+
+    members_requiring_followup = []
+
+    for member in Member.query.order_by(Member.full_name).all():
+
+        if member.id in saved_this_month_ids:
+            continue
+
+        last_contribution = (
+            Contribution.query
+            .filter_by(member_id=member.id)
+            .order_by(
+                Contribution.paid_on.desc(),
+                Contribution.id.desc()
+            )
+            .first()
+        )
+
+        members_requiring_followup.append({
+            "id": member.id,
+            "member_no": member.member_no,
+            "full_name": member.full_name,
+            "last_contribution": (
+                last_contribution.month
+                if last_contribution
+                else "Never"
+            )
+        })
+
+    members_requiring_followup = members_requiring_followup[:10]
 
     return render_template(
         'executive_dashboard.html',
@@ -1385,6 +1428,7 @@ def executive_dashboard():
         **dashboard_data,
         today_checklist=today_checklist,
         top_savers=top_savers,
+        members_requiring_followup=members_requiring_followup,
     )
 
 @app.route('/members')
