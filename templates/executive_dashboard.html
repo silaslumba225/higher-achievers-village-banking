@@ -578,6 +578,27 @@
     {% endfor %}
   </div>
 </div>
+<div class="go-panel mb-4">
+  <h3>
+    <i class="fa-solid fa-robot text-primary"></i>
+    Executive AI Advisor
+  </h3>
+
+  <p>Plain-language guidance for the committee based on current group performance.</p>
+
+  {% for advice in executive_ai_advice %}
+  <div class="attention-item">
+    <div class="round-icon {{ advice.level }}">
+      <i class="fa-solid {{ advice.icon }}"></i>
+    </div>
+
+    <div>
+      <strong>{{ advice.title }}</strong><br>
+      <span class="text-muted-small">{{ advice.message }}</span>
+    </div>
+  </div>
+  {% endfor %}
+</div>
 
   <div class="row g-4 mb-4">
 

@@ -1465,6 +1465,80 @@ def executive_dashboard():
 
     members_requiring_followup = members_requiring_followup[:10]
 
+    # -----------------------------
+    # Executive AI Advisor
+    # -----------------------------
+
+    executive_ai_advice = []
+
+    if total_cash > 0:
+        executive_ai_advice.append({
+            "level": "good",
+            "icon": "fa-wallet",
+            "title": "Cash Position",
+            "message": f"The group currently has {kwacha(total_cash)} available in cash, bank and mobile money."
+        })
+    else:
+        executive_ai_advice.append({
+            "level": "danger",
+            "icon": "fa-wallet",
+            "title": "Cash Position Warning",
+            "message": "The group has no available cash recorded. The committee should review the cash book."
+        })
+
+    if len(members_requiring_followup) > 0:
+        executive_ai_advice.append({
+            "level": "watch",
+            "icon": "fa-user-clock",
+            "title": "Contribution Follow-up Required",
+            "message": f"{len(members_requiring_followup)} member(s) shown on this dashboard have not contributed this month. Follow-up is recommended before month-end."
+        })
+    else:
+        executive_ai_advice.append({
+            "level": "good",
+            "icon": "fa-circle-check",
+            "title": "Contribution Performance",
+            "message": "All listed members have contributed this month. This is a strong participation signal."
+        })
+
+    if portfolio_at_risk < 5:
+        executive_ai_advice.append({
+            "level": "good",
+            "icon": "fa-shield-halved",
+            "title": "Loan Portfolio Health",
+            "message": f"Portfolio at Risk is {portfolio_at_risk}%, which is within a healthy range."
+        })
+    else:
+        executive_ai_advice.append({
+            "level": "danger",
+            "icon": "fa-triangle-exclamation",
+            "title": "Loan Portfolio Risk",
+            "message": f"Portfolio at Risk is {portfolio_at_risk}%. The committee should urgently follow up overdue loans."
+        })
+
+    if liquidity_ratio >= 0.5:
+        executive_ai_advice.append({
+            "level": "good",
+            "icon": "fa-droplet",
+            "title": "Liquidity Position",
+            "message": f"The liquidity ratio is {liquidity_ratio}, meaning the group has reasonable liquid funds compared with member savings."
+        })
+    else:
+        executive_ai_advice.append({
+            "level": "watch",
+            "icon": "fa-droplet",
+            "title": "Liquidity Watch",
+            "message": f"The liquidity ratio is {liquidity_ratio}. The committee should monitor cash availability carefully."
+        })
+
+    if pending_welfare_claims > 0:
+        executive_ai_advice.append({
+            "level": "watch",
+            "icon": "fa-heart",
+            "title": "Welfare Claims",
+            "message": f"There are {pending_welfare_claims} pending welfare claim(s) requiring committee review."
+        })  
+
     return render_template(
         'executive_dashboard.html',
         cash_on_hand=cash_on_hand,
@@ -1494,6 +1568,7 @@ def executive_dashboard():
         top_savers=top_savers,
         members_requiring_followup=members_requiring_followup,
         financial_ratios=financial_ratios,
+        executive_ai_advice=executive_ai_advice,
     )
 
 @app.route('/members')
