@@ -1843,23 +1843,43 @@ def contributions():
     page = request.args.get('page', 1, type=int)
     per_page = 25
 
-    pagination = Contribution.query.order_by(
-        Contribution.paid_on.desc(),
-        Contribution.id.desc()
-    ).paginate(
-        page=page,
-        per_page=per_page,
-        error_out=False
-    )
+    search = request.args.get('search', '').strip()
+    month_filter = request.args.get('month', '').strip()
+    method_filter = request.args.get('method', '').strip()
 
+    query = Contribution.query.join(Member)
+
+    if search:
+            query = query.filter(
+                db.or_(
+                    Member.full_name.ilike(f'%{search}%'),
+                    Member.member_no.ilike(f'%{search}%'),
+                    Contribution.reference.ilike(f'%{search}%')
+                )
+            )
+
+    if month_filter:
+            query = query.filter(Contribution.month == month_filter)
+
+    if method_filter:
+            query = query.filter(Contribution.method == method_filter)
+
+    pagination = query.order_by(
+            Contribution.paid_on.desc(),
+            Contribution.id.desc()
+        ).paginate(
+            page=page,
+            per_page=per_page,
+            error_out=False
+        )
     today = date.today()
     current_month = today.strftime('%Y-%m')
 
     total_savings = money(
-        db.session.query(
-            db.func.coalesce(db.func.sum(Contribution.amount), 0)
-        ).scalar()
-    )
+                db.session.query(
+                    db.func.coalesce(db.func.sum(Contribution.amount), 0)
+                ).scalar()
+            )
 
     this_month_savings = money(
         db.session.query(
@@ -1886,7 +1906,10 @@ def contributions():
         total_savings=total_savings,
         this_month_savings=this_month_savings,
         saved_this_month=saved_this_month,
-        missing_this_month=missing_this_month
+        missing_this_month=missing_this_month,
+        search=search,
+        month_filter=month_filter,
+        method_filter=method_filter,
     )
 
 # ------------------------------------------------------------
