@@ -1911,6 +1911,40 @@ def contributions():
         month_filter=month_filter,
         method_filter=method_filter,
     )
+@app.route('/contributions/passbook/<int:member_id>')
+@login_required
+@role_required('contributions')
+def contribution_passbook(member_id):
+    member = Member.query.get_or_404(member_id)
+
+    contributions = Contribution.query.filter_by(
+        member_id=member.id
+    ).order_by(
+        Contribution.paid_on.asc(),
+        Contribution.id.asc()
+    ).all()
+
+    running_balance = money(0)
+    passbook_rows = []
+
+    for c in contributions:
+        running_balance += money(c.amount)
+        passbook_rows.append({
+            'date': c.paid_on,
+            'month': c.month,
+            'description': f'Savings contribution for {c.month}',
+            'method': c.method,
+            'reference': c.reference,
+            'deposit': c.amount,
+            'balance': running_balance
+        })
+
+    return render_template(
+        'contribution_passbook.html',
+        member=member,
+        passbook_rows=passbook_rows,
+        running_balance=running_balance
+    )
 
 # ------------------------------------------------------------
 # LOAN PROCESSING WORKFLOW

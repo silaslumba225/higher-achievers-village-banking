@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Member Savings Passbook{% endblock %}
+{% block subtitle %}Individual member savings history and running balance{% endblock %}
+
+{% block content %}
+
+<div class="decision-hero">
+  <h2>📘 Member Savings Passbook</h2>
+  <p>View each member’s savings history and running contribution balance.</p>
+</div>
+
+<section class="panel highlight">
+  <div class="panel-head">
+    <div>
+      <h2>{{ member.full_name }}</h2>
+      <p class="muted">Member No: <strong>{{ member.member_no }}</strong></p>
+    </div>
+
+    <div>
+      <span class="badge">Current Balance: {{ running_balance|kwacha }}</span>
+    </div>
+  </div>
+
+  <div class="actions">
+    <a class="btn" href="{{ url_for('contributions') }}">← Back to Contributions</a>
+    <button class="btn primary" onclick="window.print()">Print Passbook</button>
+  </div>
+</section>
+
+<div class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Savings History</h2>
+      <p class="muted">Chronological record of member savings.</p>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Month</th>
+        <th>Description</th>
+        <th>Method</th>
+        <th>Reference</th>
+        <th class="text-end">Deposit</th>
+        <th class="text-end">Balance</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for row in passbook_rows %}
+      <tr>
+        <td>{{ row.date }}</td>
+        <td>{{ row.month }}</td>
+        <td>{{ row.description }}</td>
+        <td>{{ row.method }}</td>
+        <td>{{ row.reference or '-' }}</td>
+        <td class="text-end">{{ row.deposit|kwacha }}</td>
+        <td class="text-end"><strong>{{ row.balance|kwacha }}</strong></td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="7">No savings recorded for this member yet.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<style>
+@media print {
+  .sidebar,
+  .topbar,
+  .actions,
+  .btn {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+  }
+
+  .panel,
+  .decision-hero {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+  }
+}
+</style>
+
+{% endblock %}

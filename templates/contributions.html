@@ -141,6 +141,7 @@
         <th>Method</th>
         <th>Reference</th>
         <th class="text-end">Amount</th>
+        <th>Action</th>
       </tr>
     </thead>
 
@@ -154,10 +155,15 @@
         <td>{{ c.method }}</td>
         <td>{{ c.reference or '-' }}</td>
         <td class="text-end"><strong>{{ c.amount|kwacha }}</strong></td>
+        <td>
+        <a class="btn" href="{{ url_for('contribution_passbook', member_id=c.member.id) }}">
+          View Passbook
+        </a>
+      </td>
       </tr>
       {% else %}
       <tr>
-        <td colspan="7">No savings recorded yet.</td>
+        <td colspan="8">No savings recorded yet.</td>
       </tr>
       {% endfor %}
     </tbody>
