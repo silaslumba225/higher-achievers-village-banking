@@ -25,6 +25,9 @@
   <div class="actions">
     <a class="btn" href="{{ url_for('contributions') }}">← Back to Contributions</a>
     <button class="btn primary" onclick="window.print()">Print Passbook</button>
+    <a class="btn primary" href="{{ url_for('contribution_passbook_pdf', member_id=member.id) }}">
+    Download PDF Statement
+    </a>
   </div>
 </section>
 

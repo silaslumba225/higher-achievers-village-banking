@@ -29,6 +29,12 @@ from services.loan_intelligence_service import LoanIntelligenceService
 from services.welfare_intelligence_service import WelfareIntelligenceService
 from services.meeting_intelligence_service import MeetingIntelligenceService
 from services.financial_intelligence_service import FinancialIntelligenceService
+from io import BytesIO
+from flask import send_file
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'change-this-secret-key')
@@ -1944,6 +1950,82 @@ def contribution_passbook(member_id):
         member=member,
         passbook_rows=passbook_rows,
         running_balance=running_balance
+    )
+
+@app.route('/contributions/passbook/<int:member_id>/pdf')
+@login_required
+@role_required('contributions')
+def contribution_passbook_pdf(member_id):
+    member = Member.query.get_or_404(member_id)
+
+    contributions = Contribution.query.filter_by(
+        member_id=member.id
+    ).order_by(
+        Contribution.paid_on.asc(),
+        Contribution.id.asc()
+    ).all()
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    styles = getSampleStyleSheet()
+    elements = []
+
+    elements.append(Paragraph("HIGHER ACHIEVERS VILLAGE BANKING PRO", styles["Title"]))
+    elements.append(Paragraph("Developed by SL Consulting Limited", styles["Normal"]))
+    elements.append(Spacer(1, 12))
+
+    elements.append(Paragraph("MEMBER SAVINGS STATEMENT", styles["Heading2"]))
+    elements.append(Spacer(1, 12))
+
+    elements.append(Paragraph(f"<b>Member No:</b> {member.member_no}", styles["Normal"]))
+    elements.append(Paragraph(f"<b>Member Name:</b> {member.full_name}", styles["Normal"]))
+    elements.append(Spacer(1, 12))
+
+    data = [["Date", "Month", "Description", "Method", "Reference", "Deposit", "Balance"]]
+
+    running_balance = money(0)
+
+    for c in contributions:
+        running_balance += money(c.amount)
+        data.append([
+            str(c.paid_on),
+            c.month,
+            f"Savings contribution for {c.month}",
+            c.method,
+            c.reference or "-",
+            kwacha(c.amount),
+            kwacha(running_balance)
+        ])
+
+    data.append(["", "", "", "", "Current Balance", "", kwacha(running_balance)])
+
+    table = Table(data, repeatRows=1)
+
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1f4e79")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("ALIGN", (5, 1), (-1, -1), "RIGHT"),
+        ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#f2f2f2")),
+        ("FONTNAME", (4, -1), (-1, -1), "Helvetica-Bold"),
+    ]))
+
+    elements.append(table)
+    elements.append(Spacer(1, 20))
+    elements.append(Paragraph(f"Generated on: {date.today()}", styles["Normal"]))
+
+    doc.build(elements)
+
+    buffer.seek(0)
+
+    filename = f"savings_statement_{member.member_no}.pdf"
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=filename,
+        mimetype="application/pdf"
     )
 
 # ------------------------------------------------------------
