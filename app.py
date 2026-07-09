@@ -641,7 +641,7 @@ class BankReconciliation(db.Model):
     prepared_on = db.Column(db.DateTime, default=datetime.utcnow)
 
     notes = db.Column(db.Text)
-    
+
 class SystemSettings(db.Model):
     __tablename__ = 'system_settings'
 
@@ -768,6 +768,16 @@ def get_settings():
         db.session.commit()
 
     return setting
+
+def get_system_settings():
+    settings = SystemSettings.query.first()
+
+    if not settings:
+        settings = SystemSettings()
+        db.session.add(settings)
+        db.session.commit()
+
+    return settings
 
 def log_audit(action, entity=None, entity_id=None, details=None):
     user = session.get('user') or {}
@@ -1076,6 +1086,59 @@ def cash_account(method):
         return '1020'
 
     return '1000'
+@app.route('/system-settings', methods=['GET', 'POST'])
+@login_required
+@role_required('settings')
+def system_settings():
+    settings = get_system_settings()
+
+    if request.method == 'POST':
+        settings.organisation_name = request.form.get('organisation_name')
+        settings.short_name = request.form.get('short_name')
+        settings.motto = request.form.get('motto')
+        settings.developer_name = request.form.get('developer_name')
+        settings.product_name = request.form.get('product_name')
+        settings.product_version = request.form.get('product_version')
+
+        settings.phone = request.form.get('phone')
+        settings.email = request.form.get('email')
+        settings.website = request.form.get('website')
+        settings.postal_address = request.form.get('postal_address')
+        settings.physical_address = request.form.get('physical_address')
+        settings.registration_number = request.form.get('registration_number')
+
+        settings.currency = request.form.get('currency')
+        settings.currency_symbol = request.form.get('currency_symbol')
+        settings.decimal_places = int(request.form.get('decimal_places') or 2)
+
+        settings.default_interest_rate = money(request.form.get('default_interest_rate') or 0)
+        settings.default_loan_term = int(request.form.get('default_loan_term') or 0)
+        settings.penalty_rate = money(request.form.get('penalty_rate') or 0)
+        settings.share_out_month = request.form.get('share_out_month')
+
+        settings.committee_meeting_frequency = request.form.get('committee_meeting_frequency')
+        settings.member_meeting_frequency = request.form.get('member_meeting_frequency')
+
+        settings.enable_ai_advisor = bool(request.form.get('enable_ai_advisor'))
+        settings.enable_notifications = bool(request.form.get('enable_notifications'))
+        settings.enable_dashboard_charts = bool(request.form.get('enable_dashboard_charts'))
+
+        db.session.commit()
+
+        log_audit(
+            'UPDATE_SYSTEM_SETTINGS',
+            'SystemSettings',
+            settings.id,
+            'System branding and settings were updated'
+        )
+
+        flash('System settings updated successfully.')
+        return redirect(url_for('system_settings'))
+
+    return render_template(
+        'system_settings.html',
+        settings=settings
+    )
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():

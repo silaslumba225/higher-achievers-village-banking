@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+
+{% block page_title %}System Branding & Settings Centre{% endblock %}
+{% block subtitle %}Configure organisation identity, financial rules and product settings{% endblock %}
+
+{% block content %}
+
+<div class="decision-hero">
+  <h2>⚙️ System Branding & Settings Centre</h2>
+  <p>Control how the system appears and behaves for this village banking group.</p>
+</div>
+
+<form method="post">
+
+  <section class="panel highlight">
+    <h2>🏢 Organisation Branding</h2>
+    <p class="muted">These details appear on dashboards, reports, receipts and statements.</p>
+
+    <div class="form-grid">
+      <label>Organisation Name
+        <input name="organisation_name" value="{{ settings.organisation_name or '' }}" required>
+      </label>
+
+      <label>Short Name
+        <input name="short_name" value="{{ settings.short_name or '' }}">
+      </label>
+
+      <label>Motto
+        <input name="motto" value="{{ settings.motto or '' }}">
+      </label>
+
+      <label>Registration Number
+        <input name="registration_number" value="{{ settings.registration_number or '' }}">
+      </label>
+
+      <label>Phone
+        <input name="phone" value="{{ settings.phone or '' }}">
+      </label>
+
+      <label>Email
+        <input type="email" name="email" value="{{ settings.email or '' }}">
+      </label>
+
+      <label>Website
+        <input name="website" value="{{ settings.website or '' }}">
+      </label>
+    </div>
+
+    <div class="form-grid">
+      <label>Postal Address
+        <textarea name="postal_address">{{ settings.postal_address or '' }}</textarea>
+      </label>
+
+      <label>Physical Address
+        <textarea name="physical_address">{{ settings.physical_address or '' }}</textarea>
+      </label>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>💰 Financial Settings</h2>
+    <p class="muted">Control currency, loan defaults and share-out settings.</p>
+
+    <div class="form-grid">
+      <label>Currency
+        <input name="currency" value="{{ settings.currency or 'ZMW' }}">
+      </label>
+
+      <label>Currency Symbol
+        <input name="currency_symbol" value="{{ settings.currency_symbol or 'K' }}">
+      </label>
+
+      <label>Decimal Places
+        <input type="number" name="decimal_places" value="{{ settings.decimal_places or 2 }}">
+      </label>
+
+      <label>Default Interest Rate %
+        <input type="number" step="0.01" name="default_interest_rate" value="{{ settings.default_interest_rate or 15 }}">
+      </label>
+
+      <label>Default Loan Term
+        <input type="number" name="default_loan_term" value="{{ settings.default_loan_term or 6 }}">
+      </label>
+
+      <label>Penalty Rate %
+        <input type="number" step="0.01" name="penalty_rate" value="{{ settings.penalty_rate or 0 }}">
+      </label>
+
+      <label>Share-out Month
+        <input name="share_out_month" value="{{ settings.share_out_month or 'December' }}">
+      </label>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>📅 Meeting Settings</h2>
+    <p class="muted">Set default meeting frequencies for governance planning.</p>
+
+    <div class="form-grid">
+      <label>Committee Meeting Frequency
+        <input name="committee_meeting_frequency" value="{{ settings.committee_meeting_frequency or 'Monthly' }}">
+      </label>
+
+      <label>Member Meeting Frequency
+        <input name="member_meeting_frequency" value="{{ settings.member_meeting_frequency or 'Quarterly' }}">
+      </label>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>🤖 Dashboard & Intelligence</h2>
+    <p class="muted">Enable or disable intelligent dashboard features.</p>
+
+    <label>
+      <input type="checkbox" name="enable_ai_advisor" {% if settings.enable_ai_advisor %}checked{% endif %}>
+      Enable Executive AI Advisor
+    </label>
+
+    <br>
+
+    <label>
+      <input type="checkbox" name="enable_notifications" {% if settings.enable_notifications %}checked{% endif %}>
+      Enable Notifications
+    </label>
+
+    <br>
+
+    <label>
+      <input type="checkbox" name="enable_dashboard_charts" {% if settings.enable_dashboard_charts %}checked{% endif %}>
+      Enable Dashboard Charts
+    </label>
+  </section>
+
+  <section class="panel">
+    <h2>ℹ️ Product Information</h2>
+    <p class="muted">Information about this installed product edition.</p>
+
+    <div class="form-grid">
+      <label>Product Name
+        <input name="product_name" value="{{ settings.product_name or '' }}">
+      </label>
+
+      <label>Product Version
+        <input name="product_version" value="{{ settings.product_version or '' }}">
+      </label>
+
+      <label>Developer
+        <input name="developer_name" value="{{ settings.developer_name or '' }}">
+      </label>
+    </div>
+  </section>
+
+  <div class="actions">
+    <button class="btn primary" type="submit">Save Settings</button>
+    <a class="btn" href="{{ url_for('executive_dashboard') }}">Cancel</a>
+  </div>
+
+</form>
+
+{% endblock %}
