@@ -1340,6 +1340,24 @@ def executive_dashboard():
         "link": url_for("bank_reconciliation")
     })
 
+    # -----------------------------
+    # Top Savers
+    # -----------------------------
+
+    top_savers = (
+        db.session.query(
+            Member.id,
+            Member.member_no,
+            Member.full_name,
+            func.coalesce(func.sum(Contribution.amount), 0).label('total_saved')
+        )
+        .join(Contribution, Contribution.member_id == Member.id)
+        .group_by(Member.id, Member.member_no, Member.full_name)
+        .order_by(func.coalesce(func.sum(Contribution.amount), 0).desc())
+        .limit(10)
+        .all()
+    )
+
     return render_template(
         'executive_dashboard.html',
         cash_on_hand=cash_on_hand,
@@ -1365,7 +1383,8 @@ def executive_dashboard():
         overdue_loans=overdue_loans,
         today=date.today(),
         **dashboard_data,
-        today_checklist=today_checklist
+        today_checklist=today_checklist,
+        top_savers=top_savers,
     )
 
 @app.route('/members')

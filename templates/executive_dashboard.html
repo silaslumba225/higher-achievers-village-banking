@@ -433,6 +433,59 @@
     </div>
     {% endfor %}
 </div>   
+  <div class="go-panel mb-4">
+  <h3>
+    <i class="fa-solid fa-trophy text-warning"></i>
+    Top 10 Savers
+  </h3>
+
+  <p>Members who have saved the most so far.</p>
+
+  <div class="table-responsive">
+    <table class="table table-sm align-middle">
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Member No.</th>
+          <th>Member</th>
+          <th class="text-end">Total Saved</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for saver in top_savers %}
+        <tr>
+          <td>
+            {% if loop.index == 1 %}
+              🥇
+            {% elif loop.index == 2 %}
+              🥈
+            {% elif loop.index == 3 %}
+              🥉
+            {% else %}
+              {{ loop.index }}
+            {% endif %}
+          </td>
+          <td>{{ saver.member_no }}</td>
+          <td>{{ saver.full_name }}</td>
+          <td class="text-end"><strong>{{ saver.total_saved|kwacha }}</strong></td>
+          <td>
+            <a class="btn btn-sm btn-outline-primary"
+               href="{{ url_for('contribution_passbook', member_id=saver.id) }}">
+              Passbook
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5">No savings recorded yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
 
   <div class="row g-4 mb-4">
 
