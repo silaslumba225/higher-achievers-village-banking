@@ -5,66 +5,35 @@
 
 {% block content %}
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
-
 <div class="decision-hero">
-
-    <h2>💰 Savings Intelligence Centre</h2>
-
-    <p>
-
-    Build wealth, monitor member savings and guide committee decisions.
-
-    </p>
-
-</div>
- <div class="decision-grid">
-
-    <div class="decision-card">
-
-        <span>Total Savings</span>
-
-        <strong>{{ total_savings|kwacha }}</strong>
-
-    </div>
-
-    <div class="decision-card good">
-
-        <span>This Month</span>
-
-        <strong>{{ this_month_savings|kwacha }}</strong>
-
-    </div>
-
-    <div class="decision-card">
-
-        <span>Members Saved</span>
-
-        <strong>{{ saved_this_month }}</strong>
-
-    </div>
-
-    <div class="decision-card warning">
-
-        <span>Members Outstanding</span>
-
-        <strong>{{ missing_this_month }}</strong>
-
-    </div>
-
-</div>
+  <h2>💰 Savings Intelligence Centre</h2>
+  <p>Build wealth, monitor member savings and guide committee decisions.</p>
 </div>
 
-<div class="decision-assistant
-    {% if missing_this_month==0 %}
-    good
-    {% else %}
-    warning
-    {% endif %}
-    ">
+<div class="decision-grid">
+  <div class="decision-card">
+    <span>Total Savings</span>
+    <strong>{{ total_savings|kwacha }}</strong>
+  </div>
 
-<h3>Committee Assistant</h3>
+  <div class="decision-card good">
+    <span>This Month</span>
+    <strong>{{ this_month_savings|kwacha }}</strong>
+  </div>
+
+  <div class="decision-card">
+    <span>Members Saved</span>
+    <strong>{{ saved_this_month }}</strong>
+  </div>
+
+  <div class="decision-card warning">
+    <span>Members Outstanding</span>
+    <strong>{{ missing_this_month }}</strong>
+  </div>
+</div>
+
+<div class="decision-assistant {% if missing_this_month == 0 %}good{% else %}warning{% endif %}">
+  <h3>Committee Assistant</h3>
   <h2>🤖 Higher Achievers Savings Assistant</h2>
 
   {% if missing_this_month > 0 %}
@@ -79,17 +48,8 @@
 </div>
 
 <section class="panel highlight">
-  <h2>
-
-    Record Savings
-
-  </h2>
-
-    <p class="muted">
-
-    Capture member savings for the selected month.
-
-    </p>
+  <h2>Record Savings</h2>
+  <p class="muted">Capture member savings for the selected month.</p>
 
   <form method="post" class="form-grid">
     <label>Member
@@ -105,66 +65,49 @@
     </label>
 
     <label>Amount
-      <input type="number" step="0.01" name="amount" required>
+      <input type="number" step="0.01" min="0.01" name="amount" required>
     </label>
 
     <label>Method
-      <select name="method">
+      <select name="method" required>
         {% for p in payment_methods %}
-          <option>{{ p }}</option>
+          <option value="{{ p }}">{{ p }}</option>
         {% endfor %}
       </select>
     </label>
 
     <label>Reference
-      <input name="reference">
+      <input name="reference" placeholder="Receipt, mobile money or bank ref">
     </label>
 
     <label>Paid On
       <input type="date" name="paid_on">
     </label>
 
-    <button class="btn primary">Record Savings</button>
+    <button class="btn primary" type="submit">Record Savings</button>
   </form>
-</div>
+</section>
 
 <div class="panel">
   <div class="panel-head">
+    <div>
+      <h2>Savings Register</h2>
+      <p class="muted">Most recent member savings.</p>
+    </div>
 
-<div>
-
-  <h2>
-
-  Savings Register
-
-  </h2>
-
-  <p class="muted">
-
-  Most recent member savings.
-
-  </p>
-
+    <span class="badge">{{ contributions|length }} Records</span>
   </div>
 
-  <span class="badge">
-
-  {{ contributions|length }}
-
-  Records
-
-</span>
-
-</div>
   <table>
     <thead>
       <tr>
         <th>Date</th>
+        <th>Member No.</th>
         <th>Member</th>
         <th>Month</th>
         <th>Method</th>
         <th>Reference</th>
-        <th>Amount</th>
+        <th class="text-end">Amount</th>
       </tr>
     </thead>
 
@@ -172,15 +115,16 @@
       {% for c in contributions %}
       <tr>
         <td>{{ c.paid_on }}</td>
+        <td>{{ c.member.member_no }}</td>
         <td>{{ c.member.full_name }}</td>
         <td>{{ c.month }}</td>
         <td>{{ c.method }}</td>
         <td>{{ c.reference or '-' }}</td>
-        <td>{{ c.amount|kwacha }}</td>
+        <td class="text-end"><strong>{{ c.amount|kwacha }}</strong></td>
       </tr>
       {% else %}
       <tr>
-        <td colspan="6">No savings recorded yet.</td>
+        <td colspan="7">No savings recorded yet.</td>
       </tr>
       {% endfor %}
     </tbody>
