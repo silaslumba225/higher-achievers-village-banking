@@ -640,7 +640,47 @@ class BankReconciliation(db.Model):
     prepared_by = db.Column(db.String(120))
     prepared_on = db.Column(db.DateTime, default=datetime.utcnow)
 
-    notes = db.Column(db.Text)    
+    notes = db.Column(db.Text)
+    
+class SystemSettings(db.Model):
+    __tablename__ = 'system_settings'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    organisation_name = db.Column(db.String(150), default='Higher Achievers Village Banking')
+    short_name = db.Column(db.String(80), default='Higher Achievers')
+    motto = db.Column(db.String(200), default='Empowering Community Finance')
+    logo = db.Column(db.String(255), nullable=True)
+
+    developer_name = db.Column(db.String(150), default='SL Consulting Limited')
+    product_name = db.Column(db.String(150), default='Higher Achievers Village Banking Pro')
+    product_version = db.Column(db.String(50), default='1.0.0')
+
+    phone = db.Column(db.String(50), nullable=True)
+    email = db.Column(db.String(120), nullable=True)
+    website = db.Column(db.String(150), nullable=True)
+    postal_address = db.Column(db.Text, nullable=True)
+    physical_address = db.Column(db.Text, nullable=True)
+    registration_number = db.Column(db.String(100), nullable=True)
+
+    currency = db.Column(db.String(20), default='ZMW')
+    currency_symbol = db.Column(db.String(10), default='K')
+    decimal_places = db.Column(db.Integer, default=2)
+
+    default_interest_rate = db.Column(db.Numeric(10, 2), default=15.00)
+    default_loan_term = db.Column(db.Integer, default=6)
+    penalty_rate = db.Column(db.Numeric(10, 2), default=0.00)
+    share_out_month = db.Column(db.String(20), default='December')
+
+    committee_meeting_frequency = db.Column(db.String(50), default='Monthly')
+    member_meeting_frequency = db.Column(db.String(50), default='Quarterly')
+
+    enable_ai_advisor = db.Column(db.Boolean, default=True)
+    enable_notifications = db.Column(db.Boolean, default=True)
+    enable_dashboard_charts = db.Column(db.Boolean, default=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)    
    
 def ensure_settings_columns():
     columns = {
