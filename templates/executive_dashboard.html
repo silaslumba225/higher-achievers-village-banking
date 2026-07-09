@@ -486,6 +486,70 @@
     </table>
   </div>
 </div>
+<div class="go-panel mb-4">
+  <h3>
+    <i class="fa-solid fa-user-clock text-warning"></i>
+    Members Requiring Follow-up
+  </h3>
+
+  <p>Members who have not yet made their contribution this month.</p>
+
+  <div class="table-responsive">
+    <table class="table table-sm align-middle">
+      <thead>
+        <tr>
+          <th>Member No.</th>
+          <th>Member</th>
+          <th>Last Contribution</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+
+      <tbody>
+
+      {% for member in members_requiring_followup %}
+
+        <tr>
+
+          <td>{{ member.member_no }}</td>
+
+          <td>{{ member.full_name }}</td>
+
+          <td>{{ member.last_contribution }}</td>
+
+          <td>
+            {% if member.last_contribution == "Never" %}
+              <span class="badge bg-danger">Never Contributed</span>
+            {% else %}
+              <span class="badge bg-warning text-dark">Outstanding</span>
+            {% endif %}
+          </td>
+
+          <td>
+            <a class="btn btn-sm btn-outline-primary"
+               href="{{ url_for('contribution_passbook',
+                                member_id=member.id) }}">
+              Passbook
+            </a>
+          </td>
+
+        </tr>
+
+      {% else %}
+
+        <tr>
+          <td colspan="5" class="text-center text-success">
+            🎉 Every member has contributed this month.
+          </td>
+        </tr>
+
+      {% endfor %}
+
+      </tbody>
+    </table>
+  </div>
+</div>
 
   <div class="row g-4 mb-4">
 
