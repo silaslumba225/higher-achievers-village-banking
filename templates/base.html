@@ -3,21 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ client_name }} | Village Banking</title>
+  <title>{{ settings.organisation_name }} | {{ settings.product_name }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body>
   <aside class="sidebar">
     <div class="brand">
-      <div class="brand">
-    <img src="{{ url_for('static', filename='higher-achievers-logo.jpeg') }}" alt="{{ client_name }} logo">
-    <div>
-        <strong>{{ client_name }}</strong>
-         <span>Village Banking</span>
+      <img src="{{ url_for('static', filename='higher-achievers-logo.jpeg') }}" alt="{{ settings.organisation_name }} logo">
+      <div>
+        <strong>{{ settings.organisation_name }}</strong>
+        <span>{{ settings.product_name }}</span>
+      </div>
     </div>
-</div>
-    </div>
-  <nav>
+
+    <nav>
   {% if user_can('dashboard') %}
   <a href="{{ url_for('executive_dashboard') }}">▣ Dashboard</a>
   {% endif %}
@@ -53,11 +53,7 @@
 
 </nav>
     <div class="sidebar-footer">
-      <div style="background:#dbeafe;padding:10px;border-radius:8px;margin-bottom:10px;">
-    Testing Settings:
-    <strong>{{ settings.organisation_name }}</strong>
-    </div>
-      <small>Produced by</small>
+        <small>Produced by</small>
       <strong>{{ producer_name }}</strong>
     </div>
   </aside>
