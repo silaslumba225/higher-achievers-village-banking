@@ -1398,6 +1398,70 @@ def executive_dashboard():
                 else "Never"
             )
         })
+    # -----------------------------
+    # Executive Financial Ratios
+    # -----------------------------
+
+    average_savings_per_member = money(0)
+    if active_members > 0:
+        average_savings_per_member = money(member_savings / active_members)
+
+    average_loan_size = money(0)
+    if active_loans > 0:
+        average_loan_size = money(loans_receivable / active_loans)
+
+    liquidity_ratio = Decimal("0.00")
+    if member_savings > 0:
+        liquidity_ratio = money(total_cash / member_savings)
+
+    total_loans_count = Loan.query.count()
+    loan_recovery_rate = Decimal("100.00")
+
+    if total_loans_count > 0:
+        loan_recovery_rate = money((paid_loans / total_loans_count) * 100)
+
+    portfolio_at_risk = Decimal("0.00")
+
+    if current_loans > 0:
+        portfolio_at_risk = money((overdue_loans / current_loans) * 100)
+
+    financial_ratios = [
+        {
+            "title": "Average Savings",
+            "value": kwacha(average_savings_per_member),
+            "status": "Per Member",
+            "level": "good",
+            "icon": "fa-piggy-bank"
+        },
+        {
+            "title": "Average Loan Size",
+            "value": kwacha(average_loan_size),
+            "status": "Active Loans",
+            "level": "blue",
+            "icon": "fa-hand-holding-dollar"
+        },
+        {
+            "title": "Liquidity Ratio",
+            "value": liquidity_ratio,
+            "status": "Cash vs Savings",
+            "level": "good" if liquidity_ratio >= 0.5 else "watch",
+            "icon": "fa-droplet"
+        },
+        {
+            "title": "Loan Recovery",
+            "value": f"{loan_recovery_rate}%",
+            "status": "Excellent" if loan_recovery_rate >= 95 else "Monitor",
+            "level": "good" if loan_recovery_rate >= 95 else "watch",
+            "icon": "fa-circle-check"
+        },
+        {
+            "title": "Portfolio at Risk",
+            "value": f"{portfolio_at_risk}%",
+            "status": "Healthy" if portfolio_at_risk < 5 else "Needs Attention",
+            "level": "good" if portfolio_at_risk < 5 else "danger",
+            "icon": "fa-triangle-exclamation"
+        }
+    ]
 
     members_requiring_followup = members_requiring_followup[:10]
 
@@ -1429,6 +1493,7 @@ def executive_dashboard():
         today_checklist=today_checklist,
         top_savers=top_savers,
         members_requiring_followup=members_requiring_followup,
+        financial_ratios=financial_ratios,
     )
 
 @app.route('/members')
