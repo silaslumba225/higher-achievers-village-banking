@@ -550,6 +550,34 @@
     </table>
   </div>
 </div>
+<div class="go-panel mb-4">
+  <h3>
+    <i class="fa-solid fa-chart-simple text-primary"></i>
+    Executive Financial Ratios
+  </h3>
+
+  <p>Key performance indicators showing the financial health of the group.</p>
+
+  <div class="row g-3">
+    {% for ratio in financial_ratios %}
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="attention-item" style="border:1px solid #eef2f7;border-radius:16px;padding:14px;height:100%;">
+        <div class="round-icon {{ ratio.level }}">
+          <i class="fa-solid {{ ratio.icon }}"></i>
+        </div>
+
+        <div>
+          <strong>{{ ratio.title }}</strong><br>
+          <span style="font-size:22px;font-weight:800;">
+            {{ ratio.value }}
+          </span><br>
+          <span class="text-muted-small">{{ ratio.status }}</span>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
 
   <div class="row g-4 mb-4">
 
