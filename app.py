@@ -550,6 +550,7 @@ class SystemSetting(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     organisation_name = db.Column(
+    'organization_name',
     db.String(200),
     default='Your Organisation Name'
 )
@@ -661,6 +662,7 @@ class SystemSettings(db.Model):
 
     developer_name = db.Column(db.String(150), default='SL Consulting Limited')
     organisation_name = db.Column(
+    'organization_name',
     db.String(200),
     default='Your Organisation Name'
 )
