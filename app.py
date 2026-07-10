@@ -2606,22 +2606,38 @@ def loan_statement_pdf(loan_id):
     story.append(Spacer(1, 8))
 
     summary_data = [
-        ['Principal', kwacha(loan.principal)],
-        ['Interest', kwacha(loan.interest_amount)],
-        ['Total Due', kwacha(loan.total_due)],
-        ['Total Paid', kwacha(loan.total_paid)],
-        ['Balance', kwacha(loan.balance)],
-        ['Issued On', str(loan.issued_on or '-')],
-        ['Due On', str(loan.due_on or '-')],
-        ['Purpose', loan.purpose or '-'],
-        ['Disbursement Method', loan.disbursement_method or '-', 'Reference', loan.disbursement_reference or '-'],
-    ]
+    ['Principal', kwacha(loan.principal), 'Interest', kwacha(loan.interest_amount)],
+    ['Total Due', kwacha(loan.total_due), 'Total Paid', kwacha(loan.total_paid)],
+    ['Balance', kwacha(loan.balance), 'Status', loan.status or '-'],
+    ['Issued On', str(loan.issued_on or '-'), 'Due On', str(loan.due_on or '-')],
+    ['Purpose', loan.purpose or '-', 'Loan No', loan.loan_no or f'LN{loan.id:04d}'],
+    [
+        'Disbursement Method',
+        loan.disbursement_method or '-',
+        'Reference',
+        loan.disbursement_reference or '-'
+    ],
+]
 
-    summary_table = Table(summary_data, colWidths=[45 * mm, 115 * mm])
+    summary_table = Table(
+        summary_data,
+        colWidths=[35 * mm, 45 * mm, 35 * mm, 45 * mm]
+    )
+
     summary_table.setStyle(TableStyle([
         ('GRID', (0, 0), (-1, -1), 0.25, colors.grey),
+
         ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f4f8')),
+        ('BACKGROUND', (2, 0), (2, -1), colors.HexColor('#f0f4f8')),
+
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
+
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
     ]))
 
     story.append(summary_table)
