@@ -5758,7 +5758,7 @@ def member_statement_pdf(member_id):
     setting = SystemSetting.query.first()
 
     organization_name = setting.organisation_name if setting and setting.organisation_name else CLIENT_NAME
-    organization_address = setting.organization_address if setting and setting.organisation_address else ''
+    organization_address = setting.organization_address if setting and setting.organization_address else ''
     organization_phone = setting.organization_phone if setting and setting.organization_phone else ''
     organization_email = setting.organization_email if setting and setting.organization_email else ''
     registration_number = setting.registration_number if setting and setting.registration_number else ''
