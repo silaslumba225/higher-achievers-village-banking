@@ -2361,6 +2361,8 @@ def contribution_passbook(member_id):
 @login_required
 @role_required('contributions')
 def contribution_passbook_pdf(member_id):
+    system_setting = get_system_settings()
+
     member = Member.query.get_or_404(member_id)
 
     contributions = Contribution.query.filter_by(
@@ -2375,10 +2377,10 @@ def contribution_passbook_pdf(member_id):
     styles = getSampleStyleSheet()
     elements = []
 
-    elements.append(Paragraph(settings.organisation_name.upper(), styles["Title"]))
+    elements.append(Paragraph(system_setting.organisation_name.upper(), styles["Title"]))
     elements.append(
     Paragraph(
-        f"Running on {settings.product_name} | Developed by {settings.developer_name}",
+        f"Running on {system_setting.product_name} | Developed by {system_setting.developer_name}",
         styles["Normal"]
     )
 )
