@@ -2606,22 +2606,47 @@ def loan_statement_pdf(loan_id):
     story.append(Spacer(1, 8))
 
     summary_data = [
-    ['Principal', kwacha(loan.principal), 'Interest', kwacha(loan.interest_amount)],
-    ['Total Due', kwacha(loan.total_due), 'Total Paid', kwacha(loan.total_paid)],
-    ['Balance', kwacha(loan.balance), 'Status', loan.status or '-'],
-    ['Issued On', str(loan.issued_on or '-'), 'Due On', str(loan.due_on or '-')],
-    ['Purpose', loan.purpose or '-', 'Loan No', loan.loan_no or f'LN{loan.id:04d}'],
-    [
-        'Disbursement Method',
-        loan.disbursement_method or '-',
-        'Reference',
-        loan.disbursement_reference or '-'
-    ],
-]
+        [
+            Paragraph('<b>Principal</b>', normal),
+            kwacha(loan.principal),
+            Paragraph('<b>Interest</b>', normal),
+            kwacha(loan.interest_amount)
+        ],
+        [
+            Paragraph('<b>Total Due</b>', normal),
+            kwacha(loan.total_due),
+            Paragraph('<b>Total Paid</b>', normal),
+            kwacha(loan.total_paid)
+        ],
+        [
+            Paragraph('<b>Balance</b>', normal),
+            kwacha(loan.balance),
+            Paragraph('<b>Status</b>', normal),
+            loan.status or '-'
+        ],
+        [
+            Paragraph('<b>Issued On</b>', normal),
+            str(loan.issued_on or '-'),
+            Paragraph('<b>Due On</b>', normal),
+            str(loan.due_on or '-')
+        ],
+        [
+            Paragraph('<b>Purpose</b>', normal),
+            Paragraph(loan.purpose or '-', normal),
+            Paragraph('<b>Loan No</b>', normal),
+            loan.loan_no or f'LN{loan.id:04d}'
+        ],
+        [
+            Paragraph('<b>Disbursement<br/>Method</b>', normal),
+            loan.disbursement_method or '-',
+            Paragraph('<b>Reference</b>', normal),
+            loan.disbursement_reference or '-'
+        ],
+    ]
 
     summary_table = Table(
         summary_data,
-        colWidths=[35 * mm, 45 * mm, 35 * mm, 45 * mm]
+        colWidths=[38 * mm, 42 * mm, 34 * mm, 46 * mm]
     )
 
     summary_table.setStyle(TableStyle([
@@ -2638,6 +2663,7 @@ def loan_statement_pdf(loan_id):
         ('RIGHTPADDING', (0, 0), (-1, -1), 6),
         ('TOPPADDING', (0, 0), (-1, -1), 5),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('WORDWRAP', (0, 0), (-1, -1), True),
     ]))
 
     story.append(summary_table)
