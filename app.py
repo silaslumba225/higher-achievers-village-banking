@@ -6,7 +6,7 @@ from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash, Response, session, send_file
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy import func
+from sqlalchemy import func, inspect
 import csv
 import io
 import os
@@ -571,6 +571,76 @@ class SystemSetting(db.Model):
     whatsapp_enabled = db.Column(db.Boolean, default=False)
     sms_username = db.Column(db.String(100))
 
+        # Branding and product identity
+    short_name = db.Column(db.String(80), default='Village Banking')
+    motto = db.Column(
+        db.String(200),
+        default='Empowering Community Finance'
+    )
+    developer_name = db.Column(
+        db.String(150),
+        default='SL Consulting Limited'
+    )
+    product_name = db.Column(
+        db.String(150),
+        default='SL Village Banking Pro'
+    )
+    product_version = db.Column(
+        db.String(50),
+        default='1.0.0'
+    )
+    logo = db.Column(db.String(255))
+
+    # Additional contact information
+    phone = db.Column(db.String(50))
+    email = db.Column(db.String(120))
+    website = db.Column(db.String(150))
+    postal_address = db.Column(db.Text)
+    physical_address = db.Column(db.Text)
+
+    # Currency configuration
+    currency = db.Column(db.String(20), default='ZMW')
+    currency_symbol = db.Column(db.String(10), default='K')
+    decimal_places = db.Column(db.Integer, default=2)
+
+    # Financial defaults
+    default_interest_rate = db.Column(
+        db.Numeric(10, 2),
+        default=15.00
+    )
+    default_loan_term = db.Column(db.Integer, default=6)
+    penalty_rate = db.Column(
+        db.Numeric(10, 2),
+        default=0.00
+    )
+    share_out_month = db.Column(
+        db.String(20),
+        default='December'
+    )
+
+    # Meeting defaults
+    committee_meeting_frequency = db.Column(
+        db.String(50),
+        default='Monthly'
+    )
+    member_meeting_frequency = db.Column(
+        db.String(50),
+        default='Quarterly'
+    )
+
+    # Dashboard options
+    enable_ai_advisor = db.Column(db.Boolean, default=True)
+    enable_notifications = db.Column(db.Boolean, default=True)
+    enable_dashboard_charts = db.Column(
+        db.Boolean,
+        default=True
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow
+    )
+
 class CashBookEntry(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
@@ -696,39 +766,79 @@ class SystemSettings(db.Model):
    
 def ensure_settings_columns():
     columns = {
+        # Existing organisation and notification fields
         'logo_url': 'VARCHAR(500)',
         'organization_address': 'VARCHAR(250)',
         'organization_phone': 'VARCHAR(50)',
         'organization_email': 'VARCHAR(120)',
         'registration_number': 'VARCHAR(100)',
-
-        'sms_provider': 'VARCHAR(50)',
+        'sms_provider': "VARCHAR(50) DEFAULT 'Manual'",
         'sms_api_key': 'VARCHAR(500)',
         'sms_sender_id': 'VARCHAR(100)',
         'whatsapp_enabled': 'BOOLEAN DEFAULT FALSE',
         'sms_username': 'VARCHAR(100)',
+
+        # Branding fields
+        'short_name': "VARCHAR(80) DEFAULT 'Village Banking'",
+        'motto': "VARCHAR(200) DEFAULT 'Empowering Community Finance'",
+        'developer_name': "VARCHAR(150) DEFAULT 'SL Consulting Limited'",
+        'product_name': "VARCHAR(150) DEFAULT 'SL Village Banking Pro'",
+        'product_version': "VARCHAR(50) DEFAULT '1.0.0'",
+        'logo': 'VARCHAR(255)',
+
+        # Contact information
+        'phone': 'VARCHAR(50)',
+        'email': 'VARCHAR(120)',
+        'website': 'VARCHAR(150)',
+        'postal_address': 'TEXT',
+        'physical_address': 'TEXT',
+
+        # Currency settings
+        'currency': "VARCHAR(20) DEFAULT 'ZMW'",
+        'currency_symbol': "VARCHAR(10) DEFAULT 'K'",
+        'decimal_places': 'INTEGER DEFAULT 2',
+
+        # Financial defaults
+        'default_interest_rate': 'NUMERIC(10,2) DEFAULT 15.00',
+        'default_loan_term': 'INTEGER DEFAULT 6',
+        'penalty_rate': 'NUMERIC(10,2) DEFAULT 0.00',
+        'share_out_month': "VARCHAR(20) DEFAULT 'December'",
+
+        # Meeting and dashboard settings
+        'committee_meeting_frequency': "VARCHAR(50) DEFAULT 'Monthly'",
+        'member_meeting_frequency': "VARCHAR(50) DEFAULT 'Quarterly'",
+        'enable_ai_advisor': 'BOOLEAN DEFAULT TRUE',
+        'enable_notifications': 'BOOLEAN DEFAULT TRUE',
+        'enable_dashboard_charts': 'BOOLEAN DEFAULT TRUE',
+
+        # Audit fields
+        'created_at': 'TIMESTAMP',
+        'updated_at': 'TIMESTAMP'
+    }
+
+    inspector = inspect(db.engine)
+
+    existing_columns = {
+        column['name']
+        for column in inspector.get_columns('system_setting')
     }
 
     for column, definition in columns.items():
+        if column in existing_columns:
+            continue
+
         try:
             db.session.execute(
                 db.text(
-                    f'ALTER TABLE system_setting ADD COLUMN IF NOT EXISTS {column} {definition}'
+                    f'ALTER TABLE system_setting '
+                    f'ADD COLUMN {column} {definition}'
                 )
             )
             db.session.commit()
-        except Exception:
+            print(f'Added system_setting.{column}')
+        except Exception as exc:
             db.session.rollback()
-
-    for column, definition in columns.items():
-        try:
-            db.session.execute(
-                db.text(f'ALTER TABLE system_setting ADD COLUMN IF NOT EXISTS {column} {definition}')
-            )
-            db.session.commit()
-        except Exception:
-            db.session.rollback()   
-
+            print(f'Could not add system_setting.{column}: {exc}')
 def money(value):
     return Decimal(value or 0).quantize(Decimal('0.01'))
 
@@ -787,14 +897,14 @@ def get_settings():
     return setting
 
 def get_system_settings():
-    settings = SystemSettings.query.first()
+    setting = SystemSetting.query.first()
 
-    if not settings:
-        settings = SystemSettings()
-        db.session.add(settings)
+    if not setting:
+        setting = SystemSetting()
+        db.session.add(setting)
         db.session.commit()
 
-    return settings
+    return setting
 
 @app.context_processor
 def inject_system_settings():
@@ -1306,7 +1416,10 @@ def executive_dashboard():
     # Financial Performance Chart
     # -----------------------------
 
-    contribution_month = func.to_char(Contribution.paid_on, 'YYYY-MM')
+    if db.engine.dialect.name == 'sqlite':
+        contribution_month = func.strftime('%Y-%m', Contribution.paid_on)
+    else:
+        contribution_month = func.to_char(Contribution.paid_on, 'YYYY-MM')
 
     monthly_contributions = (
         db.session.query(
@@ -1322,7 +1435,10 @@ def executive_dashboard():
     contribution_values = [float(v) for _, v in monthly_contributions]
 
 
-    member_month = func.to_char(Member.created_at, 'YYYY-MM')
+    if db.engine.dialect.name == 'sqlite':
+        member_month = func.strftime('%Y-%m', Member.created_at)
+    else:
+        member_month = func.to_char(Member.created_at, 'YYYY-MM')
 
     member_growth = (
         db.session.query(
@@ -1729,8 +1845,15 @@ def members():
         Member.committee_position != ''
     ).count()
 
+    current_month = date.today().strftime('%Y-%m')
+
+    if db.engine.dialect.name == 'sqlite':
+        member_month_expression = db.func.strftime('%Y-%m', Member.created_at)
+    else:
+        member_month_expression = db.func.to_char(Member.created_at, 'YYYY-MM')
+
     new_members_this_month = Member.query.filter(
-        db.func.to_char(Member.created_at, 'YYYY-MM') == date.today().strftime('%Y-%m')
+        member_month_expression == current_month
     ).count()
 
     return render_template(
