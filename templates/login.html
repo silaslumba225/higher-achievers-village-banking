@@ -8,7 +8,8 @@
 </head>
 <body class="login-page">
   <section class="login-card">
-    <img src="{{ url_for('static', filename='higher-achievers-logo.jpeg') }}" alt="Higher Achievers logo">
+    <img src="{{ url_for('static', filename='higher-achievers-logo.jpeg') }}"
+     alt="{{ settings.organisation_name }} logo">
     <h1>{{ client_name }}</h1>
     <p>Secure Village Banking Portal</p>
     {% with messages = get_flashed_messages(with_categories=true) %}

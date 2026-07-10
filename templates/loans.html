@@ -194,8 +194,15 @@ Manage lending, monitor portfolio health and support committee decisions.
 <div class="loan-panel">
   <h3>
     <i class="fa-solid fa-brain text-primary"></i>
-    Higher Achievers Loan Assistant
-  </h3>
+    <h3>
+    <i class="fa-solid fa-brain text-primary"></i>
+    Loan Intelligence Advisor
+    </h3>
+
+    <p class="text-muted-small">
+        Powered by {{ settings.product_name }}
+    </p>
+      </h3>
 
   <p class="text-muted">
     Helpful guidance for managing the loan portfolio.
@@ -346,7 +353,14 @@ Manage lending, monitor portfolio health and support committee decisions.
 
   <div class="col-xl-7">
     <div class="loan-panel h-100">
-      <h3><i class="fa-solid fa-brain text-primary"></i> Higher Achievers Loan Assistant</h3>
+      <h3>
+    <i class="fa-solid fa-brain text-primary"></i>
+    Loan Intelligence Advisor
+  </h3>
+
+  <p class="text-muted-small">
+      Powered by {{ settings.product_name }}
+  </p>
 
       {% if overdue_loans|default(0) > 0 %}
         <div class="assistant-box mt-3" style="border-left-color:#f59e0b;">

@@ -549,7 +549,10 @@ class MonthEndProcess(db.Model):
 class SystemSetting(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
-    organization_name = db.Column(db.String(200), default='Higher Achievers Village Banking')
+    organisation_name = db.Column(
+    db.String(200),
+    default='Your Organisation Name'
+)
     contribution_amount = db.Column(db.Numeric(12, 2), default=100)
     savings_interest_rate = db.Column(db.Numeric(5, 2), default=15)
     loan_interest_rate = db.Column(db.Numeric(5, 2), default=15)
@@ -647,13 +650,19 @@ class SystemSettings(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    organisation_name = db.Column(db.String(150), default='Higher Achievers Village Banking')
+    organisation_name = db.Column(
+    db.String(200),
+    default='Your Organisation Name'
+)
     short_name = db.Column(db.String(80), default='Higher Achievers')
     motto = db.Column(db.String(200), default='Empowering Community Finance')
     logo = db.Column(db.String(255), nullable=True)
 
     developer_name = db.Column(db.String(150), default='SL Consulting Limited')
-    product_name = db.Column(db.String(150), default='Higher Achievers Village Banking Pro')
+    organisation_name = db.Column(
+    db.String(200),
+    default='Your Organisation Name'
+)
     product_version = db.Column(db.String(50), default='1.0.0')
 
     phone = db.Column(db.String(50), nullable=True)
@@ -2282,8 +2291,13 @@ def contribution_passbook_pdf(member_id):
     styles = getSampleStyleSheet()
     elements = []
 
-    elements.append(Paragraph("HIGHER ACHIEVERS VILLAGE BANKING PRO", styles["Title"]))
-    elements.append(Paragraph("Developed by SL Consulting Limited", styles["Normal"]))
+    elements.append(Paragraph(settings.organisation_name.upper(), styles["Title"]))
+    elements.append(
+    Paragraph(
+        f"Running on {settings.product_name} | Developed by {settings.developer_name}",
+        styles["Normal"]
+    )
+)
     elements.append(Spacer(1, 12))
 
     elements.append(Paragraph("MEMBER SAVINGS STATEMENT", styles["Heading2"]))

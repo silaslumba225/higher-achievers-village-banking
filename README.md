@@ -1,6 +1,6 @@
-# Higher Achievers Village Banking System
+# Village Banking System
 
-Produced by Excelling Foundation for Higher Achievers.
+Produced by SL Consulting for Higher Achievers.
 
 ## Run on Windows
 
