@@ -652,7 +652,7 @@ class SystemSettings(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     organisation_name = db.Column(
-    'organization_name',
+    'organisation_name',
     db.String(200),
     default='Your Organisation Name'
 )
