@@ -58,7 +58,7 @@ ABSENCE_FINE_AMOUNT = Decimal('50.00')
 LATE_ATTENDANCE_FINE_AMOUNT = Decimal('20.00')
 LATE_CONTRIBUTION_FINE_AMOUNT = Decimal('10.00')
 CLIENT_NAME = 'Higher Achievers'
-PRODUCER_NAME = 'SL Consulting Ltd'
+PRODUCER_NAME = 'SL Consulting Limited'
 BACKUP_RETENTION = 30
 
 
@@ -651,6 +651,7 @@ class SystemSettings(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     organisation_name = db.Column(
+    'organization_name',
     db.String(200),
     default='Your Organisation Name'
 )
@@ -731,8 +732,13 @@ def money(value):
 
 @app.template_filter('kwacha')
 def kwacha(value):
-    return f"K {money(value):,.2f}"
+    if value is None:
+        value = Decimal('0.00')
 
+    settings = get_system_settings()
+    amount = money(value)
+
+    return f"{settings.currency_symbol} {amount:,.2f}"
 def user_can(permission):
     user = session.get('user') or {}
     role = user.get('role')
