@@ -752,8 +752,8 @@ def inject_globals():
     setting = SystemSetting.query.first()
 
     client_name = (
-        setting.organization_name
-        if setting and setting.organization_name
+        setting.organisation_name
+        if setting and setting.organisation_name
         else CLIENT_NAME
     )
 
@@ -1212,7 +1212,7 @@ def settings():
         db.session.commit()
 
     if request.method == 'POST':
-        setting.organization_name = request.form['organization_name']
+        setting.organisation_name = request.form['organization_name']
         setting.contribution_amount = money(request.form['contribution_amount'])
         setting.savings_interest_rate = money(request.form['savings_interest_rate'])
         setting.loan_interest_rate = money(request.form['loan_interest_rate'])
@@ -5084,7 +5084,7 @@ def notifications():
     q = request.args.get('q', '').strip()
 
     setting = SystemSetting.query.first()
-    organization_name = setting.organization_name if setting and setting.organization_name else CLIENT_NAME
+    organization_name = setting.organisation_name if setting and setting.organisation_name else CLIENT_NAME
 
     templates = {
         'Contribution Reminder': f'Dear {{name}}, your monthly contribution is due. Please pay through bank transfer, mobile money, or cash. {organization_name}.',
@@ -5356,7 +5356,7 @@ def backup_restore():
 @role_required('backups')
 def backup_export_json():
     setting = SystemSetting.query.first()
-    organization_name = setting.organization_name if setting and setting.organization_name else CLIENT_NAME
+    organization_name = setting.organisation_name if setting and setting.organisation_name else CLIENT_NAME
 
     data = {
         'created_at': datetime.utcnow().isoformat(),
@@ -5637,8 +5637,8 @@ def member_statement_pdf(member_id):
 
     setting = SystemSetting.query.first()
 
-    organization_name = setting.organization_name if setting and setting.organization_name else CLIENT_NAME
-    organization_address = setting.organization_address if setting and setting.organization_address else ''
+    organization_name = setting.organisation_name if setting and setting.organisation_name else CLIENT_NAME
+    organization_address = setting.organization_address if setting and setting.organisation_address else ''
     organization_phone = setting.organization_phone if setting and setting.organization_phone else ''
     organization_email = setting.organization_email if setting and setting.organization_email else ''
     registration_number = setting.registration_number if setting and setting.registration_number else ''
@@ -5835,7 +5835,7 @@ def member_statement_pdf(member_id):
 @role_required('shareout')
 def shareout():
     setting = SystemSetting.query.first()
-    organization_name = setting.organization_name if setting and setting.organization_name else CLIENT_NAME
+    organization_name = setting.organisation_name if setting and setting.organisation_name else CLIENT_NAME
 
     today_month = date.today().strftime('%Y-%m')
     start_month = request.values.get('start_month') or f'{date.today().year}-01'
@@ -6121,7 +6121,7 @@ def shareout():
 @role_required('shareout')
 def shareout_pdf():
     setting = SystemSetting.query.first()
-    organization_name = setting.organization_name if setting and setting.organization_name else CLIENT_NAME
+    organization_name = setting.organisation_name if setting and setting.organisation_name else CLIENT_NAME
     organization_address = setting.organization_address if setting and setting.organization_address else ''
     organization_phone = setting.organization_phone if setting and setting.organization_phone else ''
     organization_email = setting.organization_email if setting and setting.organization_email else ''
