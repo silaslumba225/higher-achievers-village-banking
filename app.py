@@ -6103,42 +6103,6 @@ def shareout():
         if lowest_shareout is None or gross_shareout < lowest_shareout:
             lowest_shareout = gross_shareout
 
-        average_shareout = money(
-            Decimal("0.00")
-            if eligible_members == 0
-            else total_net_payable / eligible_members
-        )  
-        if members_requiring_review > 0:
-            readiness_score -= 25
-            readiness_messages.append(
-                f"{members_requiring_review} member(s) require review."
-            )
-
-        if shareout_fund <= 0:
-            readiness_score = 0
-            readiness_messages.append(
-                "No distributable fund available."
-            )
-
-        if eligible_members == 0:
-            readiness_score = 0
-            readiness_messages.append(
-                "No eligible members."
-            )
-
-        distribution_ready = readiness_score >= 75
-
-        if distribution_ready:
-            recommendation = "Proceed with Distribution"
-        else:
-            recommendation = "Do Not Distribute Yet"
-
-        average_contribution = money(
-            Decimal("0.00")
-            if len(contrib_rows) == 0
-            else total_contributions / len(contrib_rows)
-        )
-
         net_status = 'surplus' if net_payable >= 0 else 'loss'
 
         rows.append({
@@ -6156,6 +6120,44 @@ def shareout():
             'net_payable': net_payable,
             'net_status': net_status,
         })
+        average_shareout = money(
+        Decimal('0.00')
+        if eligible_members == 0
+        else total_net_payable / eligible_members
+    )
+
+    average_contribution = money(
+        Decimal('0.00')
+        if len(contrib_rows) == 0
+        else total_contributions / len(contrib_rows)
+    )
+
+    if members_requiring_review > 0:
+        readiness_score -= 25
+        readiness_messages.append(
+            f'{members_requiring_review} member(s) require review.'
+        )
+
+    if shareout_fund <= 0:
+        readiness_score = 0
+        readiness_messages.append(
+            'No distributable fund available.'
+        )
+
+    if eligible_members == 0:
+        readiness_score = 0
+        readiness_messages.append(
+            'No eligible members.'
+        )
+
+    readiness_score = max(0, readiness_score)
+    distribution_ready = readiness_score >= 75
+
+    recommendation = (
+        'Proceed with Distribution'
+        if distribution_ready
+        else 'Do Not Distribute Yet'
+    )    
     page = request.args.get('page', 1, type=int)
     per_page = 25
 
