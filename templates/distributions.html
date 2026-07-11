@@ -841,14 +841,26 @@ Record member payments and monitor the year-end distribution process
 
                         <div class="col-md-6 col-lg-4">
                             <label class="form-label fw-semibold">
-                                Authorized By
-                            </label>
+    Authorized By
+</label>
 
-                            <input
-                                name="authorized_by"
-                                class="form-control"
-                                placeholder="Chairperson or Treasurer"
-                            >
+                    <select
+                        name="authorized_by"
+                        class="form-select"
+                        required
+                    >
+                        <option value="">Select Authorizing Officer</option>
+
+                        <option>Chairperson</option>
+                        <option>Vice Chairperson</option>
+                        <option>Secretary</option>
+                        <option>Treasurer</option>
+                        <option>Vice Treasurer</option>
+                        <option>Committee Member</option>
+                        <option>Manager</option>
+                        <option>Administrator</option>
+                    </select>
+                                                >
                         </div>
 
                         <div class="col-md-6 col-lg-2">
