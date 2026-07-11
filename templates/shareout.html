@@ -272,7 +272,13 @@ Calculate dividend and share-out distribution for members
 
                     <a
                         class="btn btn-outline-success"
-                        href="{{ url_for('shareout_csv') }}"
+                        href="{{ url_for(
+                              'shareout_csv',
+                              start_month=start_month,
+                              end_month=end_month,
+                              expenses=expenses,
+                              other_income=other_income
+                          ) }}"
                     >
                         <i class="fas fa-file-csv me-1"></i>
                         Export CSV
