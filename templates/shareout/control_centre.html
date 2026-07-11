@@ -1,0 +1,621 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Share-Out Control Centre{% endblock %}
+{% block subtitle %}
+Manage year-end calculations, approvals, member payments and statements
+{% endblock %}
+
+{% block content %}
+
+<style>
+    .shareout-control-centre {
+        padding-bottom: 30px;
+    }
+
+    .shareout-hero {
+        background:
+            linear-gradient(
+                135deg,
+                rgba(13, 110, 253, 0.96),
+                rgba(25, 135, 84, 0.93)
+            );
+        border-radius: 18px;
+        padding: 30px;
+        color: white;
+        margin-bottom: 24px;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+    }
+
+    .shareout-hero h2 {
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .shareout-hero p {
+        margin-bottom: 0;
+        opacity: 0.92;
+    }
+
+    .summary-card {
+        border: none;
+        border-radius: 16px;
+        height: 100%;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .summary-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.11);
+    }
+
+    .summary-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 21px;
+    }
+
+    .summary-label {
+        color: #6c757d;
+        font-size: 0.86rem;
+        margin-bottom: 5px;
+    }
+
+    .summary-value {
+        font-size: 1.45rem;
+        font-weight: 700;
+        color: #212529;
+        margin-bottom: 0;
+    }
+
+    .module-card {
+        border: 1px solid #e9ecef;
+        border-radius: 16px;
+        height: 100%;
+        background: white;
+        padding: 22px;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+        transition: all 0.2s ease;
+    }
+
+    .module-card:hover {
+        color: inherit;
+        transform: translateY(-4px);
+        border-color: #0d6efd;
+        box-shadow: 0 10px 28px rgba(13, 110, 253, 0.12);
+    }
+
+    .module-icon {
+        width: 54px;
+        height: 54px;
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 23px;
+        margin-bottom: 16px;
+    }
+
+    .module-card h5 {
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .module-card p {
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin-bottom: 14px;
+    }
+
+    .module-link {
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: #0d6efd;
+    }
+
+    .control-panel {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
+    }
+
+    .progress {
+        height: 12px;
+        border-radius: 10px;
+    }
+
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 7px 12px;
+        border-radius: 20px;
+        font-size: 0.84rem;
+        font-weight: 600;
+    }
+
+    .status-not-started {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .status-approved {
+        background: #d1e7dd;
+        color: #0f5132;
+    }
+
+    .status-locked {
+        background: #f8d7da;
+        color: #842029;
+    }
+
+    .checklist-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 11px;
+        padding: 10px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .checklist-item:last-child {
+        border-bottom: none;
+    }
+
+    .checklist-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: #e7f1ff;
+        color: #0d6efd;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+</style>
+
+<div class="shareout-control-centre">
+
+    <!-- Hero Section -->
+    <div class="row align-items-center">
+
+    <div class="col-lg-8 mb-3 mb-lg-0">
+
+        <h2>
+            <i class="fas fa-calculator me-2"></i>
+            Share-Out Control Centre
+        </h2>
+
+        <p class="mb-0">
+            Complete, approve and monitor the distribution of members'
+            contributions, interest and distributable surplus.
+        </p>
+
+    </div>
+
+    <div class="col-lg-4 d-flex justify-content-lg-end justify-content-start">
+
+        <a href="{{ url_for('shareout') }}"
+           class="btn btn-light btn-lg px-4">
+
+            <i class="fas fa-calculator me-2"></i>
+            Open Calculator
+
+        </a>
+
+    </div>
+
+</div>
+    <!-- Summary Cards -->
+    <div class="row g-3 mb-4">
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card summary-card">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="summary-icon bg-primary-subtle text-primary">
+                        <i class="fas fa-coins"></i>
+                    </div>
+
+                    <div>
+                        <div class="summary-label">
+                            Total Share-Out
+                        </div>
+
+                        <p class="summary-value">
+                            {{ shareout_summary.total_shareout | kwacha }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card summary-card">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="summary-icon bg-info-subtle text-info">
+                        <i class="fas fa-users"></i>
+                    </div>
+
+                    <div>
+                        <div class="summary-label">
+                            Eligible Members
+                        </div>
+
+                        <p class="summary-value">
+                            {{ shareout_summary.eligible_members }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card summary-card">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="summary-icon bg-success-subtle text-success">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+
+                    <div>
+                        <div class="summary-label">
+                            Members Paid
+                        </div>
+
+                        <p class="summary-value">
+                            {{ shareout_summary.members_paid }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card summary-card">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="summary-icon bg-warning-subtle text-warning">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+
+                    <div>
+                        <div class="summary-label">
+                            Balance Remaining
+                        </div>
+
+                        <p class="summary-value">
+                            {{ shareout_summary.balance_remaining | kwacha }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Share-Out Modules -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h4 class="fw-bold mb-1">Share-Out Operations</h4>
+            <p class="text-muted mb-0">
+                Select the Share-Out function you want to use.
+            </p>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+
+        <!-- Calculator -->
+        <div class="col-md-6 col-xl-4">
+            <a
+                href="{{ url_for('shareout') }}"
+                class="module-card"
+            >
+                <div class="module-icon bg-primary-subtle text-primary">
+                    <i class="fas fa-calculator"></i>
+                </div>
+
+                <h5>Share-Out Calculator</h5>
+
+                <p>
+                    Calculate the distributable pool, members' contribution
+                    shares and earnings allocations.
+                </p>
+
+                <span class="module-link">
+                    Open Calculator
+                    <i class="fas fa-arrow-right ms-1"></i>
+                </span>
+            </a>
+        </div>
+
+        <!-- Members Schedule -->
+        <div class="col-md-6 col-xl-4">
+            <div class="module-card">
+                <div class="module-icon bg-info-subtle text-info">
+                    <i class="fas fa-list-alt"></i>
+                </div>
+
+                <h5>Members Share-Out Schedule</h5>
+
+                <p>
+                    Review each member's contributions, percentage share,
+                    earnings and total amount payable.
+                </p>
+
+                <span class="badge bg-secondary">
+                    Next Module
+                </span>
+            </div>
+        </div>
+
+        <!-- Payment Register -->
+        <div class="col-md-6 col-xl-4">
+            <div class="module-card">
+                <div class="module-icon bg-success-subtle text-success">
+                    <i class="fas fa-money-check-alt"></i>
+                </div>
+
+                <h5>Payment Register</h5>
+
+                <p>
+                    Record payments by bank, mobile money or cash and monitor
+                    unpaid balances.
+                </p>
+
+                <span class="badge bg-light text-dark border">
+                    Planned
+                </span>
+            </div>
+        </div>
+
+        <!-- Approval Centre -->
+        <div class="col-md-6 col-xl-4">
+            <div class="module-card">
+                <div class="module-icon bg-warning-subtle text-warning">
+                    <i class="fas fa-user-check"></i>
+                </div>
+
+                <h5>Approval &amp; Locking</h5>
+
+                <p>
+                    Review, approve and lock the final Share-Out before member
+                    payments are processed.
+                </p>
+
+                <span class="badge bg-light text-dark border">
+                    Planned
+                </span>
+            </div>
+        </div>
+
+        <!-- Statements -->
+        <div class="col-md-6 col-xl-4">
+            <div class="module-card">
+                <div class="module-icon bg-danger-subtle text-danger">
+                    <i class="fas fa-file-pdf"></i>
+                </div>
+
+                <h5>Individual Statements</h5>
+
+                <p>
+                    Generate printable member statements showing the full
+                    Share-Out calculation and payment details.
+                </p>
+
+                <span class="badge bg-light text-dark border">
+                    Planned
+                </span>
+            </div>
+        </div>
+
+        <!-- Executive Dashboard -->
+        <div class="col-md-6 col-xl-4">
+            <div class="module-card">
+                <div class="module-icon bg-secondary-subtle text-secondary">
+                    <i class="fas fa-chart-pie"></i>
+                </div>
+
+                <h5>Executive Dashboard</h5>
+
+                <p>
+                    View payment progress, distribution analysis, exceptions
+                    and management insights.
+                </p>
+
+                <span class="badge bg-light text-dark border">
+                    Planned
+                </span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Progress and Checklist -->
+    <div class="row g-4">
+
+        <div class="col-lg-7">
+            <div class="card control-panel h-100">
+                <div class="card-body p-4">
+
+                    <div class="d-flex justify-content-between align-items-start mb-4">
+                        <div>
+                            <h5 class="fw-bold mb-1">
+                                Share-Out Progress
+                            </h5>
+
+                            <p class="text-muted mb-0">
+                                Current processing and payment position
+                            </p>
+                        </div>
+
+                        {% if shareout_summary.is_locked %}
+                            <span class="status-pill status-locked">
+                                <i class="fas fa-lock"></i>
+                                Locked
+                            </span>
+                        {% elif shareout_summary.approval_status == 'Approved' %}
+                            <span class="status-pill status-approved">
+                                <i class="fas fa-check-circle"></i>
+                                Approved
+                            </span>
+                        {% else %}
+                            <span class="status-pill status-not-started">
+                                <i class="fas fa-clock"></i>
+                                {{ shareout_summary.approval_status }}
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Payment completion</span>
+
+                        <strong>
+                            {{ shareout_summary.payment_progress }}%
+                        </strong>
+                    </div>
+
+                    <div class="progress mb-4">
+                        <div
+                            class="progress-bar"
+                            role="progressbar"
+                            style="width: {{ shareout_summary.payment_progress }}%;"
+                            aria-valuenow="{{ shareout_summary.payment_progress }}"
+                            aria-valuemin="0"
+                            aria-valuemax="100"
+                        >
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-sm-4">
+                            <div class="p-3 rounded bg-light">
+                                <small class="text-muted d-block">
+                                    Amount Paid
+                                </small>
+
+                                <strong>
+                                    {{ shareout_summary.amount_paid | kwacha }}
+                                </strong>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-4">
+                            <div class="p-3 rounded bg-light">
+                                <small class="text-muted d-block">
+                                    Members Unpaid
+                                </small>
+
+                                <strong>
+                                    {{ shareout_summary.members_unpaid }}
+                                </strong>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-4">
+                            <div class="p-3 rounded bg-light">
+                                <small class="text-muted d-block">
+                                    Balance
+                                </small>
+
+                                <strong>
+                                    {{ shareout_summary.balance_remaining | kwacha }}
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card control-panel h-100">
+                <div class="card-body p-4">
+
+                    <h5 class="fw-bold mb-1">
+                        Year-End Checklist
+                    </h5>
+
+                    <p class="text-muted mb-3">
+                        Recommended Share-Out processing sequence
+                    </p>
+
+                    <div class="checklist-item">
+                        <div class="checklist-icon">
+                            <i class="fas fa-check"></i>
+                        </div>
+
+                        <div>
+                            <strong>Confirm contributions</strong>
+                            <div class="small text-muted">
+                                Ensure all contributions have been posted.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="checklist-item">
+                        <div class="checklist-icon">
+                            <i class="fas fa-check"></i>
+                        </div>
+
+                        <div>
+                            <strong>Review outstanding loans</strong>
+                            <div class="small text-muted">
+                                Confirm loan balances and deductions.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="checklist-item">
+                        <div class="checklist-icon">
+                            <i class="fas fa-calculator"></i>
+                        </div>
+
+                        <div>
+                            <strong>Run Share-Out calculation</strong>
+                            <div class="small text-muted">
+                                Calculate the final member allocation.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="checklist-item">
+                        <div class="checklist-icon">
+                            <i class="fas fa-user-check"></i>
+                        </div>
+
+                        <div>
+                            <strong>Approve and lock</strong>
+                            <div class="small text-muted">
+                                Authorise the final schedule before payment.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="checklist-item">
+                        <div class="checklist-icon">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+
+                        <div>
+                            <strong>Process member payments</strong>
+                            <div class="small text-muted">
+                                Record and reconcile all distributions.
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

@@ -6236,6 +6236,30 @@ def shareout():
 
     return render_template('shareout.html', **locals())
 
+@app.route('/share-out-control-centre')
+@login_required
+def shareout_control_centre():
+    """
+    Central navigation and monitoring hub for all Share-Out functions.
+    """
+
+    shareout_summary = {
+        'total_shareout': 0,
+        'eligible_members': 0,
+        'members_paid': 0,
+        'members_unpaid': 0,
+        'amount_paid': 0,
+        'balance_remaining': 0,
+        'payment_progress': 0,
+        'approval_status': 'Not Started',
+        'is_locked': False,
+    }
+
+    return render_template(
+        'shareout/control_centre.html',
+        shareout_summary=shareout_summary
+    )
+
 @app.route('/shareout.pdf')
 @login_required
 @role_required('shareout')

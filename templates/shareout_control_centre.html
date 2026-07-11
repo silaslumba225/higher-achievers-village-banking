@@ -1,0 +1,269 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Share-Out Control Centre{% endblock %}
+
+{% block subtitle %}
+Plan, review and control the members' share-out process
+{% endblock %}
+
+{% block content %}
+
+<div class="decision-hero">
+  <h2>
+    <i class="fa-solid fa-scale-balanced"></i>
+    Share-Out Control Centre
+  </h2>
+
+  <p>
+    Review the distributable fund, member eligibility,
+    deductions and estimated cash payout before producing
+    the final Members Share-Out Schedule.
+  </p>
+</div>
+
+<section class="panel highlight">
+  <div class="panel-head">
+    <div>
+      <h2>Share-Out Period</h2>
+      <p class="muted">
+        Select the period and enter any planning adjustments.
+      </p>
+    </div>
+
+    <span class="badge">
+      {{ shareout_status }}
+    </span>
+  </div>
+
+  <form method="get" class="form-grid">
+
+    <label>Start Month
+      <input
+        type="month"
+        name="start_month"
+        value="{{ start_month }}"
+        required
+      >
+    </label>
+
+    <label>End Month
+      <input
+        type="month"
+        name="end_month"
+        value="{{ end_month }}"
+        required
+      >
+    </label>
+
+    <label>Other Income
+      <input
+        type="number"
+        step="0.01"
+        min="0"
+        name="other_income"
+        value="{{ other_income }}"
+      >
+    </label>
+
+    <label>Expenses
+      <input
+        type="number"
+        step="0.01"
+        min="0"
+        name="expenses"
+        value="{{ expenses }}"
+      >
+    </label>
+
+    <button class="btn primary" type="submit">
+      <i class="fa-solid fa-calculator"></i>
+      Refresh Control Centre
+    </button>
+
+  </form>
+</section>
+
+<div class="decision-grid">
+
+  <div class="decision-card">
+    <span>Total Members</span>
+    <strong>{{ total_members }}</strong>
+  </div>
+
+  <div class="decision-card good">
+    <span>Active Members</span>
+    <strong>{{ active_members }}</strong>
+  </div>
+
+  <div class="decision-card">
+    <span>Eligible Members</span>
+    <strong>{{ eligible_members }}</strong>
+  </div>
+
+  <div class="decision-card warning">
+    <span>Without Contributions</span>
+    <strong>{{ members_without_contributions }}</strong>
+  </div>
+
+</div>
+
+<section class="panel">
+  <h2>
+    <i class="fa-solid fa-vault"></i>
+    Share-Out Fund Summary
+  </h2>
+
+  <div class="table-responsive">
+    <table class="table align-middle">
+
+      <tbody>
+
+        <tr>
+          <th>Total Contributions</th>
+          <td class="text-end">
+            {{ total_contributions|kwacha }}
+          </td>
+        </tr>
+
+        <tr>
+          <th>Savings Interest</th>
+          <td class="text-end">
+            {{ total_savings_interest|kwacha }}
+          </td>
+        </tr>
+
+        <tr>
+          <th>Fines Collected</th>
+          <td class="text-end">
+            {{ fines_collected|kwacha }}
+          </td>
+        </tr>
+
+        <tr>
+          <th>Other Income</th>
+          <td class="text-end">
+            {{ other_income|kwacha }}
+          </td>
+        </tr>
+
+        <tr>
+          <th>Less: Expenses</th>
+          <td class="text-end">
+            ({{ expenses|kwacha }})
+          </td>
+        </tr>
+
+        <tr>
+          <th>Less: Previous Distributions</th>
+          <td class="text-end">
+            ({{ distributions_paid|kwacha }})
+          </td>
+        </tr>
+
+        <tr class="table-primary">
+          <th>Gross Share-Out Fund</th>
+          <td class="text-end">
+            <strong>{{ gross_shareout_fund|kwacha }}</strong>
+          </td>
+        </tr>
+
+      </tbody>
+
+    </table>
+  </div>
+</section>
+
+<div class="decision-grid">
+
+  <div class="decision-card warning">
+    <span>Outstanding Loans</span>
+    <strong>{{ outstanding_loans|kwacha }}</strong>
+  </div>
+
+  <div class="decision-card warning">
+    <span>Outstanding Fines</span>
+    <strong>{{ outstanding_fines|kwacha }}</strong>
+  </div>
+
+  <div class="decision-card">
+    <span>Total Deductions</span>
+    <strong>{{ total_deductions|kwacha }}</strong>
+  </div>
+
+  <div class="decision-card good">
+    <span>Estimated Cash Payout</span>
+    <strong>{{ estimated_cash_payout|kwacha }}</strong>
+  </div>
+
+</div>
+
+<div class="decision-assistant {{ shareout_level }}">
+
+  <h3>
+    <i class="fa-solid fa-lightbulb"></i>
+    Share-Out Readiness
+  </h3>
+
+  <strong>{{ shareout_status }}</strong>
+
+  <p>{{ shareout_message }}</p>
+
+</div>
+
+<section class="panel">
+
+  <h2>Share-Out Actions</h2>
+
+  <p class="muted">
+    Review the schedule before exporting or processing payments.
+  </p>
+
+  <div class="actions">
+
+    <a
+      class="btn primary"
+      href="{{ url_for(
+        'shareout',
+        start_month=start_month,
+        end_month=end_month,
+        other_income=other_income,
+        expenses=expenses
+      ) }}"
+    >
+      <i class="fa-solid fa-table-list"></i>
+      Preview Members Schedule
+    </a>
+
+    <a
+      class="btn"
+      href="{{ url_for(
+        'shareout_pdf',
+        start_month=start_month,
+        end_month=end_month,
+        other_income=other_income,
+        expenses=expenses
+      ) }}"
+    >
+      <i class="fa-solid fa-file-pdf"></i>
+      Export PDF
+    </a>
+
+    <a
+      class="btn"
+      href="{{ url_for(
+        'shareout_csv',
+        start_month=start_month,
+        end_month=end_month,
+        other_income=other_income,
+        expenses=expenses
+      ) }}"
+    >
+      <i class="fa-solid fa-file-csv"></i>
+      Export CSV
+    </a>
+
+  </div>
+
+</section>
+
+{% endblock %}

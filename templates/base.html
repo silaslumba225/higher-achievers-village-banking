@@ -29,7 +29,9 @@
   {% if user_can('reports') %}<a href="{{ url_for('reports') }}">📈 Reports</a>{% endif %}
   
   <a href="{{ url_for('statements') }}">📄 Member Statements</a>
-  <a href="{{ url_for('shareout') }}">🧮 Share-Out Calculator</a>
+  <a href="{{ url_for('shareout_control_centre') }}">
+    🧮 Share-Out
+  </a>
   <a href="{{ url_for('fines') }}">⚠️ Fines & Penalties</a>
   <a href="{{ url_for('welfare') }}">🤝 Welfare Fund</a>
   <a href="{{ url_for('attendance') }}">✅ Attendance Register</a>
