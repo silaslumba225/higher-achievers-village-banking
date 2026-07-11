@@ -1,111 +1,694 @@
 {% extends 'base.html' %}
+
 {% block page_title %}Share-Out Calculator{% endblock %}
-{% block subtitle %}Calculate dividend and share-out distribution for members{% endblock %}
+
+{% block subtitle %}
+Calculate dividend and share-out distribution for members
+{% endblock %}
 
 {% block content %}
-<section class="panel">
-  <div class="panel-head">
-    <div>
-      <h2>Share-Out Calculator</h2>
-      <p>Calculate member payout based on contributions, surplus income and expenses.</p>
+
+<link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+>
+
+<link
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    rel="stylesheet"
+>
+
+<style>
+    .shareout-calculator-page {
+        padding-bottom: 32px;
+    }
+
+    .calculator-hero {
+        background:
+            linear-gradient(
+                135deg,
+                rgba(13, 110, 253, 0.97),
+                rgba(25, 135, 84, 0.94)
+            );
+        border-radius: 18px;
+        padding: 28px;
+        color: white;
+        margin-bottom: 24px;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+    }
+
+    .calculator-hero h2 {
+        margin-bottom: 8px;
+        font-weight: 700;
+    }
+
+    .calculator-hero p {
+        margin-bottom: 0;
+        opacity: 0.92;
+    }
+
+    .calculator-panel,
+    .schedule-panel {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
+    }
+
+    .calculator-panel .form-label {
+        font-weight: 600;
+        color: #495057;
+    }
+
+    .calculator-panel .form-control {
+        min-height: 46px;
+        border-radius: 10px;
+        background: #fffbea;
+    }
+
+    .calculator-panel .form-control:focus {
+        background: white;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.12);
+    }
+
+    .summary-card {
+        border: none;
+        border-radius: 16px;
+        height: 100%;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
+        transition:
+            transform 0.2s ease,
+            box-shadow 0.2s ease;
+    }
+
+    .summary-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.11);
+    }
+
+    .summary-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 21px;
+    }
+
+    .summary-label {
+        color: #6c757d;
+        font-size: 0.85rem;
+        margin-bottom: 4px;
+    }
+
+    .summary-value {
+        color: #212529;
+        font-size: 1.45rem;
+        font-weight: 700;
+        margin-bottom: 0;
+    }
+
+    .schedule-table {
+        margin-bottom: 0;
+        font-size: 0.86rem;
+    }
+
+    .schedule-table thead th {
+        background: #f4f7fb;
+        color: #495057;
+        font-size: 0.76rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        white-space: nowrap;
+        padding: 13px 10px;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .schedule-table tbody td {
+        vertical-align: middle;
+        padding: 12px 10px;
+        white-space: nowrap;
+    }
+
+    .member-name {
+        font-weight: 600;
+        color: #212529;
+    }
+
+    .member-number {
+        color: #6c757d;
+        font-size: 0.8rem;
+    }
+
+    .good-text {
+        color: #198754;
+    }
+
+    .bad-text {
+        color: #dc3545;
+    }
+
+    .empty-state {
+        padding: 45px 20px;
+        text-align: center;
+        color: #6c757d;
+    }
+
+    .empty-state-icon {
+        width: 68px;
+        height: 68px;
+        border-radius: 50%;
+        background: #eef4ff;
+        color: #0d6efd;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        margin-bottom: 16px;
+    }
+
+    .pagination-panel {
+        border: none;
+        border-radius: 14px;
+        box-shadow: 0 5px 16px rgba(0, 0, 0, 0.06);
+    }
+
+    .page-indicator {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 14px;
+        border-radius: 20px;
+        background: #e7f1ff;
+        color: #084298;
+        font-weight: 600;
+        font-size: 0.86rem;
+    }
+
+    @media print {
+        .no-print,
+        .sidebar,
+        .topbar {
+            display: none !important;
+        }
+
+        .calculator-hero {
+            background: white !important;
+            color: black !important;
+            box-shadow: none;
+            border: 1px solid #dee2e6;
+        }
+
+        .calculator-panel,
+        .summary-card,
+        .schedule-panel {
+            box-shadow: none !important;
+            border: 1px solid #dee2e6;
+        }
+    }
+</style>
+
+<div class="shareout-calculator-page">
+
+    <!-- Hero Header -->
+    <div class="calculator-hero">
+        <div class="row align-items-center">
+
+            <div class="col-lg-7 mb-3 mb-lg-0">
+                <h2>
+                    <i class="fas fa-calculator me-2"></i>
+                    Share-Out Calculator
+                </h2>
+
+                <p>
+                    Calculate member payouts using contributions, surplus
+                    income, expenses, outstanding loans and fines.
+                </p>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="d-flex flex-wrap justify-content-lg-end gap-2 no-print">
+
+                    <a
+                        href="{{ url_for('shareout_control_centre') }}"
+                        class="btn btn-outline-light"
+                    >
+                        <i class="fas fa-arrow-left me-1"></i>
+                        Control Centre
+                    </a>
+
+                    <a
+                        href="{{ url_for('shareout_schedule') }}"
+                        class="btn btn-light"
+                    >
+                        <i class="fas fa-list-alt me-1"></i>
+                        Members Schedule
+                    </a>
+
+                </div>
+            </div>
+
+        </div>
     </div>
-    <a class="btn" href="{{ url_for('shareout_csv') }}">Export CSV</a>
-  </div>
-  <a class="btn" href="{{ url_for('shareout_pdf',
-    start_month=start_month,
-    end_month=end_month,
-    expenses=expenses,
-    other_income=other_income) }}">
-    Export PDF
-  </a>
-  <!-- <a class="btn" href="{{ url_for('shareout_pdf', start_month=start_month, end_month=end_month, expenses=expenses, other_income=other_income) }}">Export PDF</a>  -->
 
-  <form method="get" class="form-grid">
-    <label>Start Month
-      <input type="month" name="start_month" value="{{ start_month }}">
-    </label>
-    <label>End Month
-      <input type="month" name="end_month" value="{{ end_month }}">
-    </label>
-    <label>Other Income
-      <input type="number" name="other_income" step="0.01" value="{{ other_income }}">
-    </label>
-    <label>Expenses
-      <input type="number" name="expenses" step="0.01" value="{{ expenses }}">
-    </label>
-    <button type="submit">Calculate</button>
-  </form>
-</section>
+    <!-- Calculation Form -->
+    <div class="card calculator-panel mb-4">
+        <div class="card-body p-4">
 
-<section class="kpi-grid">
-  <div class="kpi"><span>Total Contributions</span><strong>{{ total_contributions|kwacha }}</strong><em>Within selected period</em></div>
-  <div class="kpi"><span>Surplus / Income</span><strong>{{ surplus|kwacha }}</strong><em>Interest, fines and other income</em></div>
-  <div class="kpi accent"><span>Share-Out Fund</span><strong>{{ shareout_fund|kwacha }}</strong><em>Available for distribution</em></div>
-</section>
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
 
-<section class="panel">
-  <h2>Member Share-Out Schedule</h2>
-  <div class="table-wrap">
-    <table>
-      <thead>
-      <tr>
-        <th>Member</th>
-        <th>Contributions</th>
-        <th>Savings Interest</th>
-        <th>Gross Savings</th>
-        <th>Share %</th>
-        <th>Gross Share-Out</th>
-        <th>Loans + Interest</th>
-        <th>Fines</th>
-        <th>Deductions</th>
-        <th>Net Payable</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in paged_rows %}
-      <tr>
-        <td><strong>{{ row.member_no }}</strong><br>{{ row.full_name }}</td>
-        <td>{{ row.contributed|kwacha }}</td>
-        <td>{{ row.savings_interest|kwacha }}</td>
-        <td>{{ row.gross_savings_value|kwacha }}</td>
-        <td>{{ row.percent }}%</td>
-        <td>{{ row.gross_shareout|kwacha }}</td>
-        <td>{{ row.outstanding_loans|kwacha }}</td>
-        <td>{{ row.fine_balance|kwacha }}</td>
-        <td>{{ row.total_deductions|kwacha }}</td>
-        <td>
-          <strong class="{% if row.net_status == 'surplus' %}good-text{% else %}bad-text{% endif %}">
-            {{ row.net_payable|kwacha }}
-          </strong>
-        </td>
-      </tr>
-      {% else %}
-      <tr>
-        <td colspan="10">No share-out records found for the selected period.</td>
-      </tr>
-            {% endfor %}
-    </tbody>
-  </table>
+                <div>
+                    <h5 class="fw-bold mb-1">
+                        Calculation Parameters
+                    </h5>
+
+                    <p class="text-muted mb-0">
+                        Select the contribution period and enter additional
+                        income or expenses.
+                    </p>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 no-print">
+
+                    <a
+                        class="btn btn-outline-success"
+                        href="{{ url_for('shareout_csv') }}"
+                    >
+                        <i class="fas fa-file-csv me-1"></i>
+                        Export CSV
+                    </a>
+
+                    <a
+                        class="btn btn-outline-danger"
+                        href="{{ url_for(
+                            'shareout_pdf',
+                            start_month=start_month,
+                            end_month=end_month,
+                            expenses=expenses,
+                            other_income=other_income
+                        ) }}"
+                    >
+                        <i class="fas fa-file-pdf me-1"></i>
+                        Export PDF
+                    </a>
+
+                </div>
+            </div>
+
+            <form method="get">
+
+                <div class="row g-3 align-items-end">
+
+                    <div class="col-md-6 col-xl-2">
+                        <label class="form-label">
+                            Start Month
+                        </label>
+
+                        <input
+                            type="month"
+                            name="start_month"
+                            value="{{ start_month }}"
+                            class="form-control"
+                        >
+                    </div>
+
+                    <div class="col-md-6 col-xl-2">
+                        <label class="form-label">
+                            End Month
+                        </label>
+
+                        <input
+                            type="month"
+                            name="end_month"
+                            value="{{ end_month }}"
+                            class="form-control"
+                        >
+                    </div>
+
+                    <div class="col-md-6 col-xl-3">
+                        <label class="form-label">
+                            Other Income
+                        </label>
+
+                        <div class="input-group">
+                            <span class="input-group-text">K</span>
+
+                            <input
+                                type="number"
+                                name="other_income"
+                                step="0.01"
+                                value="{{ other_income }}"
+                                class="form-control"
+                            >
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 col-xl-3">
+                        <label class="form-label">
+                            Expenses
+                        </label>
+
+                        <div class="input-group">
+                            <span class="input-group-text">K</span>
+
+                            <input
+                                type="number"
+                                name="expenses"
+                                step="0.01"
+                                value="{{ expenses }}"
+                                class="form-control"
+                            >
+                        </div>
+                    </div>
+
+                    <div class="col-xl-2">
+                        <button
+                            type="submit"
+                            class="btn btn-primary w-100 py-2"
+                        >
+                            <i class="fas fa-calculator me-1"></i>
+                            Calculate
+                        </button>
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row g-3 mb-4">
+
+        <div class="col-md-4">
+            <div class="card summary-card">
+                <div class="card-body d-flex align-items-center gap-3">
+
+                    <div class="summary-icon bg-primary-subtle text-primary">
+                        <i class="fas fa-piggy-bank"></i>
+                    </div>
+
+                    <div>
+                        <div class="summary-label">
+                            Total Contributions
+                        </div>
+
+                        <p class="summary-value">
+                            {{ total_contributions | kwacha }}
+                        </p>
+
+                        <small class="text-muted">
+                            Within selected period
+                        </small>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card summary-card">
+                <div class="card-body d-flex align-items-center gap-3">
+
+                    <div class="summary-icon bg-info-subtle text-info">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+
+                    <div>
+                        <div class="summary-label">
+                            Surplus / Income
+                        </div>
+
+                        <p class="summary-value">
+                            {{ surplus | kwacha }}
+                        </p>
+
+                        <small class="text-muted">
+                            Interest, fines and other income
+                        </small>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card summary-card">
+                <div class="card-body d-flex align-items-center gap-3">
+
+                    <div class="summary-icon bg-success-subtle text-success">
+                        <i class="fas fa-coins"></i>
+                    </div>
+
+                    <div>
+                        <div class="summary-label">
+                            Share-Out Fund
+                        </div>
+
+                        <p class="summary-value text-success">
+                            {{ shareout_fund | kwacha }}
+                        </p>
+
+                        <small class="text-muted">
+                            Available for distribution
+                        </small>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Member Schedule -->
+    <div class="card schedule-panel">
+
+        <div class="card-header bg-white border-0 p-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+
+                <div>
+                    <h5 class="fw-bold mb-1">
+                        Member Share-Out Calculation
+                    </h5>
+
+                    <p class="text-muted mb-0">
+                        Detailed member allocations, deductions and final
+                        payable amounts
+                    </p>
+                </div>
+
+                <div class="no-print">
+                    <button
+                        type="button"
+                        class="btn btn-outline-secondary"
+                        onclick="window.print()"
+                    >
+                        <i class="fas fa-print me-1"></i>
+                        Print
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="table-responsive">
+
+            <table class="table table-hover schedule-table">
+
+                <thead>
+                    <tr>
+                        <th>Member</th>
+                        <th class="text-end">Contributions</th>
+                        <th class="text-end">Savings Interest</th>
+                        <th class="text-end">Gross Savings</th>
+                        <th class="text-end">Share %</th>
+                        <th class="text-end">Gross Share-Out</th>
+                        <th class="text-end">Loans + Interest</th>
+                        <th class="text-end">Fines</th>
+                        <th class="text-end">Deductions</th>
+                        <th class="text-end">Net Payable</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for row in paged_rows %}
+                    <tr>
+
+                        <td>
+                            <div class="member-name">
+                                {{ row.full_name }}
+                            </div>
+
+                            <div class="member-number">
+                                {{ row.member_no }}
+                            </div>
+                        </td>
+
+                        <td class="text-end">
+                            {{ row.contributed | kwacha }}
+                        </td>
+
+                        <td class="text-end">
+                            {{ row.savings_interest | kwacha }}
+                        </td>
+
+                        <td class="text-end">
+                            {{ row.gross_savings_value | kwacha }}
+                        </td>
+
+                        <td class="text-end">
+                            {{ row.percent }}%
+                        </td>
+
+                        <td class="text-end fw-semibold">
+                            {{ row.gross_shareout | kwacha }}
+                        </td>
+
+                        <td class="text-end">
+                            {{ row.outstanding_loans | kwacha }}
+                        </td>
+
+                        <td class="text-end">
+                            {{ row.fine_balance | kwacha }}
+                        </td>
+
+                        <td class="text-end">
+                            {{ row.total_deductions | kwacha }}
+                        </td>
+
+                        <td class="text-end">
+                            <strong
+                                class="{% if row.net_status == 'surplus' %}good-text{% else %}bad-text{% endif %}"
+                            >
+                                {{ row.net_payable | kwacha }}
+                            </strong>
+                        </td>
+
+                    </tr>
+
+                    {% else %}
+
+                    <tr>
+                        <td colspan="10">
+
+                            <div class="empty-state">
+
+                                <div class="empty-state-icon">
+                                    <i class="fas fa-calculator"></i>
+                                </div>
+
+                                <h5 class="fw-bold">
+                                    No Share-Out records found
+                                </h5>
+
+                                <p class="mb-0">
+                                    Adjust the calculation period and run the
+                                    calculator again.
+                                </p>
+
+                            </div>
+
+                        </td>
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if total_pages and total_pages > 1 %}
+
+    <div class="card pagination-panel mt-4 no-print">
+        <div class="card-body">
+
+            <div class="d-flex flex-wrap justify-content-center align-items-center gap-2">
+
+                {% if page > 1 %}
+
+                <a
+                    class="btn btn-outline-primary"
+                    href="{{ url_for(
+                        'shareout',
+                        page=1,
+                        start_month=start_month,
+                        end_month=end_month,
+                        expenses=expenses,
+                        other_income=other_income
+                    ) }}"
+                >
+                    <i class="fas fa-angles-left me-1"></i>
+                    First
+                </a>
+
+                <a
+                    class="btn btn-outline-primary"
+                    href="{{ url_for(
+                        'shareout',
+                        page=page-1,
+                        start_month=start_month,
+                        end_month=end_month,
+                        expenses=expenses,
+                        other_income=other_income
+                    ) }}"
+                >
+                    <i class="fas fa-angle-left me-1"></i>
+                    Previous
+                </a>
+
+                {% endif %}
+
+                <span class="page-indicator">
+                    Page {{ page }} of {{ total_pages }}
+                </span>
+
+                {% if page < total_pages %}
+
+                <a
+                    class="btn btn-outline-primary"
+                    href="{{ url_for(
+                        'shareout',
+                        page=page+1,
+                        start_month=start_month,
+                        end_month=end_month,
+                        expenses=expenses,
+                        other_income=other_income
+                    ) }}"
+                >
+                    Next
+                    <i class="fas fa-angle-right ms-1"></i>
+                </a>
+
+                <a
+                    class="btn btn-outline-primary"
+                    href="{{ url_for(
+                        'shareout',
+                        page=total_pages,
+                        start_month=start_month,
+                        end_month=end_month,
+                        expenses=expenses,
+                        other_income=other_income
+                    ) }}"
+                >
+                    Last
+                    <i class="fas fa-angles-right ms-1"></i>
+                </a>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+    </div>
+
+    {% endif %}
+
 </div>
-</section>
-
-{% if total_pages and total_pages > 1 %}
-
-<div class="actions">
-
-  {% if page > 1 %}
-    <a class="btn" href="{{ url_for('shareout', page=1, start_month=start_month, end_month=end_month, expenses=expenses, other_income=other_income) }}">« First</a>
-    <a class="btn" href="{{ url_for('shareout', page=page-1, start_month=start_month, end_month=end_month, expenses=expenses, other_income=other_income) }}">← Previous</a>
-  {% endif %}
-
-  <span class="badge">Page {{ page }} of {{ total_pages }}</span>
-
-  {% if page < total_pages %}
-    <a class="btn" href="{{ url_for('shareout', page=page+1, start_month=start_month, end_month=end_month, expenses=expenses, other_income=other_income) }}">Next →</a>
-    <a class="btn" href="{{ url_for('shareout', page=total_pages, start_month=start_month, end_month=end_month, expenses=expenses, other_income=other_income) }}">Last »</a>
-  {% endif %}
-
-</div>
-{% endif %}
 
 {% endblock %}
