@@ -3101,18 +3101,165 @@ def loan_aging_report():
     )
 
 
-@app.route('/distributions', methods=['GET','POST'])
+@app.route('/distributions', methods=['GET', 'POST'])
 @login_required
 @role_required('distributions')
 def distributions():
+    today_month = date.today().strftime('%Y-%m')
+
+    start_month = (
+        request.values.get('start_month')
+        or f'{date.today().year}-01'
+    )
+
+    end_month = (
+        request.values.get('end_month')
+        or today_month
+    )
+
+    expenses = money(
+        request.values.get('expenses') or 0
+    )
+
+    other_income = money(
+        request.values.get('other_income') or 0
+    )
+
+    start_date = datetime.strptime(
+        start_month + '-01',
+        '%Y-%m-%d'
+    ).date()
+
+    end_year, end_mon = [
+        int(value)
+        for value in end_month.split('-')
+    ]
+
+    end_date = (
+        date(end_year, end_mon, 28)
+        + timedelta(days=4)
+    ).replace(day=1) - timedelta(days=1)
+
+    shareout_data = calculate_shareout_data(
+        start_month=start_month,
+        end_month=end_month,
+        expenses=expenses,
+        other_income=other_income,
+    )
+
+    shareout_rows = shareout_data['rows']
+
     if request.method == 'POST':
+        member_id = int(request.form['member_id'])
+        payment_amount = money(request.form['amount'])
+
+        member_shareout = next(
+            (
+                row
+                for row in shareout_rows
+                if row['member_id'] == member_id
+            ),
+            None
+        )
+
+        if not member_shareout:
+            flash(
+                'The selected member has no Share-Out allocation '
+                'for this period.',
+                'error'
+            )
+
+            return redirect(
+                url_for(
+                    'distributions',
+                    start_month=start_month,
+                    end_month=end_month,
+                    expenses=expenses,
+                    other_income=other_income,
+                )
+            )
+
+        already_paid = money(
+            db.session.query(
+                db.func.coalesce(
+                    db.func.sum(Distribution.amount),
+                    0
+                )
+            )
+            .filter(Distribution.member_id == member_id)
+            .filter(Distribution.paid_on >= start_date)
+            .filter(Distribution.paid_on <= end_date)
+            .scalar()
+        )
+
+        outstanding_balance = money(
+            member_shareout['net_shareout'] - already_paid
+        )
+
+        if payment_amount <= 0:
+            flash(
+                'Payment amount must be greater than zero.',
+                'error'
+            )
+
+            return redirect(
+                url_for(
+                    'distributions',
+                    start_month=start_month,
+                    end_month=end_month,
+                    expenses=expenses,
+                    other_income=other_income,
+                )
+            )
+
+        if outstanding_balance <= 0:
+            flash(
+                'This member has no outstanding Share-Out balance.',
+                'error'
+            )
+
+            return redirect(
+                url_for(
+                    'distributions',
+                    start_month=start_month,
+                    end_month=end_month,
+                    expenses=expenses,
+                    other_income=other_income,
+                )
+            )
+
+        if payment_amount > outstanding_balance:
+            flash(
+                (
+                    'Payment exceeds the member’s outstanding '
+                    f'Share-Out balance of '
+                    f'{kwacha(outstanding_balance)}.'
+                ),
+                'error'
+            )
+
+            return redirect(
+                url_for(
+                    'distributions',
+                    start_month=start_month,
+                    end_month=end_month,
+                    expenses=expenses,
+                    other_income=other_income,
+                )
+            )
+
+        payment_date = (
+            parse_date(request.form.get('paid_on'))
+            or date.today()
+        )
+
         d = Distribution(
-            member_id=int(request.form['member_id']),
-            amount=money(request.form['amount']),
+            member_id=member_id,
+            amount=payment_amount,
             method=request.form['method'],
             reference=request.form.get('reference'),
             authorized_by=request.form.get('authorized_by'),
-            paid_on=parse_date(request.form.get('paid_on'))
+            paid_on=payment_date,
         )
 
         db.session.add(d)
@@ -3123,21 +3270,28 @@ def distributions():
             entry_type='Out',
             category='Share-Out Payment',
             amount=d.amount,
-            description=f'{d.member.member_no} - {d.member.full_name}',
+            description=(
+                f'{d.member.member_no} - '
+                f'{d.member.full_name}'
+            ),
             method=d.method,
             reference=d.reference,
             source_type='Distribution',
-            source_id=d.id
+            source_id=d.id,
         )
 
         post_journal(
             entry_date=d.paid_on,
-            description=f'Share-out payment - {d.member.member_no} - {d.member.full_name}',
+            description=(
+                f'Share-out payment - '
+                f'{d.member.member_no} - '
+                f'{d.member.full_name}'
+            ),
             debit_account_code='5040',
             credit_account_code=cash_account(d.method),
             amount=d.amount,
             source_type='Distribution',
-            source_id=d.id
+            source_id=d.id,
         )
 
         db.session.commit()
@@ -3146,46 +3300,190 @@ def distributions():
             'RECORD_DISTRIBUTION',
             'Distribution',
             d.id,
-            f'{d.member.full_name} received {kwacha(d.amount)} via {d.method}'
+            (
+                f'{d.member.full_name} received '
+                f'{kwacha(d.amount)} via {d.method}'
+            )
         )
 
-        flash('Distribution recorded.')
-        return redirect(url_for('distributions'))
+        flash('Share-Out payment recorded successfully.', 'success')
+
+        return redirect(
+            url_for(
+                'distributions',
+                start_month=start_month,
+                end_month=end_month,
+                expenses=expenses,
+                other_income=other_income,
+            )
+        )
 
     page = request.args.get('page', 1, type=int)
     per_page = 25
 
-    pagination = Distribution.query.order_by(
+    period_query = Distribution.query.filter(
+        Distribution.paid_on >= start_date,
+        Distribution.paid_on <= end_date,
+    )
+
+    pagination = period_query.order_by(
         Distribution.paid_on.desc(),
-        Distribution.id.desc()
+        Distribution.id.desc(),
     ).paginate(
         page=page,
         per_page=per_page,
-        error_out=False
+        error_out=False,
     )
+
     total_paid = money(
-        db.session.query(db.func.coalesce(db.func.sum(Distribution.amount), 0)).scalar()
+        db.session.query(
+            db.func.coalesce(
+                db.func.sum(Distribution.amount),
+                0
+            )
+        )
+        .filter(Distribution.paid_on >= start_date)
+        .filter(Distribution.paid_on <= end_date)
+        .scalar()
     )
 
-    members_paid = db.session.query(Distribution.member_id).distinct().count()
-    total_members = Member.query.count()
-    members_not_paid = max(total_members - members_paid, 0)
+    payments_by_member = dict(
+        db.session.query(
+            Distribution.member_id,
+            db.func.coalesce(
+                db.func.sum(Distribution.amount),
+                0
+            )
+        )
+        .filter(Distribution.paid_on >= start_date)
+        .filter(Distribution.paid_on <= end_date)
+        .group_by(Distribution.member_id)
+        .all()
+    )
 
-    bank_paid = money(db.session.query(db.func.coalesce(db.func.sum(Distribution.amount), 0)).filter(Distribution.method == 'Bank Transfer').scalar())
-    mobile_paid = money(db.session.query(db.func.coalesce(db.func.sum(Distribution.amount), 0)).filter(Distribution.method.in_(['Mobile Money', 'Airtel Money', 'MTN Money'])).scalar())
-    cash_paid = money(db.session.query(db.func.coalesce(db.func.sum(Distribution.amount), 0)).filter(Distribution.method == 'Cash').scalar())
+    payment_schedule = []
 
-    missing_references = Distribution.query.filter(
-        (Distribution.reference == None) | (Distribution.reference == '')
+    members_paid = 0
+    members_partially_paid = 0
+    members_not_paid = 0
+    total_outstanding = Decimal('0.00')
+
+    for row in shareout_rows:
+        net_shareout = money(row['net_shareout'])
+
+        member_paid = money(
+            payments_by_member.get(
+                row['member_id'],
+                Decimal('0.00')
+            )
+        )
+
+        outstanding = money(
+            net_shareout - member_paid
+        )
+
+        if outstanding < 0:
+            status = 'Overpaid'
+        elif member_paid <= 0:
+            status = 'Pending'
+            members_not_paid += 1
+        elif outstanding > 0:
+            status = 'Partially Paid'
+            members_partially_paid += 1
+        else:
+            status = 'Paid'
+            members_paid += 1
+
+        if outstanding > 0:
+            total_outstanding += outstanding
+
+        payment_schedule.append({
+            **row,
+            'amount_paid': member_paid,
+            'outstanding_balance': outstanding,
+            'payment_status': status,
+        })
+
+    total_outstanding = money(total_outstanding)
+
+    eligible_members = len([
+        row
+        for row in shareout_rows
+        if money(row['net_shareout']) > 0
+    ])
+
+    payment_progress = (
+        0
+        if eligible_members == 0
+        else round(
+            (members_paid / eligible_members) * 100
+        )
+    )
+
+    bank_paid = money(
+        db.session.query(
+            db.func.coalesce(
+                db.func.sum(Distribution.amount),
+                0
+            )
+        )
+        .filter(Distribution.paid_on >= start_date)
+        .filter(Distribution.paid_on <= end_date)
+        .filter(
+            Distribution.method == 'Bank Transfer'
+        )
+        .scalar()
+    )
+
+    mobile_paid = money(
+        db.session.query(
+            db.func.coalesce(
+                db.func.sum(Distribution.amount),
+                0
+            )
+        )
+        .filter(Distribution.paid_on >= start_date)
+        .filter(Distribution.paid_on <= end_date)
+        .filter(
+            Distribution.method.in_([
+                'Mobile Money',
+                'Airtel Money',
+                'MTN Money',
+            ])
+        )
+        .scalar()
+    )
+
+    cash_paid = money(
+        db.session.query(
+            db.func.coalesce(
+                db.func.sum(Distribution.amount),
+                0
+            )
+        )
+        .filter(Distribution.paid_on >= start_date)
+        .filter(Distribution.paid_on <= end_date)
+        .filter(
+            Distribution.method == 'Cash'
+        )
+        .scalar()
+    )
+
+    missing_references = period_query.filter(
+        db.or_(
+            Distribution.reference.is_(None),
+            Distribution.reference == '',
+        )
     ).count()
-
-    payment_progress = 0 if total_members == 0 else round((members_paid / total_members) * 100)
 
     today = date.today()
 
     today_paid = money(
         db.session.query(
-            db.func.coalesce(db.func.sum(Distribution.amount), 0)
+            db.func.coalesce(
+                db.func.sum(Distribution.amount),
+                0
+            )
         )
         .filter(Distribution.paid_on == today)
         .scalar()
@@ -3195,33 +3493,70 @@ def distributions():
         Distribution.paid_on == today
     ).count()
 
-    largest_distribution = Distribution.query.order_by(
-    Distribution.amount.desc()
-        ).first()
-    if members_not_paid == 0:
-        distribution_message = "Distribution completed successfully."
+    largest_distribution = period_query.order_by(
+        Distribution.amount.desc()
+    ).first()
+
+    if eligible_members == 0:
+        distribution_message = (
+            'No eligible Share-Out payments are available '
+            'for the selected period.'
+        )
+    elif members_not_paid == 0 and members_partially_paid == 0:
+        distribution_message = (
+            'Distribution completed successfully.'
+        )
     elif payment_progress >= 75:
-        distribution_message = "Distribution is progressing well."
+        distribution_message = (
+            'Distribution is progressing well.'
+        )
     elif payment_progress >= 25:
-        distribution_message = "Continue processing outstanding payments."
+        distribution_message = (
+            'Continue processing outstanding payments.'
+        )
     else:
-        distribution_message = "Distribution has only just begun."
+        distribution_message = (
+            'Distribution has only just begun.'
+        )
+
+    members = [
+        row
+        for row in payment_schedule
+        if (
+            row['payment_status']
+            in ['Pending', 'Partially Paid']
+            and money(row['net_shareout']) > 0
+        )
+    ]
 
     return render_template(
-    'distributions.html',
-    distributions=pagination.items,
-    pagination=pagination,
-    members=Member.query.order_by(Member.full_name).all(),
-    total_paid=total_paid,
-    members_paid=members_paid,
-    members_not_paid=members_not_paid,
-    bank_paid=bank_paid,
-    mobile_paid=mobile_paid,
-    cash_paid=cash_paid,
-    missing_references=missing_references,
-    payment_progress=payment_progress,
-    
-)
+        'distributions.html',
+        distributions=pagination.items,
+        pagination=pagination,
+        members=members,
+        payment_schedule=payment_schedule,
+        start_month=start_month,
+        end_month=end_month,
+        expenses=expenses,
+        other_income=other_income,
+        total_paid=total_paid,
+        total_outstanding=total_outstanding,
+        members_paid=members_paid,
+        members_partially_paid=members_partially_paid,
+        members_not_paid=members_not_paid,
+        eligible_members=eligible_members,
+        bank_paid=bank_paid,
+        mobile_paid=mobile_paid,
+        cash_paid=cash_paid,
+        missing_references=missing_references,
+        payment_progress=payment_progress,
+        today_paid=today_paid,
+        today_transactions=today_transactions,
+        largest_distribution=largest_distribution,
+        distribution_message=distribution_message,
+        shareout_fund=shareout_data['shareout_fund'],
+        total_net_payable=shareout_data['total_net_payable'],
+    )
 
 @app.route('/fines', methods=['GET','POST'])
 @login_required

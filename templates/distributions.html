@@ -1,190 +1,1176 @@
 {% extends 'base.html' %}
 
-{% block page_title %}Distribution Payments{% endblock %}
-{% block subtitle %}Record share-out payments and monitor distribution progress{% endblock %}
+{% block page_title %}Share-Out Payment Register{% endblock %}
+
+{% block subtitle %}
+Record member payments and monitor the year-end distribution process
+{% endblock %}
 
 {% block content %}
 
-<div class="decision-hero">
-  <h2>Distribution Payments Decision Centre</h2>
-  <p>
-    Record member payments, monitor payment progress, and help the committee
-    complete the distribution successfully.
-  </p>
-</div>
+<link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+>
 
-<div class="decision-grid">
-  <div class="decision-card">
-    <span>Total Paid</span>
-    <strong>{{ total_paid|kwacha }}</strong>
-  </div>
+<link
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    rel="stylesheet"
+>
 
-  <div class="decision-card good">
-    <span>Members Paid</span>
-    <strong>{{ members_paid }}</strong>
-  </div>
+<style>
+    .payment-register-page {
+        padding-bottom: 32px;
+    }
 
-  <div class="decision-card warning">
-    <span>Not Yet Paid</span>
-    <strong>{{ members_not_paid }}</strong>
-  </div>
+    .payment-hero {
+        background: linear-gradient(
+            135deg,
+            rgba(13, 110, 253, 0.97),
+            rgba(25, 135, 84, 0.94)
+        );
+        border-radius: 18px;
+        padding: 28px;
+        color: white;
+        margin-bottom: 24px;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+    }
 
-  <div class="decision-card">
-    <span>Progress</span>
-    <strong>{{ payment_progress }}%</strong>
-  </div>
-</div>
+    .payment-hero h2 {
+        margin-bottom: 8px;
+        font-weight: 700;
+    }
 
-<section class="panel">
-  <h2>Distribution Progress</h2>
+    .payment-hero p {
+        margin-bottom: 0;
+        opacity: 0.92;
+    }
 
-  <div class="decision-progress">
-    <div class="decision-progress-bar" style="width: {{ payment_progress }}%;">
-      {{ payment_progress }}%
+    .summary-card,
+    .payment-panel,
+    .register-panel,
+    .assistant-panel {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
+    }
+
+    .summary-card {
+        height: 100%;
+        transition:
+            transform 0.2s ease,
+            box-shadow 0.2s ease;
+    }
+
+    .summary-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.11);
+    }
+
+    .summary-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 20px;
+    }
+
+    .summary-label {
+        color: #6c757d;
+        font-size: 0.84rem;
+        margin-bottom: 4px;
+    }
+
+    .summary-value {
+        color: #212529;
+        font-size: 1.35rem;
+        font-weight: 700;
+        margin-bottom: 0;
+    }
+
+    .period-panel {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
+    }
+
+    .form-control,
+    .form-select {
+        min-height: 45px;
+        border-radius: 10px;
+    }
+
+    .payment-panel .form-control,
+    .payment-panel .form-select {
+        background: #fffbea;
+    }
+
+    .payment-panel .form-control:focus,
+    .payment-panel .form-select:focus {
+        background: white;
+    }
+
+    .progress {
+        height: 14px;
+        border-radius: 12px;
+        background: #e9ecef;
+    }
+
+    .progress-bar {
+        border-radius: 12px;
+    }
+
+    .assistant-panel {
+        border-left: 5px solid #0d6efd;
+    }
+
+    .assistant-panel.assistant-good {
+        border-left-color: #198754;
+        background: #f3fbf7;
+    }
+
+    .assistant-panel.assistant-warning {
+        border-left-color: #ffc107;
+        background: #fffdf3;
+    }
+
+    .assistant-panel.assistant-danger {
+        border-left-color: #dc3545;
+        background: #fff7f7;
+    }
+
+    .register-table,
+    .schedule-table {
+        margin-bottom: 0;
+        font-size: 0.86rem;
+    }
+
+    .register-table thead th,
+    .schedule-table thead th {
+        background: #f4f7fb;
+        color: #495057;
+        font-size: 0.76rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        white-space: nowrap;
+        padding: 13px 10px;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .register-table tbody td,
+    .schedule-table tbody td {
+        vertical-align: middle;
+        padding: 12px 10px;
+        white-space: nowrap;
+    }
+
+    .member-name {
+        font-weight: 600;
+        color: #212529;
+    }
+
+    .member-number {
+        color: #6c757d;
+        font-size: 0.79rem;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 10px;
+        border-radius: 20px;
+        font-size: 0.76rem;
+        font-weight: 600;
+    }
+
+    .status-paid {
+        color: #0f5132;
+        background: #d1e7dd;
+    }
+
+    .status-partial {
+        color: #664d03;
+        background: #fff3cd;
+    }
+
+    .status-pending {
+        color: #084298;
+        background: #cfe2ff;
+    }
+
+    .status-overpaid {
+        color: #842029;
+        background: #f8d7da;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 45px 20px;
+        color: #6c757d;
+    }
+
+    .empty-state-icon {
+        width: 68px;
+        height: 68px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: #eef4ff;
+        color: #0d6efd;
+        font-size: 28px;
+        margin-bottom: 15px;
+    }
+
+    .pagination-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 14px;
+        border-radius: 20px;
+        background: #e7f1ff;
+        color: #084298;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    @media print {
+        .no-print,
+        .sidebar,
+        .topbar {
+            display: none !important;
+        }
+
+        .payment-hero {
+            color: black !important;
+            background: white !important;
+            border: 1px solid #dee2e6;
+            box-shadow: none;
+        }
+
+        .summary-card,
+        .payment-panel,
+        .register-panel,
+        .assistant-panel,
+        .period-panel {
+            box-shadow: none !important;
+            border: 1px solid #dee2e6;
+        }
+    }
+</style>
+
+<div class="payment-register-page">
+
+    <!-- Page Header -->
+    <div class="payment-hero">
+        <div class="row align-items-center">
+
+            <div class="col-lg-7 mb-3 mb-lg-0">
+                <h2>
+                    <i class="fas fa-money-check-alt me-2"></i>
+                    Share-Out Payment Register
+                </h2>
+
+                <p>
+                    Record full or partial member payments, monitor balances
+                    and reconcile the distribution process.
+                </p>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="d-flex flex-wrap justify-content-lg-end gap-2 no-print">
+
+                    <a
+                        href="{{ url_for('shareout_control_centre') }}"
+                        class="btn btn-outline-light"
+                    >
+                        <i class="fas fa-arrow-left me-1"></i>
+                        Control Centre
+                    </a>
+
+                    <a
+                        href="{{ url_for(
+                            'shareout_schedule',
+                            start_month=start_month,
+                            end_month=end_month,
+                            expenses=expenses,
+                            other_income=other_income
+                        ) }}"
+                        class="btn btn-light"
+                    >
+                        <i class="fas fa-list-alt me-1"></i>
+                        Members Schedule
+                    </a>
+
+                </div>
+            </div>
+
+        </div>
     </div>
-  </div>
 
-  <p style="margin-top:10px;">
-    {{ members_paid }} of {{ members_paid + members_not_paid }} members have received their distribution.
-  </p>
-</section>
+    <!-- Period Selection -->
+    <div class="card period-panel mb-4 no-print">
+        <div class="card-body p-4">
 
-<div class="decision-grid">
-  <div class="decision-card">
-    <span>Bank Transfers</span>
-    <strong>{{ bank_paid|kwacha }}</strong>
-  </div>
+            <div class="mb-3">
+                <h5 class="fw-bold mb-1">
+                    Share-Out Period
+                </h5>
 
-  <div class="decision-card">
-    <span>Mobile Money</span>
-    <strong>{{ mobile_paid|kwacha }}</strong>
-  </div>
+                <p class="text-muted mb-0">
+                    Select the same period and adjustments used in the
+                    Share-Out Calculator.
+                </p>
+            </div>
 
-  <div class="decision-card">
-    <span>Cash Payments</span>
-    <strong>{{ cash_paid|kwacha }}</strong>
-  </div>
+            <form method="get">
 
-  <div class="decision-card warning">
-    <span>Missing References</span>
-    <strong>{{ missing_references }}</strong>
-  </div>
-</div>
+                <div class="row g-3 align-items-end">
 
-<div class="decision-assistant {% if members_not_paid == 0 and missing_references == 0 %}good{% elif missing_references > 0 %}danger{% else %}warning{% endif %}">
-  <h3>Committee Assistant</h3>
+                    <div class="col-md-6 col-xl-2">
+                        <label class="form-label fw-semibold">
+                            Start Month
+                        </label>
 
-  <p>{{ distribution_message }}</p>
+                        <input
+                            type="month"
+                            name="start_month"
+                            value="{{ start_month }}"
+                            class="form-control"
+                        >
+                    </div>
 
-  {% if members_not_paid > 0 %}
-    <p>⚠ {{ members_not_paid }} member(s) have not yet received their distribution.</p>
-  {% endif %}
+                    <div class="col-md-6 col-xl-2">
+                        <label class="form-label fw-semibold">
+                            End Month
+                        </label>
 
-  {% if missing_references > 0 %}
-    <p>⚠ {{ missing_references }} payment(s) have no reference number.</p>
-  {% endif %}
-</div>
+                        <input
+                            type="month"
+                            name="end_month"
+                            value="{{ end_month }}"
+                            class="form-control"
+                        >
+                    </div>
 
-<section class="panel highlight">
-  <div class="panel-head">
-    <div>
-      <h2>Record Distribution Payment</h2>
-      <p class="muted">Record payment after the committee has approved the share-out.</p>
+                    <div class="col-md-6 col-xl-3">
+                        <label class="form-label fw-semibold">
+                            Other Income
+                        </label>
+
+                        <div class="input-group">
+                            <span class="input-group-text">K</span>
+
+                            <input
+                                type="number"
+                                step="0.01"
+                                name="other_income"
+                                value="{{ other_income }}"
+                                class="form-control"
+                            >
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 col-xl-3">
+                        <label class="form-label fw-semibold">
+                            Expenses
+                        </label>
+
+                        <div class="input-group">
+                            <span class="input-group-text">K</span>
+
+                            <input
+                                type="number"
+                                step="0.01"
+                                name="expenses"
+                                value="{{ expenses }}"
+                                class="form-control"
+                            >
+                        </div>
+                    </div>
+
+                    <div class="col-xl-2">
+                        <button
+                            type="submit"
+                            class="btn btn-primary w-100"
+                        >
+                            <i class="fas fa-filter me-1"></i>
+                            Apply Period
+                        </button>
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
     </div>
-  </div>
 
-  <form method="post" class="form-grid">
-    <label>Member
-      <select name="member_id" required>
-        {% for m in members %}
-          <option value="{{ m.id }}">{{ m.member_no }} - {{ m.full_name }}</option>
-        {% endfor %}
-      </select>
-    </label>
+    <!-- Main Summary -->
+    <div class="row g-3 mb-4">
 
-    <label>Amount
-      <input type="number" step="0.01" name="amount" required>
-    </label>
+        <div class="col-md-6 col-xl-3">
+            <div class="card summary-card">
+                <div class="card-body d-flex align-items-center gap-3">
 
-    <label>Method
-      <select name="method" required>
-        {% for p in payment_methods %}
-          <option>{{ p }}</option>
-        {% endfor %}
-      </select>
-    </label>
+                    <div class="summary-icon bg-success-subtle text-success">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </div>
 
-    <label>Reference
-      <input name="reference" placeholder="Transaction reference">
-    </label>
+                    <div>
+                        <div class="summary-label">Total Paid</div>
 
-    <label>Authorized By
-      <input name="authorized_by" placeholder="Chairperson / Treasurer">
-    </label>
+                        <p class="summary-value">
+                            {{ total_paid | kwacha }}
+                        </p>
+                    </div>
 
-    <label>Paid On
-      <input type="date" name="paid_on">
-    </label>
+                </div>
+            </div>
+        </div>
 
-    <button class="btn primary" type="submit">Record Distribution</button>
-  </form>
-</section>
+        <div class="col-md-6 col-xl-3">
+            <div class="card summary-card">
+                <div class="card-body d-flex align-items-center gap-3">
 
-<section class="panel">
-  <div class="panel-head">
-    <div>
-      <h2>Distribution Register</h2>
-      <p class="muted">Recent distribution payments made to members.</p>
+                    <div class="summary-icon bg-warning-subtle text-warning">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+
+                    <div>
+                        <div class="summary-label">Outstanding</div>
+
+                        <p class="summary-value">
+                            {{ total_outstanding | kwacha }}
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card summary-card">
+                <div class="card-body d-flex align-items-center gap-3">
+
+                    <div class="summary-icon bg-primary-subtle text-primary">
+                        <i class="fas fa-user-check"></i>
+                    </div>
+
+                    <div>
+                        <div class="summary-label">Members Paid</div>
+
+                        <p class="summary-value">
+                            {{ members_paid }}
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card summary-card">
+                <div class="card-body d-flex align-items-center gap-3">
+
+                    <div class="summary-icon bg-info-subtle text-info">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+
+                    <div>
+                        <div class="summary-label">Payment Progress</div>
+
+                        <p class="summary-value">
+                            {{ payment_progress }}%
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
     </div>
 
-    <span class="badge">{{ distributions|length }} Records</span>
-  </div>
+    <!-- Status Summary -->
+    <div class="row g-3 mb-4">
 
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Member</th>
-          <th>Method</th>
-          <th>Reference</th>
-          <th>Authorized By</th>
-          <th>Amount</th>
-        </tr>
-      </thead>
+        <div class="col-md-6 col-xl-3">
+            <div class="card summary-card">
+                <div class="card-body">
+                    <div class="summary-label">
+                        Eligible Members
+                    </div>
 
-      <tbody>
-        {% for d in distributions %}
-        <tr>
-          <td>{{ d.paid_on }}</td>
-          <td>{{ d.member.full_name }}</td>
-          <td>{{ d.method }}</td>
-          <td>{{ d.reference or '-' }}</td>
-          <td>{{ d.authorized_by or '-' }}</td>
-          <td>{{ d.amount|kwacha }}</td>
-        </tr>
+                    <p class="summary-value">
+                        {{ eligible_members }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card summary-card">
+                <div class="card-body">
+                    <div class="summary-label">
+                        Partially Paid
+                    </div>
+
+                    <p class="summary-value text-warning">
+                        {{ members_partially_paid }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card summary-card">
+                <div class="card-body">
+                    <div class="summary-label">
+                        Not Yet Paid
+                    </div>
+
+                    <p class="summary-value text-danger">
+                        {{ members_not_paid }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card summary-card">
+                <div class="card-body">
+                    <div class="summary-label">
+                        Missing References
+                    </div>
+
+                    <p class="summary-value">
+                        {{ missing_references }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Progress -->
+    <div class="card payment-panel mb-4">
+        <div class="card-body p-4">
+
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div>
+                    <h5 class="fw-bold mb-1">
+                        Distribution Progress
+                    </h5>
+
+                    <p class="text-muted mb-0">
+                        {{ members_paid }} of {{ eligible_members }}
+                        eligible members have been paid in full.
+                    </p>
+                </div>
+
+                <strong class="fs-5">
+                    {{ payment_progress }}%
+                </strong>
+            </div>
+
+            <div class="progress mt-3">
+                <div
+                    class="progress-bar bg-success"
+                    role="progressbar"
+                    style="width: {{ payment_progress }}%;"
+                    aria-valuenow="{{ payment_progress }}"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                >
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Payment Method Summary -->
+    <div class="row g-3 mb-4">
+
+        <div class="col-md-4">
+            <div class="card summary-card">
+                <div class="card-body d-flex align-items-center gap-3">
+
+                    <div class="summary-icon bg-primary-subtle text-primary">
+                        <i class="fas fa-building-columns"></i>
+                    </div>
+
+                    <div>
+                        <div class="summary-label">Bank Transfers</div>
+
+                        <p class="summary-value">
+                            {{ bank_paid | kwacha }}
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card summary-card">
+                <div class="card-body d-flex align-items-center gap-3">
+
+                    <div class="summary-icon bg-info-subtle text-info">
+                        <i class="fas fa-mobile-screen-button"></i>
+                    </div>
+
+                    <div>
+                        <div class="summary-label">Mobile Money</div>
+
+                        <p class="summary-value">
+                            {{ mobile_paid | kwacha }}
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card summary-card">
+                <div class="card-body d-flex align-items-center gap-3">
+
+                    <div class="summary-icon bg-success-subtle text-success">
+                        <i class="fas fa-money-bill"></i>
+                    </div>
+
+                    <div>
+                        <div class="summary-label">Cash Payments</div>
+
+                        <p class="summary-value">
+                            {{ cash_paid | kwacha }}
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Committee Assistant -->
+    <div
+        class="card assistant-panel mb-4
+        {% if members_not_paid == 0 and members_partially_paid == 0 and missing_references == 0 %}
+            assistant-good
+        {% elif missing_references > 0 %}
+            assistant-danger
         {% else %}
-        <tr>
-          <td colspan="6">No distributions recorded yet.</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</section>
+            assistant-warning
+        {% endif %}"
+    >
+        <div class="card-body p-4">
 
-{% if pagination %}
-<div class="actions">
-  {% if pagination.has_prev %}
-    <a class="btn" href="{{ url_for('distributions', page=pagination.prev_num) }}">← Previous</a>
-  {% endif %}
+            <h5 class="fw-bold">
+                <i class="fas fa-lightbulb me-2"></i>
+                Committee Assistant
+            </h5>
 
-  <span class="badge">Page {{ pagination.page }} of {{ pagination.pages }}</span>
+            <p class="mb-2">
+                {{ distribution_message }}
+            </p>
 
-  {% if pagination.has_next %}
-    <a class="btn" href="{{ url_for('distributions', page=pagination.next_num) }}">Next →</a>
-  {% endif %}
+            {% if members_partially_paid > 0 %}
+                <p class="mb-1 text-warning-emphasis">
+                    <i class="fas fa-circle-exclamation me-1"></i>
+                    {{ members_partially_paid }} member(s) have received
+                    partial payments.
+                </p>
+            {% endif %}
+
+            {% if members_not_paid > 0 %}
+                <p class="mb-1 text-danger">
+                    <i class="fas fa-triangle-exclamation me-1"></i>
+                    {{ members_not_paid }} member(s) have not yet received
+                    payment.
+                </p>
+            {% endif %}
+
+            {% if missing_references > 0 %}
+                <p class="mb-0 text-danger">
+                    <i class="fas fa-link-slash me-1"></i>
+                    {{ missing_references }} payment(s) have no transaction
+                    reference.
+                </p>
+            {% endif %}
+
+        </div>
+    </div>
+
+    <!-- Record Payment -->
+    <div class="card payment-panel mb-4 no-print">
+        <div class="card-body p-4">
+
+            <div class="mb-4">
+                <h5 class="fw-bold mb-1">
+                    Record Share-Out Payment
+                </h5>
+
+                <p class="text-muted mb-0">
+                    Record payment only after the Share-Out schedule has
+                    been reviewed and approved.
+                </p>
+            </div>
+
+            {% if members %}
+
+                {% set methods = payment_methods | default(
+                    [
+                        'Bank Transfer',
+                        'Mobile Money',
+                        'Airtel Money',
+                        'MTN Money',
+                        'Cash'
+                    ],
+                    true
+                ) %}
+
+                <form method="post">
+
+                    <input
+                        type="hidden"
+                        name="start_month"
+                        value="{{ start_month }}"
+                    >
+
+                    <input
+                        type="hidden"
+                        name="end_month"
+                        value="{{ end_month }}"
+                    >
+
+                    <input
+                        type="hidden"
+                        name="expenses"
+                        value="{{ expenses }}"
+                    >
+
+                    <input
+                        type="hidden"
+                        name="other_income"
+                        value="{{ other_income }}"
+                    >
+
+                    <div class="row g-3">
+
+                        <div class="col-lg-6">
+                            <label class="form-label fw-semibold">
+                                Member
+                            </label>
+
+                            <select
+                                name="member_id"
+                                class="form-select"
+                                required
+                            >
+                                <option value="">
+                                    Select member
+                                </option>
+
+                                {% for m in members %}
+                                    <option value="{{ m.member_id }}">
+                                        {{ m.member_no }} -
+                                        {{ m.full_name }} -
+                                        Outstanding:
+                                        {{ m.outstanding_balance | kwacha }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6 col-lg-3">
+                            <label class="form-label fw-semibold">
+                                Amount
+                            </label>
+
+                            <div class="input-group">
+                                <span class="input-group-text">K</span>
+
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0.01"
+                                    name="amount"
+                                    class="form-control"
+                                    required
+                                >
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 col-lg-3">
+                            <label class="form-label fw-semibold">
+                                Method
+                            </label>
+
+                            <select
+                                name="method"
+                                class="form-select"
+                                required
+                            >
+                                <option value="">
+                                    Select method
+                                </option>
+
+                                {% for method in methods %}
+                                    <option value="{{ method }}">
+                                        {{ method }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6 col-lg-4">
+                            <label class="form-label fw-semibold">
+                                Reference
+                            </label>
+
+                            <input
+                                name="reference"
+                                class="form-control"
+                                placeholder="Transaction or receipt reference"
+                            >
+                        </div>
+
+                        <div class="col-md-6 col-lg-4">
+                            <label class="form-label fw-semibold">
+                                Authorized By
+                            </label>
+
+                            <input
+                                name="authorized_by"
+                                class="form-control"
+                                placeholder="Chairperson or Treasurer"
+                            >
+                        </div>
+
+                        <div class="col-md-6 col-lg-2">
+                            <label class="form-label fw-semibold">
+                                Paid On
+                            </label>
+
+                            <input
+                                type="date"
+                                name="paid_on"
+                                class="form-control"
+                            >
+                        </div>
+
+                        <div class="col-md-6 col-lg-2 d-flex align-items-end">
+                            <button
+                                class="btn btn-primary w-100"
+                                type="submit"
+                            >
+                                <i class="fas fa-check-circle me-1"></i>
+                                Record Payment
+                            </button>
+                        </div>
+
+                    </div>
+
+                </form>
+
+            {% else %}
+
+                <div class="alert alert-success mb-0">
+                    <i class="fas fa-circle-check me-2"></i>
+                    There are no pending Share-Out payments for the selected
+                    period.
+                </div>
+
+            {% endif %}
+
+        </div>
+    </div>
+
+    <!-- Member Payment Status Schedule -->
+    <div class="card register-panel mb-4">
+
+        <div class="card-header bg-white border-0 p-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+
+                <div>
+                    <h5 class="fw-bold mb-1">
+                        Member Payment Status
+                    </h5>
+
+                    <p class="text-muted mb-0">
+                        Allocation, amount paid and outstanding balance for
+                        every member.
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    class="btn btn-outline-secondary no-print"
+                    onclick="window.print()"
+                >
+                    <i class="fas fa-print me-1"></i>
+                    Print
+                </button>
+
+            </div>
+        </div>
+
+        <div class="table-responsive">
+
+            <table class="table table-hover schedule-table">
+
+                <thead>
+                    <tr>
+                        <th>Member</th>
+                        <th class="text-end">Net Share-Out</th>
+                        <th class="text-end">Amount Paid</th>
+                        <th class="text-end">Outstanding</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for row in payment_schedule %}
+                    <tr>
+
+                        <td>
+                            <div class="member-name">
+                                {{ row.full_name }}
+                            </div>
+
+                            <div class="member-number">
+                                {{ row.member_no }}
+                            </div>
+                        </td>
+
+                        <td class="text-end">
+                            {{ row.net_shareout | kwacha }}
+                        </td>
+
+                        <td class="text-end text-success fw-semibold">
+                            {{ row.amount_paid | kwacha }}
+                        </td>
+
+                        <td class="text-end fw-semibold">
+                            {{ row.outstanding_balance | kwacha }}
+                        </td>
+
+                        <td>
+                            {% if row.payment_status == 'Paid' %}
+                                <span class="status-badge status-paid">
+                                    <i class="fas fa-check-circle"></i>
+                                    Paid
+                                </span>
+
+                            {% elif row.payment_status == 'Partially Paid' %}
+                                <span class="status-badge status-partial">
+                                    <i class="fas fa-circle-half-stroke"></i>
+                                    Partially Paid
+                                </span>
+
+                            {% elif row.payment_status == 'Overpaid' %}
+                                <span class="status-badge status-overpaid">
+                                    <i class="fas fa-triangle-exclamation"></i>
+                                    Overpaid
+                                </span>
+
+                            {% else %}
+                                <span class="status-badge status-pending">
+                                    <i class="fas fa-clock"></i>
+                                    Pending
+                                </span>
+                            {% endif %}
+                        </td>
+
+                    </tr>
+
+                    {% else %}
+
+                    <tr>
+                        <td colspan="5">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">
+                                    <i class="fas fa-users"></i>
+                                </div>
+
+                                <h5 class="fw-bold">
+                                    No Share-Out schedule found
+                                </h5>
+
+                                <p class="mb-0">
+                                    Run the Share-Out Calculator for the
+                                    selected period.
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+    </div>
+
+    <!-- Payment Transaction Register -->
+    <div class="card register-panel">
+
+        <div class="card-header bg-white border-0 p-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+
+                <div>
+                    <h5 class="fw-bold mb-1">
+                        Payment Transaction Register
+                    </h5>
+
+                    <p class="text-muted mb-0">
+                        Share-Out payments recorded during the selected period.
+                    </p>
+                </div>
+
+                <span class="badge bg-primary rounded-pill">
+                    {{ distributions | length }} Records
+                </span>
+
+            </div>
+        </div>
+
+        <div class="table-responsive">
+
+            <table class="table table-hover register-table">
+
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Member</th>
+                        <th>Method</th>
+                        <th>Reference</th>
+                        <th>Authorized By</th>
+                        <th class="text-end">Amount</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for d in distributions %}
+                    <tr>
+                        <td>{{ d.paid_on }}</td>
+
+                        <td>
+                            <div class="member-name">
+                                {{ d.member.full_name }}
+                            </div>
+
+                            <div class="member-number">
+                                {{ d.member.member_no }}
+                            </div>
+                        </td>
+
+                        <td>{{ d.method }}</td>
+
+                        <td>
+                            {% if d.reference %}
+                                {{ d.reference }}
+                            {% else %}
+                                <span class="text-danger">
+                                    Missing
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {{ d.authorized_by or '-' }}
+                        </td>
+
+                        <td class="text-end fw-bold">
+                            {{ d.amount | kwacha }}
+                        </td>
+                    </tr>
+
+                    {% else %}
+
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">
+                                    <i class="fas fa-receipt"></i>
+                                </div>
+
+                                <h5 class="fw-bold">
+                                    No payments recorded
+                                </h5>
+
+                                <p class="mb-0">
+                                    There are no Share-Out transactions for
+                                    the selected period.
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination and pagination.pages > 1 %}
+
+    <div class="d-flex flex-wrap justify-content-center align-items-center gap-2 mt-4 no-print">
+
+        {% if pagination.has_prev %}
+            <a
+                class="btn btn-outline-primary"
+                href="{{ url_for(
+                    'distributions',
+                    page=pagination.prev_num,
+                    start_month=start_month,
+                    end_month=end_month,
+                    expenses=expenses,
+                    other_income=other_income
+                ) }}"
+            >
+                <i class="fas fa-angle-left me-1"></i>
+                Previous
+            </a>
+        {% endif %}
+
+        <span class="pagination-badge">
+            Page {{ pagination.page }} of {{ pagination.pages }}
+        </span>
+
+        {% if pagination.has_next %}
+            <a
+                class="btn btn-outline-primary"
+                href="{{ url_for(
+                    'distributions',
+                    page=pagination.next_num,
+                    start_month=start_month,
+                    end_month=end_month,
+                    expenses=expenses,
+                    other_income=other_income
+                ) }}"
+            >
+                Next
+                <i class="fas fa-angle-right ms-1"></i>
+            </a>
+        {% endif %}
+
+    </div>
+
+    {% endif %}
+
 </div>
-{% endif %}
 
 {% endblock %}

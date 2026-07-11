@@ -369,24 +369,27 @@ Manage year-end calculations, approvals, member payments and statements
 
         <!-- Payment Register -->
         <div class="col-md-6 col-xl-4">
-            <div class="module-card">
-                <div class="module-icon bg-success-subtle text-success">
-                    <i class="fas fa-money-check-alt"></i>
-                </div>
-
-                <h5>Payment Register</h5>
-
-                <p>
-                    Record payments by bank, mobile money or cash and monitor
-                    unpaid balances.
-                </p>
-
-                <span class="badge bg-light text-dark border">
-                    Planned
-                </span>
-            </div>
+        <a
+        href="{{ url_for('distributions') }}"
+        class="module-card"
+    >
+        <div class="module-icon bg-success-subtle text-success">
+            <i class="fas fa-money-check-alt"></i>
         </div>
 
+        <h5>Payment Register</h5>
+
+        <p>
+            Record full or partial payments by bank, mobile money or cash
+            and monitor outstanding balances.
+        </p>
+
+        <span class="module-link">
+            Open Payment Register
+            <i class="fas fa-arrow-right ms-1"></i>
+        </span>
+    </a>
+</div>
         <!-- Approval Centre -->
         <div class="col-md-6 col-xl-4">
             <div class="module-card">
