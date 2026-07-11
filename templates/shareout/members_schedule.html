@@ -1,0 +1,661 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Members Share-Out Schedule{% endblock %}
+
+{% block subtitle %}
+Review, verify and manage every member's year-end distribution
+{% endblock %}
+
+{% block content %}
+
+<link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+>
+
+<link
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    rel="stylesheet"
+>
+
+<style>
+    .schedule-page {
+        padding-bottom: 30px;
+    }
+
+    .schedule-header {
+        background: linear-gradient(
+            135deg,
+            rgba(13, 110, 253, 0.97),
+            rgba(111, 66, 193, 0.94)
+        );
+        border-radius: 18px;
+        padding: 28px;
+        color: white;
+        margin-bottom: 24px;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+    }
+
+    .schedule-header h2 {
+        margin-bottom: 8px;
+        font-weight: 700;
+    }
+
+    .schedule-header p {
+        margin-bottom: 0;
+        opacity: 0.92;
+    }
+
+    .summary-card {
+        border: none;
+        border-radius: 16px;
+        height: 100%;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
+    }
+
+    .summary-card .card-body {
+        padding: 20px;
+    }
+
+    .summary-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        flex-shrink: 0;
+    }
+
+    .summary-label {
+        color: #6c757d;
+        font-size: 0.84rem;
+        margin-bottom: 4px;
+    }
+
+    .summary-value {
+        color: #212529;
+        font-size: 1.35rem;
+        font-weight: 700;
+        margin-bottom: 0;
+    }
+
+    .filter-panel,
+    .schedule-table-card {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
+    }
+
+    .filter-panel .form-control,
+    .filter-panel .form-select {
+        min-height: 44px;
+        border-radius: 10px;
+    }
+
+    .schedule-table {
+        font-size: 0.88rem;
+        margin-bottom: 0;
+    }
+
+    .schedule-table thead th {
+        background: #f4f7fb;
+        color: #495057;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        white-space: nowrap;
+        padding: 13px 10px;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .schedule-table tbody td {
+        padding: 12px 10px;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+
+    .schedule-table tfoot th,
+    .schedule-table tfoot td {
+        background: #f8f9fa;
+        font-weight: 700;
+        padding: 13px 10px;
+        white-space: nowrap;
+    }
+
+    .member-name {
+        font-weight: 600;
+        color: #212529;
+    }
+
+    .member-number {
+        color: #6c757d;
+        font-size: 0.8rem;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 10px;
+        border-radius: 20px;
+        font-size: 0.77rem;
+        font-weight: 600;
+    }
+
+    .status-pending {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .status-paid {
+        background: #d1e7dd;
+        color: #0f5132;
+    }
+
+    .status-hold {
+        background: #f8d7da;
+        color: #842029;
+    }
+
+    .status-approved {
+        background: #cfe2ff;
+        color: #084298;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 55px 20px;
+        color: #6c757d;
+    }
+
+    .empty-state-icon {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: #eef4ff;
+        color: #0d6efd;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 30px;
+        margin-bottom: 18px;
+    }
+
+    .action-button {
+        border-radius: 9px;
+    }
+
+    .table-responsive {
+        border-radius: 0 0 16px 16px;
+    }
+</style>
+
+<div class="schedule-page">
+
+    <!-- Page Header -->
+    <div class="schedule-header">
+        <div class="row align-items-center">
+
+            <div class="col-lg-7 mb-3 mb-lg-0">
+                <h2>
+                    <i class="fas fa-users me-2"></i>
+                    Members Share-Out Schedule
+                </h2>
+
+                <p>
+                    Review member contributions, percentage allocations,
+                    deductions and final amounts payable.
+                </p>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="d-flex flex-wrap justify-content-lg-end gap-2">
+
+                    <a
+                        href="{{ url_for('shareout_control_centre') }}"
+                        class="btn btn-outline-light"
+                    >
+                        <i class="fas fa-arrow-left me-1"></i>
+                        Control Centre
+                    </a>
+
+                    <a
+                        href="{{ url_for('shareout') }}"
+                        class="btn btn-light"
+                    >
+                        <i class="fas fa-calculator me-1"></i>
+                        Calculator
+                    </a>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row g-3 mb-4">
+
+        <div class="col-md-6 col-xl">
+            <div class="card summary-card">
+                <div class="card-body d-flex align-items-center gap-3">
+
+                    <div class="summary-icon bg-primary-subtle text-primary">
+                        <i class="fas fa-users"></i>
+                    </div>
+
+                    <div>
+                        <div class="summary-label">Eligible Members</div>
+
+                        <p class="summary-value">
+                            {{ schedule_summary.eligible_members }}
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl">
+            <div class="card summary-card">
+                <div class="card-body d-flex align-items-center gap-3">
+
+                    <div class="summary-icon bg-info-subtle text-info">
+                        <i class="fas fa-piggy-bank"></i>
+                    </div>
+
+                    <div>
+                        <div class="summary-label">Contributions</div>
+
+                        <p class="summary-value">
+                            {{ schedule_summary.total_contributions | kwacha }}
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl">
+            <div class="card summary-card">
+                <div class="card-body d-flex align-items-center gap-3">
+
+                    <div class="summary-icon bg-success-subtle text-success">
+                        <i class="fas fa-coins"></i>
+                    </div>
+
+                    <div>
+                        <div class="summary-label">Net Share-Out</div>
+
+                        <p class="summary-value">
+                            {{ schedule_summary.total_net_shareout | kwacha }}
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl">
+            <div class="card summary-card">
+                <div class="card-body d-flex align-items-center gap-3">
+
+                    <div class="summary-icon bg-warning-subtle text-warning">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+
+                    <div>
+                        <div class="summary-label">Average Share-Out</div>
+
+                        <p class="summary-value">
+                            {{ schedule_summary.average_shareout | kwacha }}
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl">
+            <div class="card summary-card">
+                <div class="card-body d-flex align-items-center gap-3">
+
+                    <div class="summary-icon bg-secondary-subtle text-secondary">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+
+                    <div>
+                        <div class="summary-label">Members Paid</div>
+
+                        <p class="summary-value">
+                            {{ schedule_summary.members_paid }}
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Filters -->
+    <div class="card filter-panel mb-4">
+        <div class="card-body p-4">
+
+            <form method="GET" action="{{ url_for('shareout_schedule') }}">
+
+                <div class="row g-3 align-items-end">
+
+                    <div class="col-lg-6">
+                        <label class="form-label fw-semibold">
+                            Search member
+                        </label>
+
+                        <input
+                            type="text"
+                            name="search"
+                            value="{{ search }}"
+                            class="form-control"
+                            placeholder="Member number or member name"
+                        >
+                    </div>
+
+                    <div class="col-lg-3">
+                        <label class="form-label fw-semibold">
+                            Payment status
+                        </label>
+
+                        <select
+                            name="payment_status"
+                            class="form-select"
+                        >
+                            <option value="">All statuses</option>
+
+                            <option
+                                value="Pending"
+                                {% if payment_status == 'Pending' %}selected{% endif %}
+                            >
+                                Pending
+                            </option>
+
+                            <option
+                                value="Paid"
+                                {% if payment_status == 'Paid' %}selected{% endif %}
+                            >
+                                Paid
+                            </option>
+
+                            <option
+                                value="On Hold"
+                                {% if payment_status == 'On Hold' %}selected{% endif %}
+                            >
+                                On Hold
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="col-lg-3">
+                        <div class="d-flex gap-2">
+
+                            <button
+                                type="submit"
+                                class="btn btn-primary flex-grow-1"
+                            >
+                                <i class="fas fa-search me-1"></i>
+                                Search
+                            </button>
+
+                            <a
+                                href="{{ url_for('shareout_schedule') }}"
+                                class="btn btn-outline-secondary"
+                                title="Clear filters"
+                            >
+                                <i class="fas fa-rotate-left"></i>
+                            </a>
+
+                        </div>
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+    <!-- Schedule Register -->
+    <div class="card schedule-table-card">
+
+        <div class="card-header bg-white border-0 p-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+
+                <div>
+                    <h5 class="fw-bold mb-1">
+                        Year-End Share-Out Register
+                    </h5>
+
+                    <p class="text-muted mb-0">
+                        Official member allocation and payment schedule
+                    </p>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2">
+
+                    <button
+                        type="button"
+                        class="btn btn-outline-danger action-button"
+                        disabled
+                    >
+                        <i class="fas fa-file-pdf me-1"></i>
+                        PDF
+                    </button>
+
+                    <button
+                        type="button"
+                        class="btn btn-outline-success action-button"
+                        disabled
+                    >
+                        <i class="fas fa-file-excel me-1"></i>
+                        Excel
+                    </button>
+
+                    <button
+                        type="button"
+                        class="btn btn-outline-secondary action-button"
+                        onclick="window.print()"
+                    >
+                        <i class="fas fa-print me-1"></i>
+                        Print
+                    </button>
+
+                </div>
+
+            </div>
+        </div>
+
+        <div class="table-responsive">
+
+            <table class="table table-hover schedule-table">
+
+                <thead>
+                    <tr>
+                        <th>Member</th>
+                        <th class="text-end">Contributions</th>
+                        <th class="text-end">% Share</th>
+                        <th class="text-end">Profit Share</th>
+                        <th class="text-end">Gross Share-Out</th>
+                        <th class="text-end">Loan Deduction</th>
+                        <th class="text-end">Other Deductions</th>
+                        <th class="text-end">Net Share-Out</th>
+                        <th>Status</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% if schedule_rows %}
+
+                        {% for row in schedule_rows %}
+                        <tr>
+
+                            <td>
+                                <div class="member-name">
+                                    {{ row.member_name }}
+                                </div>
+
+                                <div class="member-number">
+                                    {{ row.member_number }}
+                                </div>
+                            </td>
+
+                            <td class="text-end">
+                                {{ row.contributions | kwacha }}
+                            </td>
+
+                            <td class="text-end">
+                                {{ "%.2f"|format(row.percentage_share or 0) }}%
+                            </td>
+
+                            <td class="text-end">
+                                {{ row.profit_share | kwacha }}
+                            </td>
+
+                            <td class="text-end fw-semibold">
+                                {{ row.gross_shareout | kwacha }}
+                            </td>
+
+                            <td class="text-end">
+                                {{ row.loan_deduction | kwacha }}
+                            </td>
+
+                            <td class="text-end">
+                                {{ row.other_deductions | kwacha }}
+                            </td>
+
+                            <td class="text-end fw-bold text-success">
+                                {{ row.net_shareout | kwacha }}
+                            </td>
+
+                            <td>
+                                {% if row.payment_status == 'Paid' %}
+                                    <span class="status-badge status-paid">
+                                        <i class="fas fa-check-circle"></i>
+                                        Paid
+                                    </span>
+
+                                {% elif row.payment_status == 'On Hold' %}
+                                    <span class="status-badge status-hold">
+                                        <i class="fas fa-pause-circle"></i>
+                                        On Hold
+                                    </span>
+
+                                {% elif row.payment_status == 'Approved' %}
+                                    <span class="status-badge status-approved">
+                                        <i class="fas fa-user-check"></i>
+                                        Approved
+                                    </span>
+
+                                {% else %}
+                                    <span class="status-badge status-pending">
+                                        <i class="fas fa-clock"></i>
+                                        Pending
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <td class="text-center">
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-primary"
+                                    disabled
+                                    title="Individual statement will be added later"
+                                >
+                                    <i class="fas fa-file-alt"></i>
+                                </button>
+                            </td>
+
+                        </tr>
+                        {% endfor %}
+
+                    {% else %}
+
+                        <tr>
+                            <td colspan="10">
+
+                                <div class="empty-state">
+
+                                    <div class="empty-state-icon">
+                                        <i class="fas fa-users"></i>
+                                    </div>
+
+                                    <h5 class="fw-bold">
+                                        No Share-Out schedule generated
+                                    </h5>
+
+                                    <p class="mb-3">
+                                        Run the Share-Out Calculator to prepare
+                                        member allocations for this cycle.
+                                    </p>
+
+                                    <a
+                                        href="{{ url_for('shareout') }}"
+                                        class="btn btn-primary"
+                                    >
+                                        <i class="fas fa-calculator me-1"></i>
+                                        Open Share-Out Calculator
+                                    </a>
+
+                                </div>
+
+                            </td>
+                        </tr>
+
+                    {% endif %}
+
+                </tbody>
+
+                {% if schedule_rows %}
+                <tfoot>
+                    <tr>
+                        <th>Schedule Totals</th>
+
+                        <td class="text-end">
+                            {{ schedule_summary.total_contributions | kwacha }}
+                        </td>
+
+                        <td class="text-end">
+                            100.00%
+                        </td>
+
+                        <td class="text-end">
+                            {{ schedule_summary.total_profit_share | kwacha }}
+                        </td>
+
+                        <td class="text-end">
+                            {{ schedule_summary.total_gross_shareout | kwacha }}
+                        </td>
+
+                        <td colspan="2" class="text-end">
+                            {{ schedule_summary.total_deductions | kwacha }}
+                        </td>
+
+                        <td class="text-end text-success">
+                            {{ schedule_summary.total_net_shareout | kwacha }}
+                        </td>
+
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+                {% endif %}
+
+            </table>
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

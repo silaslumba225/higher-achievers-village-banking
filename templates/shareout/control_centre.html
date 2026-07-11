@@ -343,23 +343,29 @@ Manage year-end calculations, approvals, member payments and statements
 
         <!-- Members Schedule -->
         <div class="col-md-6 col-xl-4">
-            <div class="module-card">
-                <div class="module-icon bg-info-subtle text-info">
-                    <i class="fas fa-list-alt"></i>
-                </div>
+                <a
+                    href="{{ url_for('shareout_schedule') }}"
+                    class="module-card"
+                >
 
-                <h5>Members Share-Out Schedule</h5>
+                    <div class="module-icon bg-info-subtle text-info">
+                        <i class="fas fa-list-alt"></i>
+                    </div>
 
-                <p>
-                    Review each member's contributions, percentage share,
-                    earnings and total amount payable.
-                </p>
+                    <h5>Members Share-Out Schedule</h5>
 
-                <span class="badge bg-secondary">
-                    Next Module
-                </span>
+                    <p>
+                        Review each member's contributions, percentage share,
+                        earnings and total amount payable.
+                    </p>
+
+                    <span class="module-link">
+                        Open Schedule
+                        <i class="fas fa-arrow-right ms-1"></i>
+                    </span>
+
+                </a>
             </div>
-        </div>
 
         <!-- Payment Register -->
         <div class="col-md-6 col-xl-4">

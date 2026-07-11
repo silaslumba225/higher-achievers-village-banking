@@ -6259,6 +6259,40 @@ def shareout_control_centre():
         'shareout/control_centre.html',
         shareout_summary=shareout_summary
     )
+@app.route('/share-out-schedule')
+@login_required
+def shareout_schedule():
+    """
+    Displays the Members Share-Out Schedule.
+
+    The schedule will later be connected to saved Share-Out calculations,
+    payment records, approvals and individual statements.
+    """
+
+    search = request.args.get('search', '').strip()
+    payment_status = request.args.get('payment_status', '').strip()
+
+    schedule_rows = []
+
+    schedule_summary = {
+        'eligible_members': 0,
+        'total_contributions': 0,
+        'total_profit_share': 0,
+        'total_gross_shareout': 0,
+        'total_deductions': 0,
+        'total_net_shareout': 0,
+        'average_shareout': 0,
+        'members_paid': 0,
+        'members_pending': 0,
+    }
+
+    return render_template(
+        'shareout/members_schedule.html',
+        schedule_rows=schedule_rows,
+        schedule_summary=schedule_summary,
+        search=search,
+        payment_status=payment_status,
+    )
 
 @app.route('/shareout.pdf')
 @login_required
