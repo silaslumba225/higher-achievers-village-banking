@@ -3977,7 +3977,176 @@ def shareout_approval():
         outstanding_balance=outstanding_balance,
         operator_name=operator_name,
 )
-    
+
+@app.route('/share-out-statement/<int:member_id>')
+@login_required
+@role_required('shareout')
+def shareout_statement(member_id):
+    today_month = date.today().strftime('%Y-%m')
+
+    start_month = (
+        request.args.get('start_month')
+        or f'{date.today().year}-01'
+    )
+
+    end_month = (
+        request.args.get('end_month')
+        or today_month
+    )
+
+    expenses = money(
+        request.args.get('expenses') or 0
+    )
+
+    other_income = money(
+        request.args.get('other_income') or 0
+    )
+
+    member = Member.query.get_or_404(member_id)
+
+    shareout_data = calculate_shareout_data(
+        start_month=start_month,
+        end_month=end_month,
+        expenses=expenses,
+        other_income=other_income,
+    )
+
+    member_shareout = next(
+        (
+            row
+            for row in shareout_data['rows']
+            if row['member_id'] == member_id
+        ),
+        None
+    )
+
+    if not member_shareout:
+        flash(
+            'No Share-Out calculation was found for this member '
+            'during the selected period.',
+            'error'
+        )
+
+        return redirect(
+            url_for(
+                'shareout_schedule',
+                start_month=start_month,
+                end_month=end_month,
+                expenses=expenses,
+                other_income=other_income,
+            )
+        )
+
+    start_date = datetime.strptime(
+        start_month + '-01',
+        '%Y-%m-%d'
+    ).date()
+
+    end_year, end_mon = [
+        int(value)
+        for value in end_month.split('-')
+    ]
+
+    end_date = (
+        date(end_year, end_mon, 28)
+        + timedelta(days=4)
+    ).replace(day=1) - timedelta(days=1)
+
+    payments = Distribution.query.filter(
+        Distribution.member_id == member_id,
+        Distribution.paid_on >= start_date,
+        Distribution.paid_on <= end_date,
+    ).order_by(
+        Distribution.paid_on.asc(),
+        Distribution.id.asc(),
+    ).all()
+
+    total_paid = money(
+        sum(
+            (
+                money(payment.amount)
+                for payment in payments
+            ),
+            Decimal('0.00')
+        )
+    )
+
+    outstanding_balance = money(
+        member_shareout['net_shareout'] - total_paid
+    )
+
+    if outstanding_balance < 0:
+        payment_status = 'Overpaid'
+    elif total_paid <= 0:
+        payment_status = 'Pending'
+    elif outstanding_balance > 0:
+        payment_status = 'Partially Paid'
+    else:
+        payment_status = 'Paid'
+
+    cycle = get_shareout_cycle(
+        start_month,
+        end_month,
+    )
+
+    cycle_status = (
+        cycle.status
+        if cycle
+        else 'Draft'
+    )
+
+    setting = SystemSetting.query.first()
+
+    organization_name = (
+        setting.organisation_name
+        if setting and setting.organisation_name
+        else CLIENT_NAME
+    )
+
+    organization_address = (
+        setting.organization_address
+        if setting and setting.organization_address
+        else ''
+    )
+
+    organization_phone = (
+        setting.organization_phone
+        if setting and setting.organization_phone
+        else ''
+    )
+
+    organization_email = (
+        setting.organization_email
+        if setting and setting.organization_email
+        else ''
+    )
+
+    registration_number = (
+        setting.registration_number
+        if setting and setting.registration_number
+        else ''
+    )
+
+    return render_template(
+        'shareout/statement.html',
+        member=member,
+        member_shareout=member_shareout,
+        payments=payments,
+        total_paid=total_paid,
+        outstanding_balance=outstanding_balance,
+        payment_status=payment_status,
+        cycle=cycle,
+        cycle_status=cycle_status,
+        start_month=start_month,
+        end_month=end_month,
+        expenses=expenses,
+        other_income=other_income,
+        organization_name=organization_name,
+        organization_address=organization_address,
+        organization_phone=organization_phone,
+        organization_email=organization_email,
+        registration_number=registration_number,
+    )    
 
 
 @app.route('/fines', methods=['GET','POST'])

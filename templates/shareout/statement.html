@@ -1,0 +1,636 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Individual Share-Out Statement{% endblock %}
+
+{% block subtitle %}
+Detailed member allocation, deductions and payment history
+{% endblock %}
+
+{% block content %}
+
+<link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+>
+
+<link
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    rel="stylesheet"
+>
+
+<style>
+    .statement-page {
+        padding-bottom: 32px;
+    }
+
+    .statement-hero {
+        background: linear-gradient(
+            135deg,
+            rgba(13, 110, 253, 0.97),
+            rgba(111, 66, 193, 0.94)
+        );
+        border-radius: 18px;
+        padding: 28px;
+        color: white;
+        margin-bottom: 24px;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+    }
+
+    .statement-card,
+    .summary-card,
+    .payment-card {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
+    }
+
+    .summary-card {
+        height: 100%;
+    }
+
+    .summary-label {
+        color: #6c757d;
+        font-size: 0.84rem;
+        margin-bottom: 4px;
+    }
+
+    .summary-value {
+        font-size: 1.35rem;
+        font-weight: 700;
+        margin-bottom: 0;
+    }
+
+    .statement-table {
+        margin-bottom: 0;
+    }
+
+    .statement-table th {
+        width: 48%;
+        background: #f7f9fc;
+        color: #495057;
+        font-weight: 600;
+    }
+
+    .statement-table th,
+    .statement-table td {
+        padding: 13px 15px;
+        vertical-align: middle;
+    }
+
+    .payment-table {
+        margin-bottom: 0;
+        font-size: 0.88rem;
+    }
+
+    .payment-table thead th {
+        background: #f4f7fb;
+        color: #495057;
+        font-size: 0.76rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        white-space: nowrap;
+        padding: 13px 10px;
+    }
+
+    .payment-table tbody td {
+        padding: 12px 10px;
+        vertical-align: middle;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 700;
+    }
+
+    .status-paid {
+        background: #d1e7dd;
+        color: #0f5132;
+    }
+
+    .status-partial {
+        background: #fff3cd;
+        color: #664d03;
+    }
+
+    .status-pending {
+        background: #cfe2ff;
+        color: #084298;
+    }
+
+    .status-overpaid {
+        background: #f8d7da;
+        color: #842029;
+    }
+
+    .cycle-draft {
+        background: #fff3cd;
+        color: #664d03;
+    }
+
+    .cycle-approved {
+        background: #d1e7dd;
+        color: #0f5132;
+    }
+
+    .cycle-locked {
+        background: #e2e3e5;
+        color: #41464b;
+    }
+
+    .signature-line {
+        border-top: 1px solid #343a40;
+        padding-top: 7px;
+        margin-top: 45px;
+        text-align: center;
+        font-size: 0.85rem;
+    }
+
+    @media print {
+        .no-print,
+        .sidebar,
+        .topbar {
+            display: none !important;
+        }
+
+        .statement-page {
+            padding: 0;
+        }
+
+        .statement-hero {
+            background: white !important;
+            color: black !important;
+            border: 1px solid #dee2e6;
+            box-shadow: none;
+        }
+
+        .statement-card,
+        .summary-card,
+        .payment-card {
+            box-shadow: none !important;
+            border: 1px solid #dee2e6;
+        }
+    }
+</style>
+
+<div class="statement-page">
+
+    <div class="statement-hero">
+        <div class="row align-items-center">
+
+            <div class="col-lg-7 mb-3 mb-lg-0">
+                <h2 class="fw-bold mb-2">
+                    <i class="fas fa-file-invoice-dollar me-2"></i>
+                    Individual Share-Out Statement
+                </h2>
+
+                <p class="mb-0">
+                    Official record of member allocation, deductions,
+                    payments and outstanding balance.
+                </p>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="d-flex flex-wrap justify-content-lg-end gap-2 no-print">
+
+                    <a
+                        href="{{ url_for(
+                            'shareout_schedule',
+                            start_month=start_month,
+                            end_month=end_month,
+                            expenses=expenses,
+                            other_income=other_income
+                        ) }}"
+                        class="btn btn-outline-light"
+                    >
+                        <i class="fas fa-arrow-left me-1"></i>
+                        Members Schedule
+                    </a>
+
+                    <button
+                        type="button"
+                        class="btn btn-light"
+                        onclick="window.print()"
+                    >
+                        <i class="fas fa-print me-1"></i>
+                        Print Statement
+                    </button>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="card statement-card mb-4">
+        <div class="card-body p-4">
+
+            <div class="row align-items-center">
+
+                <div class="col-lg-8">
+
+                    <h3 class="fw-bold mb-1">
+                        {{ organization_name }}
+                    </h3>
+
+                    {% if registration_number %}
+                    <div class="text-muted">
+                        Registration No: {{ registration_number }}
+                    </div>
+                    {% endif %}
+
+                    {% if organization_address %}
+                    <div class="text-muted">
+                        {{ organization_address }}
+                    </div>
+                    {% endif %}
+
+                    {% if organization_phone or organization_email %}
+                    <div class="text-muted">
+                        {{ organization_phone }}
+                        {% if organization_phone and organization_email %}
+                            |
+                        {% endif %}
+                        {{ organization_email }}
+                    </div>
+                    {% endif %}
+
+                </div>
+
+                <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+
+                    {% if cycle_status == 'Locked' %}
+                        <span class="status-badge cycle-locked">
+                            <i class="fas fa-lock"></i>
+                            Final and Locked
+                        </span>
+
+                    {% elif cycle_status == 'Approved' %}
+                        <span class="status-badge cycle-approved">
+                            <i class="fas fa-check-circle"></i>
+                            Approved
+                        </span>
+
+                    {% else %}
+                        <span class="status-badge cycle-draft">
+                            <i class="fas fa-clock"></i>
+                            Draft
+                        </span>
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+            <hr>
+
+            <div class="row g-3">
+
+                <div class="col-md-6">
+                    <div class="summary-label">
+                        Member
+                    </div>
+
+                    <div class="fw-bold fs-5">
+                        {{ member.full_name }}
+                    </div>
+
+                    <div class="text-muted">
+                        {{ member.member_no }}
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="summary-label">
+                        Group
+                    </div>
+
+                    <div class="fw-semibold">
+                        {{ member_shareout.group_name }}
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="summary-label">
+                        Statement Period
+                    </div>
+
+                    <div class="fw-semibold">
+                        {{ start_month }} to {{ end_month }}
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card summary-card">
+                <div class="card-body">
+
+                    <div class="summary-label">
+                        Net Share-Out
+                    </div>
+
+                    <p class="summary-value text-success">
+                        {{ member_shareout.net_shareout | kwacha }}
+                    </p>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card summary-card">
+                <div class="card-body">
+
+                    <div class="summary-label">
+                        Amount Paid
+                    </div>
+
+                    <p class="summary-value">
+                        {{ total_paid | kwacha }}
+                    </p>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card summary-card">
+                <div class="card-body">
+
+                    <div class="summary-label">
+                        Outstanding Balance
+                    </div>
+
+                    <p class="summary-value text-warning">
+                        {{ outstanding_balance | kwacha }}
+                    </p>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card summary-card">
+                <div class="card-body">
+
+                    <div class="summary-label">
+                        Payment Status
+                    </div>
+
+                    {% if payment_status == 'Paid' %}
+                        <span class="status-badge status-paid">
+                            <i class="fas fa-check-circle"></i>
+                            Paid
+                        </span>
+
+                    {% elif payment_status == 'Partially Paid' %}
+                        <span class="status-badge status-partial">
+                            <i class="fas fa-circle-half-stroke"></i>
+                            Partially Paid
+                        </span>
+
+                    {% elif payment_status == 'Overpaid' %}
+                        <span class="status-badge status-overpaid">
+                            <i class="fas fa-triangle-exclamation"></i>
+                            Overpaid
+                        </span>
+
+                    {% else %}
+                        <span class="status-badge status-pending">
+                            <i class="fas fa-clock"></i>
+                            Pending
+                        </span>
+                    {% endif %}
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="row g-4 mb-4">
+
+        <div class="col-lg-6">
+            <div class="card statement-card h-100">
+
+                <div class="card-header bg-white border-0 p-4">
+                    <h5 class="fw-bold mb-0">
+                        Share-Out Calculation
+                    </h5>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table statement-table">
+
+                        <tbody>
+                            <tr>
+                                <th>Total Contributions</th>
+                                <td class="text-end">
+                                    {{ member_shareout.contributed | kwacha }}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <th>Savings Interest</th>
+                                <td class="text-end">
+                                    {{ member_shareout.savings_interest | kwacha }}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <th>Gross Savings Value</th>
+                                <td class="text-end">
+                                    {{ member_shareout.gross_savings_value | kwacha }}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <th>Contribution Share</th>
+                                <td class="text-end">
+                                    {{ member_shareout.percent }}%
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <th>Profit Share</th>
+                                <td class="text-end">
+                                    {{ member_shareout.profit_share | kwacha }}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <th>Gross Share-Out</th>
+                                <td class="text-end fw-bold">
+                                    {{ member_shareout.gross_shareout | kwacha }}
+                                </td>
+                            </tr>
+                        </tbody>
+
+                    </table>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card statement-card h-100">
+
+                <div class="card-header bg-white border-0 p-4">
+                    <h5 class="fw-bold mb-0">
+                        Deductions and Net Payable
+                    </h5>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table statement-table">
+
+                        <tbody>
+                            <tr>
+                                <th>Outstanding Loans</th>
+                                <td class="text-end">
+                                    {{ member_shareout.outstanding_loans | kwacha }}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <th>Outstanding Fines</th>
+                                <td class="text-end">
+                                    {{ member_shareout.fine_balance | kwacha }}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <th>Total Deductions</th>
+                                <td class="text-end text-danger">
+                                    {{ member_shareout.total_deductions | kwacha }}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <th>Net Share-Out</th>
+                                <td class="text-end fw-bold text-success">
+                                    {{ member_shareout.net_shareout | kwacha }}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <th>Total Paid</th>
+                                <td class="text-end">
+                                    {{ total_paid | kwacha }}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <th>Balance Outstanding</th>
+                                <td class="text-end fw-bold text-warning">
+                                    {{ outstanding_balance | kwacha }}
+                                </td>
+                            </tr>
+                        </tbody>
+
+                    </table>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <div class="card payment-card mb-4">
+
+        <div class="card-header bg-white border-0 p-4">
+            <h5 class="fw-bold mb-1">
+                Payment History
+            </h5>
+
+            <p class="text-muted mb-0">
+                Share-Out payments recorded during this statement period.
+            </p>
+        </div>
+
+        <div class="table-responsive">
+
+            <table class="table table-hover payment-table">
+
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Method</th>
+                        <th>Reference</th>
+                        <th>Authorized By</th>
+                        <th class="text-end">Amount</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for payment in payments %}
+                    <tr>
+                        <td>{{ payment.paid_on }}</td>
+                        <td>{{ payment.method }}</td>
+                        <td>{{ payment.reference or '-' }}</td>
+                        <td>{{ payment.authorized_by or '-' }}</td>
+                        <td class="text-end fw-bold">
+                            {{ payment.amount | kwacha }}
+                        </td>
+                    </tr>
+
+                    {% else %}
+
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">
+                            No Share-Out payments have been recorded for this
+                            member during the selected period.
+                        </td>
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+    </div>
+
+    <div class="card statement-card">
+        <div class="card-body p-4">
+
+            <div class="row g-5">
+
+                <div class="col-md-4">
+                    <div class="signature-line">
+                        Member Signature
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="signature-line">
+                        Treasurer
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="signature-line">
+                        Chairperson
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
