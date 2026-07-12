@@ -446,16 +446,7 @@ Review, verify and manage every member's year-end distribution
                     <button
                         type="button"
                         class="btn btn-outline-danger action-button"
-                        <a
-                            href="{{ url_for(
-                                'shareout_statement',
-                                member_id=row.member_id,
-                                start_month=start_month,
-                                end_month=end_month,
-                                expenses=expenses,
-                                other_income=other_income
-                            ) }}"
-                            class="btn btn-sm btn-outline-primary"
+                        
                             title="View individual Share-Out statement"
                         >
                             <i class="fas fa-file-alt"></i>
@@ -580,14 +571,20 @@ Review, verify and manage every member's year-end distribution
                             </td>
 
                             <td class="text-center">
-                                <button
-                                    type="button"
-                                    class="btn btn-sm btn-outline-primary"
-                                    disabled
-                                    title="Individual statement will be added later"
-                                >
+                                <a
+                                        href="{{ url_for(
+                                            'shareout_statement',
+                                            member_id=row.member_id,
+                                            start_month=start_month,
+                                            end_month=end_month,
+                                            expenses=expenses,
+                                            other_income=other_income
+                                        ) }}"
+                                        class="btn btn-sm btn-outline-primary"
+                                        title="View individual Share-Out statement"
+    >
                                     <i class="fas fa-file-alt"></i>
-                                </button>
+                                </a>
                             </td>
 
                         </tr>
