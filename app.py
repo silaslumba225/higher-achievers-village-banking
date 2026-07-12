@@ -717,6 +717,122 @@ class BankReconciliation(db.Model):
 
     notes = db.Column(db.Text)
 
+class ShareOutCycle(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    start_month = db.Column(
+        db.String(7),
+        nullable=False
+    )
+
+    end_month = db.Column(
+        db.String(7),
+        nullable=False
+    )
+
+    expenses = db.Column(
+        db.Numeric(12, 2),
+        nullable=False,
+        default=0
+    )
+
+    other_income = db.Column(
+        db.Numeric(12, 2),
+        nullable=False,
+        default=0
+    )
+
+    total_contributions = db.Column(
+        db.Numeric(12, 2),
+        nullable=False,
+        default=0
+    )
+
+    shareout_fund = db.Column(
+        db.Numeric(12, 2),
+        nullable=False,
+        default=0
+    )
+
+    total_net_payable = db.Column(
+        db.Numeric(12, 2),
+        nullable=False,
+        default=0
+    )
+
+    eligible_members = db.Column(
+        db.Integer,
+        nullable=False,
+        default=0
+    )
+
+    members_requiring_review = db.Column(
+        db.Integer,
+        nullable=False,
+        default=0
+    )
+
+    readiness_score = db.Column(
+        db.Integer,
+        nullable=False,
+        default=0
+    )
+
+    status = db.Column(
+        db.String(30),
+        nullable=False,
+        default='Draft'
+    )
+
+    approved_by = db.Column(
+        db.String(120)
+    )
+
+    approved_on = db.Column(
+        db.DateTime
+    )
+
+    approval_comments = db.Column(
+        db.Text
+    )
+
+    locked_by = db.Column(
+        db.String(120)
+    )
+
+    locked_on = db.Column(
+        db.DateTime
+    )
+
+    lock_comments = db.Column(
+        db.Text
+    )
+
+    created_by = db.Column(
+        db.String(120)
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow
+    )
+
+    updated_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            'start_month',
+            'end_month',
+            name='uq_shareout_cycle_period'
+        ),
+    )
+
    
 def ensure_settings_columns():
     columns = {
@@ -3557,6 +3673,276 @@ def distributions():
         shareout_fund=shareout_data['shareout_fund'],
         total_net_payable=shareout_data['total_net_payable'],
     )
+
+@app.route(
+    '/share-out-approval',
+    methods=['GET', 'POST']
+)
+@login_required
+@role_required('shareout')
+def shareout_approval():
+    today_month = date.today().strftime('%Y-%m')
+
+    start_month = (
+        request.values.get('start_month')
+        or f'{date.today().year}-01'
+    )
+
+    end_month = (
+        request.values.get('end_month')
+        or today_month
+    )
+
+    expenses = money(
+        request.values.get('expenses') or 0
+    )
+
+    other_income = money(
+        request.values.get('other_income') or 0
+    )
+
+    shareout_data = calculate_shareout_data(
+        start_month=start_month,
+        end_month=end_month,
+        expenses=expenses,
+        other_income=other_income,
+    )
+
+    cycle = ShareOutCycle.query.filter_by(
+        start_month=start_month,
+        end_month=end_month,
+    ).first()
+
+    if not cycle:
+        cycle = ShareOutCycle(
+            start_month=start_month,
+            end_month=end_month,
+            expenses=expenses,
+            other_income=other_income,
+            total_contributions=shareout_data[
+                'total_contributions'
+            ],
+            shareout_fund=shareout_data[
+                'shareout_fund'
+            ],
+            total_net_payable=shareout_data[
+                'total_net_payable'
+            ],
+            eligible_members=shareout_data[
+                'eligible_members'
+            ],
+            members_requiring_review=shareout_data[
+                'members_requiring_review'
+            ],
+            readiness_score=shareout_data[
+                'readiness_score'
+            ],
+            status='Draft',
+            created_by=(
+                session.get('user', {}).get('username')
+                or session.get('username')
+                or 'System'
+            ),
+        )
+
+        db.session.add(cycle)
+        db.session.commit()
+
+    if cycle.status != 'Locked':
+        cycle.expenses = expenses
+        cycle.other_income = other_income
+        cycle.total_contributions = shareout_data[
+            'total_contributions'
+        ]
+        cycle.shareout_fund = shareout_data[
+            'shareout_fund'
+        ]
+        cycle.total_net_payable = shareout_data[
+            'total_net_payable'
+        ]
+        cycle.eligible_members = shareout_data[
+            'eligible_members'
+        ]
+        cycle.members_requiring_review = shareout_data[
+            'members_requiring_review'
+        ]
+        cycle.readiness_score = shareout_data[
+            'readiness_score'
+        ]
+
+        db.session.commit()
+
+    start_date = datetime.strptime(
+        start_month + '-01',
+        '%Y-%m-%d'
+    ).date()
+
+    end_year, end_mon = [
+        int(value)
+        for value in end_month.split('-')
+    ]
+
+    end_date = (
+        date(end_year, end_mon, 28)
+        + timedelta(days=4)
+    ).replace(day=1) - timedelta(days=1)
+
+    total_paid = money(
+        db.session.query(
+            db.func.coalesce(
+                db.func.sum(Distribution.amount),
+                0
+            )
+        )
+        .filter(Distribution.paid_on >= start_date)
+        .filter(Distribution.paid_on <= end_date)
+        .scalar()
+    )
+
+    outstanding_balance = money(
+        shareout_data['total_net_payable']
+        - total_paid
+    )
+
+    current_user = (
+        session.get('user', {}).get('username')
+        or session.get('username')
+        or 'System User'
+    )
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+        authorized_by = (
+            request.form.get('authorized_by') or ''
+        ).strip()
+
+        comments = (
+            request.form.get('comments') or ''
+        ).strip()
+
+        if not authorized_by:
+            flash(
+                'Please select the authorizing officer.',
+                'error'
+            )
+
+            return redirect(
+                url_for(
+                    'shareout_approval',
+                    start_month=start_month,
+                    end_month=end_month,
+                    expenses=expenses,
+                    other_income=other_income,
+                )
+            )
+
+        if action == 'approve':
+            if cycle.status == 'Locked':
+                flash(
+                    'This Share-Out cycle is already locked.',
+                    'error'
+                )
+
+            elif shareout_data['readiness_score'] < 75:
+                flash(
+                    (
+                        'The Share-Out cycle is not ready for '
+                        'approval. Resolve the outstanding '
+                        'review matters first.'
+                    ),
+                    'error'
+                )
+
+            else:
+                cycle.status = 'Approved'
+                cycle.approved_by = authorized_by
+                cycle.approved_on = datetime.utcnow()
+                cycle.approval_comments = comments
+
+                db.session.commit()
+
+                log_audit(
+                    'APPROVE_SHAREOUT',
+                    'ShareOutCycle',
+                    cycle.id,
+                    (
+                        f'Share-Out cycle {start_month} to '
+                        f'{end_month} approved by '
+                        f'{authorized_by}'
+                    )
+                )
+
+                flash(
+                    'Share-Out cycle approved successfully.',
+                    'success'
+                )
+
+        elif action == 'lock':
+            if cycle.status == 'Locked':
+                flash(
+                    'This Share-Out cycle is already locked.',
+                    'error'
+                )
+
+            elif cycle.status != 'Approved':
+                flash(
+                    (
+                        'The Share-Out cycle must be approved '
+                        'before it can be locked.'
+                    ),
+                    'error'
+                )
+
+            else:
+                cycle.status = 'Locked'
+                cycle.locked_by = authorized_by
+                cycle.locked_on = datetime.utcnow()
+                cycle.lock_comments = comments
+
+                db.session.commit()
+
+                log_audit(
+                    'LOCK_SHAREOUT',
+                    'ShareOutCycle',
+                    cycle.id,
+                    (
+                        f'Share-Out cycle {start_month} to '
+                        f'{end_month} locked by '
+                        f'{authorized_by}'
+                    )
+                )
+
+                flash(
+                    (
+                        'Share-Out cycle locked successfully. '
+                        'The approved figures are now final.'
+                    ),
+                    'success'
+                )
+
+        return redirect(
+            url_for(
+                'shareout_approval',
+                start_month=start_month,
+                end_month=end_month,
+                expenses=expenses,
+                other_income=other_income,
+            )
+        )
+
+    return render_template(
+        'shareout/approval.html',
+        cycle=cycle,
+        shareout_data=shareout_data,
+        start_month=start_month,
+        end_month=end_month,
+        expenses=expenses,
+        other_income=other_income,
+        total_paid=total_paid,
+        outstanding_balance=outstanding_balance,
+        current_user=current_user,
+    )
+
 
 @app.route('/fines', methods=['GET','POST'])
 @login_required

@@ -392,7 +392,10 @@ Manage year-end calculations, approvals, member payments and statements
 </div>
         <!-- Approval Centre -->
         <div class="col-md-6 col-xl-4">
-            <div class="module-card">
+            <a
+                href="{{ url_for('shareout_approval') }}"
+                class="module-card"
+            >
                 <div class="module-icon bg-warning-subtle text-warning">
                     <i class="fas fa-user-check"></i>
                 </div>
@@ -401,13 +404,14 @@ Manage year-end calculations, approvals, member payments and statements
 
                 <p>
                     Review, approve and lock the final Share-Out before member
-                    payments are processed.
+                    payments and statements are finalized.
                 </p>
 
-                <span class="badge bg-light text-dark border">
-                    Planned
+                <span class="module-link">
+                    Open Approval Centre
+                    <i class="fas fa-arrow-right ms-1"></i>
                 </span>
-            </div>
+            </a>
         </div>
 
         <!-- Statements -->
