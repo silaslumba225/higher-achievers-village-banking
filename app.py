@@ -3806,7 +3806,7 @@ def shareout_approval():
 
     session_user = session.get('user') or {}
 
-    current_user = (
+    operator_name = (
         session_user.get('full_name')
         or session_user.get('name')
         or session_user.get('username')
@@ -3875,7 +3875,7 @@ def shareout_approval():
                     (
                         f'Share-Out cycle {start_month} to {end_month} '
                         f'approved by {authorized_by}; '
-                        f'recorded in the system by {current_user}'
+                        f'recorded in the system by {operator_name}'
                     )
                 )
 
@@ -3915,7 +3915,7 @@ def shareout_approval():
                     (
                         f'Share-Out cycle {start_month} to {end_month} '
                         f'locked by {authorized_by}; '
-                        f'recorded in the system by {current_user}'
+                        f'recorded in the system by {operator_name}'
                     )
                          )
 
@@ -3947,7 +3947,8 @@ def shareout_approval():
         other_income=other_income,
         total_paid=total_paid,
         outstanding_balance=outstanding_balance,
-        current_user=current_user,
+        operator_name=operator_name,
+)
     )
 
 
