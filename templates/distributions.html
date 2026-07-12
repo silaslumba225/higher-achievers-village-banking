@@ -260,6 +260,13 @@ Record member payments and monitor the year-end distribution process
             border: 1px solid #dee2e6;
         }
     }
+    .locked-notice {
+    border: 1px solid #adb5bd;
+    background: #f8f9fa;
+    border-radius: 14px;
+    padding: 20px;
+}
+  
 </style>
 
 <div class="payment-register-page">
@@ -706,6 +713,16 @@ Record member payments and monitor the year-end distribution process
     </div>
 
     <!-- Record Payment -->
+
+    {% if cycle_locked %}
+        <div class="alert alert-secondary mb-4">
+            <i class="fas fa-lock me-2"></i>
+
+            <strong>This Share-Out cycle is locked.</strong>
+            Payment entry has been disabled because the cycle is final.
+        </div>
+        {% endif %}
+
     <div class="card payment-panel mb-4 no-print">
         <div class="card-body p-4">
 
@@ -720,7 +737,7 @@ Record member payments and monitor the year-end distribution process
                 </p>
             </div>
 
-            {% if members %}
+            {% if members and not cycle_locked %}
 
                 {% set methods = payment_methods | default(
                     [
@@ -841,8 +858,8 @@ Record member payments and monitor the year-end distribution process
 
                         <div class="col-md-6 col-lg-4">
                             <label class="form-label fw-semibold">
-    Authorized By
-</label>
+            Authorized By
+        </label>
 
                     <select
                         name="authorized_by"
@@ -891,15 +908,28 @@ Record member payments and monitor the year-end distribution process
 
             {% else %}
 
-                <div class="alert alert-success mb-0">
-                    <i class="fas fa-circle-check me-2"></i>
-                    There are no pending Share-Out payments for the selected
-                    period.
-                </div>
+                {% elif cycle_locked %}
+
+            <div class="locked-notice">
+                <h5 class="fw-bold">
+                    <i class="fas fa-lock me-2"></i>
+                    Payment Register Locked
+                </h5>
+
+                <p class="mb-0">
+                    This Share-Out cycle has been locked.
+                    No additional payments can be recorded.
+                </p>
+            </div>
+
+            {% else %}
+
+            <div class="alert alert-success mb-0">
+                <i class="fas fa-circle-check me-2"></i>
+                There are no pending Share-Out payments for the selected period.
+            </div>
 
             {% endif %}
-
-        </div>
     </div>
 
     <!-- Member Payment Status Schedule -->

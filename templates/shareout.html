@@ -251,6 +251,17 @@ Calculate dividend and share-out distribution for members
         </div>
     </div>
 
+    {% if cycle_locked %}
+        <div class="alert alert-secondary d-flex align-items-center gap-2">
+            <i class="fas fa-lock"></i>
+
+            <div>
+                <strong>This Share-Out cycle is locked.</strong>
+                The approved figures are final and cannot be recalculated.
+            </div>
+        </div>
+        {% endif %}
+
     <!-- Calculation Form -->
     <div class="card calculator-panel mb-4">
         <div class="card-body p-4">
@@ -315,6 +326,7 @@ Calculate dividend and share-out distribution for members
                             name="start_month"
                             value="{{ start_month }}"
                             class="form-control"
+                            {% if cycle_locked %}disabled{% endif %}
                         >
                     </div>
 
@@ -328,6 +340,7 @@ Calculate dividend and share-out distribution for members
                             name="end_month"
                             value="{{ end_month }}"
                             class="form-control"
+                            {% if cycle_locked %}disabled{% endif %}
                         >
                     </div>
 
@@ -345,6 +358,7 @@ Calculate dividend and share-out distribution for members
                                 step="0.01"
                                 value="{{ other_income }}"
                                 class="form-control"
+                                {% if cycle_locked %}disabled{% endif %}
                             >
                         </div>
                     </div>
@@ -363,18 +377,25 @@ Calculate dividend and share-out distribution for members
                                 step="0.01"
                                 value="{{ expenses }}"
                                 class="form-control"
+                                {% if cycle_locked %}disabled{% endif %}
                             >
                         </div>
                     </div>
 
                     <div class="col-xl-2">
-                        <button
-                            type="submit"
-                            class="btn btn-primary w-100 py-2"
-                        >
-                            <i class="fas fa-calculator me-1"></i>
-                            Calculate
-                        </button>
+                <button
+                    type="submit"
+                    class="btn btn-primary w-100 py-2"
+                    {% if cycle_locked %}disabled{% endif %}
+                >
+                    {% if cycle_locked %}
+                        <i class="fas fa-lock me-1"></i>
+                        Locked
+                    {% else %}
+                        <i class="fas fa-calculator me-1"></i>
+                        Calculate
+                    {% endif %}
+                </button>
                     </div>
 
                 </div>

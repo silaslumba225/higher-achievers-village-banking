@@ -3265,7 +3265,33 @@ def distributions():
 
     shareout_rows = shareout_data['rows']
 
+    cycle = get_shareout_cycle(
+        start_month,
+        end_month,
+    )
+
+    cycle_locked = bool(
+        cycle and cycle.status == 'Locked'
+    )
+
     if request.method == 'POST':
+        if cycle_locked:
+            flash(
+                'This Share-Out cycle is locked. '
+                'No further payments can be recorded.',
+                'error'
+            )
+
+            return redirect(
+                url_for(
+                    'distributions',
+                    start_month=start_month,
+                    end_month=end_month,
+                    expenses=expenses,
+                    other_income=other_income,
+                )
+            )
+        
         member_id = int(request.form['member_id'])
         payment_amount = money(request.form['amount'])
 
@@ -3672,6 +3698,8 @@ def distributions():
         distribution_message=distribution_message,
         shareout_fund=shareout_data['shareout_fund'],
         total_net_payable=shareout_data['total_net_payable'],
+        cycle=cycle,
+        cycle_locked=cycle_locked,
     )
 
 @app.route(
@@ -6677,6 +6705,12 @@ def member_statement_pdf(member_id):
     filename = f'{member.member_no}_{member.full_name.replace(" ", "_")}_statement.pdf'
     return send_file(buffer, as_attachment=True, download_name=secure_filename(filename), mimetype='application/pdf')
 
+def get_shareout_cycle(start_month, end_month):
+    return ShareOutCycle.query.filter_by(
+        start_month=start_month,
+        end_month=end_month,
+    ).first()
+
 def calculate_shareout_data(
     start_month,
     end_month,
@@ -7076,6 +7110,15 @@ def shareout():
     expenses = money(request.values.get('expenses') or 0)
     other_income = money(request.values.get('other_income') or 0)
 
+    cycle = get_shareout_cycle(
+        start_month,
+        end_month,
+    )
+
+    cycle_locked = bool(
+        cycle and cycle.status == 'Locked'
+    )
+
     start_date = datetime.strptime(start_month + '-01', '%Y-%m-%d').date()
     end_year, end_mon = [int(x) for x in end_month.split('-')]
     end_date = (date(end_year, end_mon, 28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
@@ -7284,7 +7327,23 @@ def shareout():
     start = (page - 1) * per_page
     end = start + per_page
 
-    paged_rows = rows[start:end]    
+    paged_rows = rows[start:end] 
+
+    if request.method == 'POST' and cycle_locked:
+        flash(
+            'This Share-Out cycle is locked and cannot be recalculated.',
+            'error'
+        )
+
+        return redirect(
+            url_for(
+                'shareout',
+                start_month=start_month,
+                end_month=end_month,
+                expenses=expenses,
+                other_income=other_income,
+            )
+        )   
    
     if request.method == 'POST':
         log_audit(
