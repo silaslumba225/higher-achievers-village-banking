@@ -3949,7 +3949,7 @@ def shareout_approval():
         outstanding_balance=outstanding_balance,
         operator_name=operator_name,
 )
-    )
+    
 
 
 @app.route('/fines', methods=['GET','POST'])
