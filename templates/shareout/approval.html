@@ -330,14 +330,31 @@ Review, approve and secure the final Share-Out cycle
 
                     {% else %}
 
-                        <h5 class="fw-bold mb-1">
-                            Committee Authorization
-                        </h5>
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
 
-                        <p class="text-muted mb-4">
-                            Select the authorizing officer and record any
-                            committee comments.
-                        </p>
+                <div>
+                    <h5 class="fw-bold mb-1">
+                        Committee Authorization
+                    </h5>
+
+                    <p class="text-muted mb-0">
+                        Select the authorizing officer and record any
+                        committee comments.
+                    </p>
+                </div>
+
+                <div class="text-end">
+                    <small class="text-muted d-block">
+                        Logged in as
+                    </small>
+
+                    <span class="badge bg-primary-subtle text-primary px-3 py-2">
+                        <i class="fas fa-user-circle me-1"></i>
+                        {{ current_user }}
+                    </span>
+                </div>
+
+            </div>
 
                         <form method="post">
 

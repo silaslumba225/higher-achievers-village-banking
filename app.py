@@ -3804,9 +3804,16 @@ def shareout_approval():
         - total_paid
     )
 
+    session_user = session.get('user') or {}
+
     current_user = (
-        session.get('user', {}).get('username')
+        session_user.get('full_name')
+        or session_user.get('name')
+        or session_user.get('username')
+        or session.get('full_name')
+        or session.get('name')
         or session.get('username')
+        or session.get('user_name')
         or 'System User'
     )
 
@@ -3866,9 +3873,9 @@ def shareout_approval():
                     'ShareOutCycle',
                     cycle.id,
                     (
-                        f'Share-Out cycle {start_month} to '
-                        f'{end_month} approved by '
-                        f'{authorized_by}'
+                        f'Share-Out cycle {start_month} to {end_month} '
+                        f'approved by {authorized_by}; '
+                        f'recorded in the system by {current_user}'
                     )
                 )
 
@@ -3906,11 +3913,11 @@ def shareout_approval():
                     'ShareOutCycle',
                     cycle.id,
                     (
-                        f'Share-Out cycle {start_month} to '
-                        f'{end_month} locked by '
-                        f'{authorized_by}'
+                        f'Share-Out cycle {start_month} to {end_month} '
+                        f'locked by {authorized_by}; '
+                        f'recorded in the system by {current_user}'
                     )
-                )
+                         )
 
                 flash(
                     (
