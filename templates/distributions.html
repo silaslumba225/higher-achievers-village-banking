@@ -47,6 +47,7 @@ Record member payments and monitor the year-end distribution process
     }
 
     .summary-card,
+    .period-panel,
     .payment-panel,
     .register-panel,
     .assistant-panel {
@@ -91,12 +92,6 @@ Record member payments and monitor the year-end distribution process
         margin-bottom: 0;
     }
 
-    .period-panel {
-        border: none;
-        border-radius: 16px;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
-    }
-
     .form-control,
     .form-select {
         min-height: 45px;
@@ -127,19 +122,26 @@ Record member payments and monitor the year-end distribution process
         border-left: 5px solid #0d6efd;
     }
 
-    .assistant-panel.assistant-good {
+    .assistant-good {
         border-left-color: #198754;
         background: #f3fbf7;
     }
 
-    .assistant-panel.assistant-warning {
+    .assistant-warning {
         border-left-color: #ffc107;
         background: #fffdf3;
     }
 
-    .assistant-panel.assistant-danger {
+    .assistant-danger {
         border-left-color: #dc3545;
         background: #fff7f7;
+    }
+
+    .locked-notice {
+        border: 1px solid #adb5bd;
+        background: #f8f9fa;
+        border-radius: 14px;
+        padding: 20px;
     }
 
     .register-table,
@@ -260,13 +262,6 @@ Record member payments and monitor the year-end distribution process
             border: 1px solid #dee2e6;
         }
     }
-    .locked-notice {
-    border: 1px solid #adb5bd;
-    background: #f8f9fa;
-    border-radius: 14px;
-    padding: 20px;
-}
-  
 </style>
 
 <div class="payment-register-page">
@@ -282,7 +277,7 @@ Record member payments and monitor the year-end distribution process
                 </h2>
 
                 <p>
-                    Record full or partial member payments, monitor balances
+                    Record full or partial payments, monitor balances
                     and reconcile the distribution process.
                 </p>
             </div>
@@ -318,6 +313,15 @@ Record member payments and monitor the year-end distribution process
         </div>
     </div>
 
+    <!-- Locked Notice -->
+    {% if cycle_locked %}
+    <div class="alert alert-secondary mb-4">
+        <i class="fas fa-lock me-2"></i>
+        <strong>This Share-Out cycle is locked.</strong>
+        No further payments may be recorded.
+    </div>
+    {% endif %}
+
     <!-- Period Selection -->
     <div class="card period-panel mb-4 no-print">
         <div class="card-body p-4">
@@ -328,7 +332,7 @@ Record member payments and monitor the year-end distribution process
                 </h5>
 
                 <p class="text-muted mb-0">
-                    Select the same period and adjustments used in the
+                    Use the same period and adjustments applied in the
                     Share-Out Calculator.
                 </p>
             </div>
@@ -428,7 +432,9 @@ Record member payments and monitor the year-end distribution process
                     </div>
 
                     <div>
-                        <div class="summary-label">Total Paid</div>
+                        <div class="summary-label">
+                            Total Paid
+                        </div>
 
                         <p class="summary-value">
                             {{ total_paid | kwacha }}
@@ -448,7 +454,9 @@ Record member payments and monitor the year-end distribution process
                     </div>
 
                     <div>
-                        <div class="summary-label">Outstanding</div>
+                        <div class="summary-label">
+                            Outstanding
+                        </div>
 
                         <p class="summary-value">
                             {{ total_outstanding | kwacha }}
@@ -468,7 +476,9 @@ Record member payments and monitor the year-end distribution process
                     </div>
 
                     <div>
-                        <div class="summary-label">Members Paid</div>
+                        <div class="summary-label">
+                            Members Paid
+                        </div>
 
                         <p class="summary-value">
                             {{ members_paid }}
@@ -488,7 +498,9 @@ Record member payments and monitor the year-end distribution process
                     </div>
 
                     <div>
-                        <div class="summary-label">Payment Progress</div>
+                        <div class="summary-label">
+                            Payment Progress
+                        </div>
 
                         <p class="summary-value">
                             {{ payment_progress }}%
@@ -507,6 +519,7 @@ Record member payments and monitor the year-end distribution process
         <div class="col-md-6 col-xl-3">
             <div class="card summary-card">
                 <div class="card-body">
+
                     <div class="summary-label">
                         Eligible Members
                     </div>
@@ -514,6 +527,7 @@ Record member payments and monitor the year-end distribution process
                     <p class="summary-value">
                         {{ eligible_members }}
                     </p>
+
                 </div>
             </div>
         </div>
@@ -521,6 +535,7 @@ Record member payments and monitor the year-end distribution process
         <div class="col-md-6 col-xl-3">
             <div class="card summary-card">
                 <div class="card-body">
+
                     <div class="summary-label">
                         Partially Paid
                     </div>
@@ -528,6 +543,7 @@ Record member payments and monitor the year-end distribution process
                     <p class="summary-value text-warning">
                         {{ members_partially_paid }}
                     </p>
+
                 </div>
             </div>
         </div>
@@ -535,6 +551,7 @@ Record member payments and monitor the year-end distribution process
         <div class="col-md-6 col-xl-3">
             <div class="card summary-card">
                 <div class="card-body">
+
                     <div class="summary-label">
                         Not Yet Paid
                     </div>
@@ -542,6 +559,7 @@ Record member payments and monitor the year-end distribution process
                     <p class="summary-value text-danger">
                         {{ members_not_paid }}
                     </p>
+
                 </div>
             </div>
         </div>
@@ -549,6 +567,7 @@ Record member payments and monitor the year-end distribution process
         <div class="col-md-6 col-xl-3">
             <div class="card summary-card">
                 <div class="card-body">
+
                     <div class="summary-label">
                         Missing References
                     </div>
@@ -556,6 +575,7 @@ Record member payments and monitor the year-end distribution process
                     <p class="summary-value">
                         {{ missing_references }}
                     </p>
+
                 </div>
             </div>
         </div>
@@ -567,6 +587,7 @@ Record member payments and monitor the year-end distribution process
         <div class="card-body p-4">
 
             <div class="d-flex justify-content-between align-items-center mb-2">
+
                 <div>
                     <h5 class="fw-bold mb-1">
                         Distribution Progress
@@ -581,6 +602,7 @@ Record member payments and monitor the year-end distribution process
                 <strong class="fs-5">
                     {{ payment_progress }}%
                 </strong>
+
             </div>
 
             <div class="progress mt-3">
@@ -610,7 +632,9 @@ Record member payments and monitor the year-end distribution process
                     </div>
 
                     <div>
-                        <div class="summary-label">Bank Transfers</div>
+                        <div class="summary-label">
+                            Bank Transfers
+                        </div>
 
                         <p class="summary-value">
                             {{ bank_paid | kwacha }}
@@ -630,7 +654,9 @@ Record member payments and monitor the year-end distribution process
                     </div>
 
                     <div>
-                        <div class="summary-label">Mobile Money</div>
+                        <div class="summary-label">
+                            Mobile Money
+                        </div>
 
                         <p class="summary-value">
                             {{ mobile_paid | kwacha }}
@@ -650,7 +676,9 @@ Record member payments and monitor the year-end distribution process
                     </div>
 
                     <div>
-                        <div class="summary-label">Cash Payments</div>
+                        <div class="summary-label">
+                            Cash Payments
+                        </div>
 
                         <p class="summary-value">
                             {{ cash_paid | kwacha }}
@@ -686,43 +714,33 @@ Record member payments and monitor the year-end distribution process
             </p>
 
             {% if members_partially_paid > 0 %}
-                <p class="mb-1 text-warning-emphasis">
-                    <i class="fas fa-circle-exclamation me-1"></i>
-                    {{ members_partially_paid }} member(s) have received
-                    partial payments.
-                </p>
+            <p class="mb-1 text-warning-emphasis">
+                <i class="fas fa-circle-exclamation me-1"></i>
+                {{ members_partially_paid }} member(s) have received
+                partial payments.
+            </p>
             {% endif %}
 
             {% if members_not_paid > 0 %}
-                <p class="mb-1 text-danger">
-                    <i class="fas fa-triangle-exclamation me-1"></i>
-                    {{ members_not_paid }} member(s) have not yet received
-                    payment.
-                </p>
+            <p class="mb-1 text-danger">
+                <i class="fas fa-triangle-exclamation me-1"></i>
+                {{ members_not_paid }} member(s) have not yet received
+                payment.
+            </p>
             {% endif %}
 
             {% if missing_references > 0 %}
-                <p class="mb-0 text-danger">
-                    <i class="fas fa-link-slash me-1"></i>
-                    {{ missing_references }} payment(s) have no transaction
-                    reference.
-                </p>
+            <p class="mb-0 text-danger">
+                <i class="fas fa-link-slash me-1"></i>
+                {{ missing_references }} payment(s) have no transaction
+                reference.
+            </p>
             {% endif %}
 
         </div>
     </div>
 
     <!-- Record Payment -->
-
-    {% if cycle_locked %}
-        <div class="alert alert-secondary mb-4">
-            <i class="fas fa-lock me-2"></i>
-
-            <strong>This Share-Out cycle is locked.</strong>
-            Payment entry has been disabled because the cycle is final.
-        </div>
-        {% endif %}
-
     <div class="card payment-panel mb-4 no-print">
         <div class="card-body p-4">
 
@@ -793,12 +811,12 @@ Record member payments and monitor the year-end distribution process
                                 </option>
 
                                 {% for m in members %}
-                                    <option value="{{ m.member_id }}">
-                                        {{ m.member_no }} -
-                                        {{ m.full_name }} -
-                                        Outstanding:
-                                        {{ m.outstanding_balance | kwacha }}
-                                    </option>
+                                <option value="{{ m.member_id }}">
+                                    {{ m.member_no }} -
+                                    {{ m.full_name }} -
+                                    Outstanding:
+                                    {{ m.outstanding_balance | kwacha }}
+                                </option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -837,9 +855,9 @@ Record member payments and monitor the year-end distribution process
                                 </option>
 
                                 {% for method in methods %}
-                                    <option value="{{ method }}">
-                                        {{ method }}
-                                    </option>
+                                <option value="{{ method }}">
+                                    {{ method }}
+                                </option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -858,26 +876,27 @@ Record member payments and monitor the year-end distribution process
 
                         <div class="col-md-6 col-lg-4">
                             <label class="form-label fw-semibold">
-            Authorized By
-        </label>
+                                Authorized By
+                            </label>
 
-                    <select
-                        name="authorized_by"
-                        class="form-select"
-                        required
-                    >
-                        <option value="">Select Authorizing Officer</option>
+                            <select
+                                name="authorized_by"
+                                class="form-select"
+                                required
+                            >
+                                <option value="">
+                                    Select Authorizing Officer
+                                </option>
 
-                        <option>Chairperson</option>
-                        <option>Vice Chairperson</option>
-                        <option>Secretary</option>
-                        <option>Treasurer</option>
-                        <option>Vice Treasurer</option>
-                        <option>Committee Member</option>
-                        <option>Manager</option>
-                        <option>Administrator</option>
-                    </select>
-                                                
+                                <option>Chairperson</option>
+                                <option>Vice Chairperson</option>
+                                <option>Secretary</option>
+                                <option>Treasurer</option>
+                                <option>Vice Treasurer</option>
+                                <option>Committee Member</option>
+                                <option>Manager</option>
+                                <option>Administrator</option>
+                            </select>
                         </div>
 
                         <div class="col-md-6 col-lg-2">
@@ -906,33 +925,34 @@ Record member payments and monitor the year-end distribution process
 
                 </form>
 
-            {% else %}
+            {% elif cycle_locked %}
 
-                {% elif cycle_locked %}
+                <div class="locked-notice">
+                    <h5 class="fw-bold">
+                        <i class="fas fa-lock me-2"></i>
+                        Payment Register Locked
+                    </h5>
 
-            <div class="locked-notice">
-                <h5 class="fw-bold">
-                    <i class="fas fa-lock me-2"></i>
-                    Payment Register Locked
-                </h5>
-
-                <p class="mb-0">
-                    This Share-Out cycle has been locked.
-                    No additional payments can be recorded.
-                </p>
-            </div>
+                    <p class="mb-0">
+                        This Share-Out cycle has been locked.
+                        No additional payments can be recorded.
+                    </p>
+                </div>
 
             {% else %}
 
-            <div class="alert alert-success mb-0">
-                <i class="fas fa-circle-check me-2"></i>
-                There are no pending Share-Out payments for the selected period.
-            </div>
+                <div class="alert alert-success mb-0">
+                    <i class="fas fa-circle-check me-2"></i>
+                    There are no pending Share-Out payments for the selected
+                    period.
+                </div>
 
             {% endif %}
+
+        </div>
     </div>
 
-    <!-- Member Payment Status Schedule -->
+    <!-- Member Payment Status -->
     <div class="card register-panel mb-4">
 
         <div class="card-header bg-white border-0 p-4">
@@ -1035,7 +1055,9 @@ Record member payments and monitor the year-end distribution process
 
                     <tr>
                         <td colspan="5">
+
                             <div class="empty-state">
+
                                 <div class="empty-state-icon">
                                     <i class="fas fa-users"></i>
                                 </div>
@@ -1048,7 +1070,9 @@ Record member payments and monitor the year-end distribution process
                                     Run the Share-Out Calculator for the
                                     selected period.
                                 </p>
+
                             </div>
+
                         </td>
                     </tr>
 
@@ -1061,7 +1085,7 @@ Record member payments and monitor the year-end distribution process
         </div>
     </div>
 
-    <!-- Payment Transaction Register -->
+    <!-- Transaction Register -->
     <div class="card register-panel">
 
         <div class="card-header bg-white border-0 p-4">
@@ -1103,6 +1127,7 @@ Record member payments and monitor the year-end distribution process
 
                     {% for d in distributions %}
                     <tr>
+
                         <td>{{ d.paid_on }}</td>
 
                         <td>
@@ -1134,13 +1159,16 @@ Record member payments and monitor the year-end distribution process
                         <td class="text-end fw-bold">
                             {{ d.amount | kwacha }}
                         </td>
+
                     </tr>
 
                     {% else %}
 
                     <tr>
                         <td colspan="6">
+
                             <div class="empty-state">
+
                                 <div class="empty-state-icon">
                                     <i class="fas fa-receipt"></i>
                                 </div>
@@ -1153,7 +1181,9 @@ Record member payments and monitor the year-end distribution process
                                     There are no Share-Out transactions for
                                     the selected period.
                                 </p>
+
                             </div>
+
                         </td>
                     </tr>
 
@@ -1172,20 +1202,20 @@ Record member payments and monitor the year-end distribution process
     <div class="d-flex flex-wrap justify-content-center align-items-center gap-2 mt-4 no-print">
 
         {% if pagination.has_prev %}
-            <a
-                class="btn btn-outline-primary"
-                href="{{ url_for(
-                    'distributions',
-                    page=pagination.prev_num,
-                    start_month=start_month,
-                    end_month=end_month,
-                    expenses=expenses,
-                    other_income=other_income
-                ) }}"
-            >
-                <i class="fas fa-angle-left me-1"></i>
-                Previous
-            </a>
+        <a
+            class="btn btn-outline-primary"
+            href="{{ url_for(
+                'distributions',
+                page=pagination.prev_num,
+                start_month=start_month,
+                end_month=end_month,
+                expenses=expenses,
+                other_income=other_income
+            ) }}"
+        >
+            <i class="fas fa-angle-left me-1"></i>
+            Previous
+        </a>
         {% endif %}
 
         <span class="pagination-badge">
@@ -1193,20 +1223,20 @@ Record member payments and monitor the year-end distribution process
         </span>
 
         {% if pagination.has_next %}
-            <a
-                class="btn btn-outline-primary"
-                href="{{ url_for(
-                    'distributions',
-                    page=pagination.next_num,
-                    start_month=start_month,
-                    end_month=end_month,
-                    expenses=expenses,
-                    other_income=other_income
-                ) }}"
-            >
-                Next
-                <i class="fas fa-angle-right ms-1"></i>
-            </a>
+        <a
+            class="btn btn-outline-primary"
+            href="{{ url_for(
+                'distributions',
+                page=pagination.next_num,
+                start_month=start_month,
+                end_month=end_month,
+                expenses=expenses,
+                other_income=other_income
+            ) }}"
+        >
+            Next
+            <i class="fas fa-angle-right ms-1"></i>
+        </a>
         {% endif %}
 
     </div>
