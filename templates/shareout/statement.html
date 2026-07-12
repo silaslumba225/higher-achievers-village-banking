@@ -211,6 +211,21 @@ Detailed member allocation, deductions and payment history
                         Members Schedule
                     </a>
 
+                            <a
+                            href="{{ url_for(
+                                'shareout_statement_pdf',
+                                member_id=member.id,
+                                start_month=start_month,
+                                end_month=end_month,
+                                expenses=expenses,
+                                other_income=other_income
+                            ) }}"
+                            class="btn btn-light"
+                            target="_blank"
+                        >
+                            <i class="fas fa-file-pdf me-1"></i>
+                            PDF Statement
+                        </a>                
                     <button
                         type="button"
                         class="btn btn-light"
