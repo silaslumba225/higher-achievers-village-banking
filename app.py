@@ -4531,6 +4531,345 @@ def shareout_statement_pdf(member_id):
                 f'inline; filename="{filename}"'
         }
     )
+@app.route('/share-out-dashboard')
+@login_required
+@role_required('shareout')
+def shareout_dashboard():
+    today_month = date.today().strftime('%Y-%m')
+
+    start_month = (
+        request.args.get('start_month')
+        or f'{date.today().year}-01'
+    )
+
+    end_month = (
+        request.args.get('end_month')
+        or today_month
+    )
+
+    expenses = money(
+        request.args.get('expenses') or 0
+    )
+
+    other_income = money(
+        request.args.get('other_income') or 0
+    )
+
+    shareout_data = calculate_shareout_data(
+        start_month=start_month,
+        end_month=end_month,
+        expenses=expenses,
+        other_income=other_income,
+    )
+
+    start_date = datetime.strptime(
+        start_month + '-01',
+        '%Y-%m-%d'
+    ).date()
+
+    end_year, end_mon = [
+        int(value)
+        for value in end_month.split('-')
+    ]
+
+    end_date = (
+        date(end_year, end_mon, 28)
+        + timedelta(days=4)
+    ).replace(day=1) - timedelta(days=1)
+
+    cycle = get_shareout_cycle(
+        start_month,
+        end_month,
+    )
+
+    cycle_status = (
+        cycle.status
+        if cycle
+        else 'Draft'
+    )
+
+    payment_query = Distribution.query.filter(
+        Distribution.paid_on >= start_date,
+        Distribution.paid_on <= end_date,
+    )
+
+    total_paid = money(
+        db.session.query(
+            db.func.coalesce(
+                db.func.sum(Distribution.amount),
+                0
+            )
+        )
+        .filter(Distribution.paid_on >= start_date)
+        .filter(Distribution.paid_on <= end_date)
+        .scalar()
+    )
+
+    payments_by_member = dict(
+        db.session.query(
+            Distribution.member_id,
+            db.func.coalesce(
+                db.func.sum(Distribution.amount),
+                0
+            )
+        )
+        .filter(Distribution.paid_on >= start_date)
+        .filter(Distribution.paid_on <= end_date)
+        .group_by(Distribution.member_id)
+        .all()
+    )
+
+    payment_schedule = []
+
+    members_paid = 0
+    members_partially_paid = 0
+    members_pending = 0
+    members_overpaid = 0
+
+    total_outstanding = Decimal('0.00')
+
+    for row in shareout_data['rows']:
+        net_shareout = money(
+            row['net_shareout']
+        )
+
+        amount_paid = money(
+            payments_by_member.get(
+                row['member_id'],
+                Decimal('0.00')
+            )
+        )
+
+        outstanding_balance = money(
+            net_shareout - amount_paid
+        )
+
+        if net_shareout <= 0:
+            payment_status = 'Review'
+
+        elif outstanding_balance < 0:
+            payment_status = 'Overpaid'
+            members_overpaid += 1
+
+        elif amount_paid <= 0:
+            payment_status = 'Pending'
+            members_pending += 1
+
+        elif outstanding_balance > 0:
+            payment_status = 'Partially Paid'
+            members_partially_paid += 1
+
+        else:
+            payment_status = 'Paid'
+            members_paid += 1
+
+        if outstanding_balance > 0:
+            total_outstanding += outstanding_balance
+
+        payment_schedule.append({
+            **row,
+            'amount_paid': amount_paid,
+            'outstanding_balance': outstanding_balance,
+            'payment_status': payment_status,
+        })
+
+    total_outstanding = money(
+        total_outstanding
+    )
+
+    eligible_members = len([
+        row
+        for row in payment_schedule
+        if money(row['net_shareout']) > 0
+    ])
+
+    payment_progress = (
+        0
+        if eligible_members == 0
+        else round(
+            (members_paid / eligible_members) * 100
+        )
+    )
+
+    amount_progress = (
+        0
+        if shareout_data['total_net_payable'] <= 0
+        else round(
+            (
+                total_paid
+                / shareout_data['total_net_payable']
+            ) * 100
+        )
+    )
+
+    amount_progress = max(
+        0,
+        min(amount_progress, 100)
+    )
+
+    bank_paid = money(
+        db.session.query(
+            db.func.coalesce(
+                db.func.sum(Distribution.amount),
+                0
+            )
+        )
+        .filter(Distribution.paid_on >= start_date)
+        .filter(Distribution.paid_on <= end_date)
+        .filter(
+            Distribution.method == 'Bank Transfer'
+        )
+        .scalar()
+    )
+
+    mobile_paid = money(
+        db.session.query(
+            db.func.coalesce(
+                db.func.sum(Distribution.amount),
+                0
+            )
+        )
+        .filter(Distribution.paid_on >= start_date)
+        .filter(Distribution.paid_on <= end_date)
+        .filter(
+            Distribution.method.in_([
+                'Mobile Money',
+                'Airtel Money',
+                'MTN Money',
+            ])
+        )
+        .scalar()
+    )
+
+    cash_paid = money(
+        db.session.query(
+            db.func.coalesce(
+                db.func.sum(Distribution.amount),
+                0
+            )
+        )
+        .filter(Distribution.paid_on >= start_date)
+        .filter(Distribution.paid_on <= end_date)
+        .filter(
+            Distribution.method == 'Cash'
+        )
+        .scalar()
+    )
+
+    missing_references = payment_query.filter(
+        db.or_(
+            Distribution.reference.is_(None),
+            Distribution.reference == '',
+        )
+    ).count()
+
+    recent_payments = payment_query.order_by(
+        Distribution.paid_on.desc(),
+        Distribution.id.desc(),
+    ).limit(8).all()
+
+    highest_allocations = sorted(
+        payment_schedule,
+        key=lambda row: money(
+            row['net_shareout']
+        ),
+        reverse=True,
+    )[:5]
+
+    largest_outstanding = sorted(
+        [
+            row
+            for row in payment_schedule
+            if money(
+                row['outstanding_balance']
+            ) > 0
+        ],
+        key=lambda row: money(
+            row['outstanding_balance']
+        ),
+        reverse=True,
+    )[:5]
+
+    review_members = [
+        row
+        for row in payment_schedule
+        if (
+            row['payment_status'] in [
+                'Review',
+                'Overpaid',
+            ]
+            or money(row['net_shareout']) < 0
+        )
+    ]
+
+    if cycle_status == 'Locked':
+        executive_status = (
+            'The Share-Out cycle is complete, approved '
+            'and locked.'
+        )
+
+    elif cycle_status == 'Approved' and total_outstanding > 0:
+        executive_status = (
+            'The Share-Out cycle is approved. Continue '
+            'processing outstanding member payments.'
+        )
+
+    elif cycle_status == 'Approved':
+        executive_status = (
+            'All payments appear complete. The cycle is '
+            'ready for final locking.'
+        )
+
+    elif shareout_data['readiness_score'] >= 75:
+        executive_status = (
+            'The Share-Out calculation is ready for '
+            'committee review and approval.'
+        )
+
+    else:
+        executive_status = (
+            'The Share-Out cycle requires review before '
+            'approval or distribution.'
+        )
+
+    setting = SystemSetting.query.first()
+
+    organization_name = (
+        setting.organisation_name
+        if setting and setting.organisation_name
+        else CLIENT_NAME
+    )
+
+    return render_template(
+        'shareout/dashboard.html',
+        organization_name=organization_name,
+        shareout_data=shareout_data,
+        payment_schedule=payment_schedule,
+        cycle=cycle,
+        cycle_status=cycle_status,
+        start_month=start_month,
+        end_month=end_month,
+        expenses=expenses,
+        other_income=other_income,
+        total_paid=total_paid,
+        total_outstanding=total_outstanding,
+        eligible_members=eligible_members,
+        members_paid=members_paid,
+        members_partially_paid=members_partially_paid,
+        members_pending=members_pending,
+        members_overpaid=members_overpaid,
+        payment_progress=payment_progress,
+        amount_progress=amount_progress,
+        bank_paid=bank_paid,
+        mobile_paid=mobile_paid,
+        cash_paid=cash_paid,
+        missing_references=missing_references,
+        recent_payments=recent_payments,
+        highest_allocations=highest_allocations,
+        largest_outstanding=largest_outstanding,
+        review_members=review_members,
+        executive_status=executive_status,
+    )
 
 @app.route('/share-out-statement/<int:member_id>')
 @login_required

@@ -436,7 +436,10 @@ Manage year-end calculations, approvals, member payments and statements
 
         <!-- Executive Dashboard -->
         <div class="col-md-6 col-xl-4">
-            <div class="module-card">
+            <a
+                href="{{ url_for('shareout_dashboard') }}"
+                class="module-card"
+            >
                 <div class="module-icon bg-secondary-subtle text-secondary">
                     <i class="fas fa-chart-pie"></i>
                 </div>
@@ -444,17 +447,18 @@ Manage year-end calculations, approvals, member payments and statements
                 <h5>Executive Dashboard</h5>
 
                 <p>
-                    View payment progress, distribution analysis, exceptions
-                    and management insights.
+                    View distribution progress, outstanding balances,
+                    exceptions and executive Share-Out insights.
                 </p>
 
-                <span class="badge bg-light text-dark border">
-                    Planned
+                <span class="module-link">
+                    Open Executive Dashboard
+                    <i class="fas fa-arrow-right ms-1"></i>
                 </span>
-            </div>
+            </a>
         </div>
 
-    </div>
+            </div>
 
     <!-- Progress and Checklist -->
     <div class="row g-4">
