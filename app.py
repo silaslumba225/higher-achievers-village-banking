@@ -4,6 +4,9 @@ import os
 from decimal import Decimal
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash, Response, session, send_file
+import os
+from pathlib import Path
+from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import func, inspect
@@ -21,7 +24,14 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import mm
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.platypus import (
+    SimpleDocTemplate,
+    Table,
+    TableStyle,
+    Paragraph,
+    Spacer,
+    Image,
+)
 from bank_import import import_bank_statement
 from services.dashboard_service import DashboardService
 from services.member_intelligence_service import MemberIntelligenceService
@@ -31,6 +41,7 @@ from services.meeting_intelligence_service import MeetingIntelligenceService
 from services.financial_intelligence_service import FinancialIntelligenceService
 from io import BytesIO
 from flask import send_file
+from flask import send_from_directory
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER
@@ -39,6 +50,33 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'change-this-secret-key')
+ALLOWED_LOGO_EXTENSIONS = {
+    'png',
+    'jpg',
+    'jpeg',
+    'webp',
+}
+
+if os.environ.get('RENDER'):
+    LOGO_UPLOAD_FOLDER = Path(
+        os.environ.get(
+            'LOGO_UPLOAD_FOLDER',
+            '/var/data/logos'
+        )
+    )
+else:
+    LOGO_UPLOAD_FOLDER = Path(
+        app.root_path
+    ) / 'static' / 'logos'
+
+LOGO_UPLOAD_FOLDER.mkdir(
+    parents=True,
+    exist_ok=True
+)
+
+app.config['MAX_CONTENT_LENGTH'] = (
+    5 * 1024 * 1024
+)
 
 # Local development uses SQLite. Render/production uses PostgreSQL through DATABASE_URL.
 database_url = os.environ.get('DATABASE_URL')
@@ -117,6 +155,290 @@ ROLE_PERMISSIONS = {
     'Auditor': ['dashboard', 'attendance', 'reports', 'statements', 'shareout', 'fines', 'welfare', 'audit', 'notifications', 'accounting', 'exports'],
     'Data Clerk': ['dashboard', 'members', 'contributions', 'notifications'],
 }
+
+def get_pdf_logo_path(setting):
+    """
+    Return the best available logo for PDF documents.
+
+    Priority:
+    1. Report logo
+    2. System logo
+    3. Default application logo
+    """
+
+    logo_filename = None
+
+    if setting:
+        logo_filename = (
+            setting.report_logo
+            or setting.logo
+        )
+
+    if logo_filename:
+        uploaded_path = (
+            LOGO_UPLOAD_FOLDER
+            / Path(logo_filename).name
+        )
+
+        if uploaded_path.exists():
+            return str(uploaded_path)
+
+    default_path = (
+        Path(app.root_path)
+        / 'static'
+        / 'higher-achievers-logo.jpeg'
+    )
+
+    if default_path.exists():
+        return str(default_path)
+
+    return None
+
+def pdf_colour(value, fallback):
+    """
+    Safely convert a stored hexadecimal colour into a ReportLab colour.
+    """
+
+    try:
+        return colors.HexColor(
+            value or fallback
+        )
+    except Exception:
+        return colors.HexColor(fallback)
+
+def build_pdf_branding(setting, styles):
+    """
+    Build reusable organisation branding for PDF documents.
+    """
+
+    organization_name = (
+        setting.organisation_name
+        if setting and setting.organisation_name
+        else CLIENT_NAME
+    )
+
+    registration_number = (
+        setting.registration_number
+        if setting and setting.registration_number
+        else ''
+    )
+
+    organization_address = (
+        setting.organization_address
+        if setting and setting.organization_address
+        else ''
+    )
+
+    organization_phone = (
+        setting.organization_phone
+        if setting and setting.organization_phone
+        else ''
+    )
+
+    organization_email = (
+        setting.organization_email
+        if setting and setting.organization_email
+        else ''
+    )
+
+    motto = (
+        setting.motto
+        if setting and setting.motto
+        else ''
+    )
+
+    primary_colour = pdf_colour(
+        setting.primary_color if setting else None,
+        '#0D6EFD'
+    )
+
+    secondary_colour = pdf_colour(
+        setting.secondary_color if setting else None,
+        '#198754'
+    )
+
+    logo_path = get_pdf_logo_path(setting)
+
+    organisation_style = ParagraphStyle(
+        'PdfOrganisationName',
+        parent=styles['Title'],
+        fontSize=16,
+        leading=19,
+        textColor=primary_colour,
+        spaceAfter=3,
+    )
+
+    contact_style = ParagraphStyle(
+        'PdfContactDetails',
+        parent=styles['Normal'],
+        fontSize=7.5,
+        leading=9.5,
+        textColor=colors.HexColor('#555555'),
+    )
+
+    motto_style = ParagraphStyle(
+        'PdfMotto',
+        parent=styles['Normal'],
+        fontSize=8,
+        leading=10,
+        textColor=secondary_colour,
+        italic=True,
+    )
+
+    organisation_parts = [
+        Paragraph(
+            organization_name,
+            organisation_style
+        )
+    ]
+
+    if motto:
+        organisation_parts.append(
+            Paragraph(
+                motto,
+                motto_style
+            )
+        )
+
+    contact_parts = []
+
+    if registration_number:
+        contact_parts.append(
+            f'Registration No: {registration_number}'
+        )
+
+    if organization_address:
+        contact_parts.append(
+            organization_address
+        )
+
+    if organization_phone:
+        contact_parts.append(
+            organization_phone
+        )
+
+    if organization_email:
+        contact_parts.append(
+            organization_email
+        )
+
+    if contact_parts:
+        organisation_parts.append(
+            Paragraph(
+                ' | '.join(contact_parts),
+                contact_style
+            )
+        )
+
+    organisation_content = []
+
+    if logo_path:
+        try:
+            logo = Image(
+                logo_path,
+                width=24 * mm,
+                height=24 * mm,
+                kind='proportional',
+            )
+
+            organisation_content.append(logo)
+
+        except Exception:
+            organisation_content.append('')
+
+    else:
+        organisation_content.append('')
+
+    organisation_content.append(
+        organisation_parts
+    )
+
+    header_table = Table(
+        [organisation_content],
+        colWidths=[
+            30 * mm,
+            135 * mm,
+        ],
+    )
+
+    header_table.setStyle(
+        TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+            (
+                'LINEBELOW',
+                (0, 0),
+                (-1, -1),
+                1.2,
+                primary_colour,
+            ),
+        ])
+    )
+
+    return header_table
+
+def draw_pdf_footer(canvas, document, setting):
+    canvas.saveState()
+
+    organization_name = (
+        setting.organisation_name
+        if setting and setting.organisation_name
+        else CLIENT_NAME
+    )
+
+    product_name = (
+        setting.product_name
+        if setting and setting.product_name
+        else 'SL Village Banking Pro'
+    )
+
+    developer_name = (
+        setting.developer_name
+        if setting and setting.developer_name
+        else 'SL Consulting Limited'
+    )
+
+    primary_colour = pdf_colour(
+        setting.primary_color if setting else None,
+        '#0D6EFD'
+    )
+
+    page_width, _ = document.pagesize
+
+    canvas.setStrokeColor(primary_colour)
+    canvas.setLineWidth(0.6)
+    canvas.line(
+        document.leftMargin,
+        13 * mm,
+        page_width - document.rightMargin,
+        13 * mm,
+    )
+
+    canvas.setFont('Helvetica', 7)
+    canvas.setFillColor(
+        colors.HexColor('#555555')
+    )
+
+    canvas.drawString(
+        document.leftMargin,
+        8 * mm,
+        f'{organization_name} | {product_name}'
+    )
+
+    canvas.drawRightString(
+        page_width - document.rightMargin,
+        8 * mm,
+        (
+            f'Page {canvas.getPageNumber()} | '
+            f'Produced by {developer_name}'
+        )
+    )
+
+    canvas.restoreState()
+
 def format_zambian_phone(phone):
     if not phone:
         return ''
@@ -133,7 +455,65 @@ def format_zambian_phone(phone):
         return '+260' + phone[1:]
 
     return '+260' + phone
+def allowed_logo_file(filename):
+    return (
+        '.' in filename
+        and filename.rsplit('.', 1)[1].lower()
+        in ALLOWED_LOGO_EXTENSIONS
+    )
 
+
+def save_logo_file(uploaded_file, logo_type):
+    if not uploaded_file or not uploaded_file.filename:
+        return None
+
+    if not allowed_logo_file(uploaded_file.filename):
+        raise ValueError(
+            'Only PNG, JPG, JPEG and WEBP '
+            'images are allowed.'
+        )
+
+    original_name = secure_filename(
+        uploaded_file.filename
+    )
+
+    extension = original_name.rsplit(
+        '.',
+        1
+    )[1].lower()
+
+    filename = (
+        f'{logo_type}.{extension}'
+    )
+
+    destination = (
+        LOGO_UPLOAD_FOLDER / filename
+    )
+
+    for existing_file in (
+        LOGO_UPLOAD_FOLDER.glob(
+            f'{logo_type}.*'
+        )
+    ):
+        if existing_file.is_file():
+            existing_file.unlink()
+
+    uploaded_file.save(destination)
+
+    return filename
+
+
+def delete_logo_file(filename):
+    if not filename:
+        return
+
+    filepath = (
+        LOGO_UPLOAD_FOLDER
+        / Path(filename).name
+    )
+
+    if filepath.exists() and filepath.is_file():
+        filepath.unlink()
 
 def send_sms_via_africas_talking(phone, message):
     setting = get_settings()
@@ -591,6 +971,81 @@ class SystemSetting(db.Model):
         default='1.0.0'
     )
     logo = db.Column(db.String(255))
+    
+    report_logo = db.Column(db.String(255))
+    watermark_logo = db.Column(db.String(255))
+    favicon = db.Column(db.String(255))
+
+    # Theme and visual customization
+    theme_name = db.Column(
+        db.String(80),
+        default='Professional Blue'
+    )
+
+    primary_color = db.Column(
+        db.String(20),
+        default='#0D6EFD'
+    )
+
+    secondary_color = db.Column(
+        db.String(20),
+        default='#198754'
+    )
+
+    accent_color = db.Column(
+        db.String(20),
+        default='#6F42C1'
+    )
+
+    sidebar_color = db.Column(
+        db.String(20),
+        default='#17324D'
+    )
+
+    sidebar_text_color = db.Column(
+        db.String(20),
+        default='#FFFFFF'
+    )
+
+    navbar_color = db.Column(
+        db.String(20),
+        default='#FFFFFF'
+    )
+
+    button_color = db.Column(
+        db.String(20),
+        default='#0D6EFD'
+    )
+
+    background_color = db.Column(
+        db.String(20),
+        default='#F4F7FB'
+    )
+
+    card_color = db.Column(
+        db.String(20),
+        default='#FFFFFF'
+    )
+
+    table_header_color = db.Column(
+        db.String(20),
+        default='#EAF2F8'
+    )
+
+    success_color = db.Column(
+        db.String(20),
+        default='#198754'
+    )
+
+    warning_color = db.Column(
+        db.String(20),
+        default='#FFC107'
+    )
+
+    danger_color = db.Column(
+        db.String(20),
+        default='#DC3545'
+    )
 
     # Additional contact information
     phone = db.Column(db.String(50))
@@ -848,13 +1303,69 @@ def ensure_settings_columns():
         'whatsapp_enabled': 'BOOLEAN DEFAULT FALSE',
         'sms_username': 'VARCHAR(100)',
 
-        # Branding fields
+        # Branding and product identity
         'short_name': "VARCHAR(80) DEFAULT 'Village Banking'",
-        'motto': "VARCHAR(200) DEFAULT 'Empowering Community Finance'",
-        'developer_name': "VARCHAR(150) DEFAULT 'SL Consulting Limited'",
-        'product_name': "VARCHAR(150) DEFAULT 'SL Village Banking Pro'",
+        'motto': (
+            "VARCHAR(200) "
+            "DEFAULT 'Empowering Community Finance'"
+        ),
+        'developer_name': (
+            "VARCHAR(150) "
+            "DEFAULT 'SL Consulting Limited'"
+        ),
+        'product_name': (
+            "VARCHAR(150) "
+            "DEFAULT 'SL Village Banking Pro'"
+        ),
         'product_version': "VARCHAR(50) DEFAULT '1.0.0'",
         'logo': 'VARCHAR(255)',
+        'report_logo': 'VARCHAR(255)',
+        'watermark_logo': 'VARCHAR(255)',
+        'favicon': 'VARCHAR(255)',
+
+        # Theme and visual customization
+        'theme_name': (
+            "VARCHAR(80) DEFAULT 'Professional Blue'"
+        ),
+        'primary_color': (
+            "VARCHAR(20) DEFAULT '#0D6EFD'"
+        ),
+        'secondary_color': (
+            "VARCHAR(20) DEFAULT '#198754'"
+        ),
+        'accent_color': (
+            "VARCHAR(20) DEFAULT '#6F42C1'"
+        ),
+        'sidebar_color': (
+            "VARCHAR(20) DEFAULT '#17324D'"
+        ),
+        'sidebar_text_color': (
+            "VARCHAR(20) DEFAULT '#FFFFFF'"
+        ),
+        'navbar_color': (
+            "VARCHAR(20) DEFAULT '#FFFFFF'"
+        ),
+        'button_color': (
+            "VARCHAR(20) DEFAULT '#0D6EFD'"
+        ),
+        'background_color': (
+            "VARCHAR(20) DEFAULT '#F4F7FB'"
+        ),
+        'card_color': (
+            "VARCHAR(20) DEFAULT '#FFFFFF'"
+        ),
+        'table_header_color': (
+            "VARCHAR(20) DEFAULT '#EAF2F8'"
+        ),
+        'success_color': (
+            "VARCHAR(20) DEFAULT '#198754'"
+        ),
+        'warning_color': (
+            "VARCHAR(20) DEFAULT '#FFC107'"
+        ),
+        'danger_color': (
+            "VARCHAR(20) DEFAULT '#DC3545'"
+        ),
 
         # Contact information
         'phone': 'VARCHAR(50)',
@@ -869,28 +1380,46 @@ def ensure_settings_columns():
         'decimal_places': 'INTEGER DEFAULT 2',
 
         # Financial defaults
-        'default_interest_rate': 'NUMERIC(10,2) DEFAULT 15.00',
+        'default_interest_rate': (
+            'NUMERIC(10,2) DEFAULT 15.00'
+        ),
         'default_loan_term': 'INTEGER DEFAULT 6',
-        'penalty_rate': 'NUMERIC(10,2) DEFAULT 0.00',
-        'share_out_month': "VARCHAR(20) DEFAULT 'December'",
+        'penalty_rate': (
+            'NUMERIC(10,2) DEFAULT 0.00'
+        ),
+        'share_out_month': (
+            "VARCHAR(20) DEFAULT 'December'"
+        ),
 
         # Meeting and dashboard settings
-        'committee_meeting_frequency': "VARCHAR(50) DEFAULT 'Monthly'",
-        'member_meeting_frequency': "VARCHAR(50) DEFAULT 'Quarterly'",
-        'enable_ai_advisor': 'BOOLEAN DEFAULT TRUE',
-        'enable_notifications': 'BOOLEAN DEFAULT TRUE',
-        'enable_dashboard_charts': 'BOOLEAN DEFAULT TRUE',
+        'committee_meeting_frequency': (
+            "VARCHAR(50) DEFAULT 'Monthly'"
+        ),
+        'member_meeting_frequency': (
+            "VARCHAR(50) DEFAULT 'Quarterly'"
+        ),
+        'enable_ai_advisor': (
+            'BOOLEAN DEFAULT TRUE'
+        ),
+        'enable_notifications': (
+            'BOOLEAN DEFAULT TRUE'
+        ),
+        'enable_dashboard_charts': (
+            'BOOLEAN DEFAULT TRUE'
+        ),
 
         # Audit fields
         'created_at': 'TIMESTAMP',
-        'updated_at': 'TIMESTAMP'
+        'updated_on': 'TIMESTAMP'
     }
 
     inspector = inspect(db.engine)
 
     existing_columns = {
         column['name']
-        for column in inspector.get_columns('system_setting')
+        for column in inspector.get_columns(
+            'system_setting'
+        )
     }
 
     for column, definition in columns.items():
@@ -904,13 +1433,33 @@ def ensure_settings_columns():
                     f'ADD COLUMN {column} {definition}'
                 )
             )
+
             db.session.commit()
-            print(f'Added system_setting.{column}')
+
+            print(
+                f'Added system_setting.{column}'
+            )
+
         except Exception as exc:
             db.session.rollback()
-            print(f'Could not add system_setting.{column}: {exc}')
+
+            print(
+                f'Could not add '
+                f'system_setting.{column}: {exc}'
+            )
+
+
 def money(value):
     return Decimal(value or 0).quantize(Decimal('0.01'))
+
+@app.route('/uploaded-logo/<path:filename>')
+def uploaded_logo(filename):
+    return send_from_directory(
+        LOGO_UPLOAD_FOLDER,
+        filename
+    )
+
+
 
 @app.template_filter('kwacha')
 def kwacha(value):
@@ -1392,33 +1941,362 @@ def settings():
         db.session.commit()
 
     if request.method == 'POST':
-        setting.organisation_name = request.form['organization_name']
-        setting.contribution_amount = money(request.form['contribution_amount'])
-        setting.savings_interest_rate = money(request.form['savings_interest_rate'])
-        setting.loan_interest_rate = money(request.form['loan_interest_rate'])
-        setting.welfare_contribution_amount = money(request.form['welfare_contribution_amount'])
-        setting.organization_address = request.form.get('organization_address')
-        setting.organization_phone = request.form.get('organization_phone')
-        setting.organization_email = request.form.get('organization_email')
-        setting.registration_number = request.form.get('registration_number')
-        setting.sms_provider = request.form.get('sms_provider') or 'Manual'
+        # Organisation settings
+        setting.organisation_name = (
+            request.form.get('organization_name')
+            or 'Your Organisation Name'
+        )
+
+        setting.short_name = (
+            request.form.get('short_name')
+            or 'Village Banking'
+        )
+
+        setting.motto = (
+            request.form.get('motto')
+            or 'Empowering Community Finance'
+        )
+
+        setting.registration_number = request.form.get(
+            'registration_number'
+        )
+
+        setting.organization_address = request.form.get(
+            'organization_address'
+        )
+
+        setting.organization_phone = request.form.get(
+            'organization_phone'
+        )
+
+        setting.organization_email = request.form.get(
+            'organization_email'
+        )
+
+        setting.website = request.form.get('website')
+        setting.postal_address = request.form.get('postal_address')
+        setting.physical_address = request.form.get('physical_address')
+
+        # Product identity
+        setting.product_name = (
+            request.form.get('product_name')
+            or 'SL Village Banking Pro'
+        )
+
+        setting.product_version = (
+            request.form.get('product_version')
+            or '1.0.0'
+        )
+
+        setting.developer_name = (
+            request.form.get('developer_name')
+            or 'SL Consulting Limited'
+        )
+
+        # Currency configuration
+        setting.currency = (
+            request.form.get('currency')
+            or 'ZMW'
+        )
+
+        setting.currency_symbol = (
+            request.form.get('currency_symbol')
+            or 'K'
+        )
+
+        setting.decimal_places = int(
+            request.form.get('decimal_places') or 2
+        )
+
+        # Financial settings
+        setting.contribution_amount = money(
+            request.form.get('contribution_amount') or 0
+        )
+
+        setting.savings_interest_rate = money(
+            request.form.get('savings_interest_rate') or 0
+        )
+
+        setting.loan_interest_rate = money(
+            request.form.get('loan_interest_rate') or 0
+        )
+
+        setting.welfare_contribution_amount = money(
+            request.form.get('welfare_contribution_amount') or 0
+        )
+
+        setting.default_interest_rate = money(
+            request.form.get('default_interest_rate') or 0
+        )
+
+        setting.default_loan_term = int(
+            request.form.get('default_loan_term') or 6
+        )
+
+        setting.penalty_rate = money(
+            request.form.get('penalty_rate') or 0
+        )
+
+        setting.share_out_month = (
+            request.form.get('share_out_month')
+            or 'December'
+        )
+
+        # Meeting defaults
+        setting.committee_meeting_frequency = (
+            request.form.get('committee_meeting_frequency')
+            or 'Monthly'
+        )
+
+        setting.member_meeting_frequency = (
+            request.form.get('member_meeting_frequency')
+            or 'Quarterly'
+        )
+
+        # Dashboard options
+        setting.enable_ai_advisor = (
+            'enable_ai_advisor' in request.form
+        )
+
+        setting.enable_notifications = (
+            'enable_notifications' in request.form
+        )
+
+        setting.enable_dashboard_charts = (
+            'enable_dashboard_charts' in request.form
+        )
+
+        # Communication settings
+        setting.sms_provider = (
+            request.form.get('sms_provider')
+            or 'Manual'
+        )
+
         setting.sms_api_key = request.form.get('sms_api_key')
         setting.sms_sender_id = request.form.get('sms_sender_id')
-        setting.whatsapp_enabled = 'whatsapp_enabled' in request.form
         setting.sms_username = request.form.get('sms_username')
+
+        setting.whatsapp_enabled = (
+            'whatsapp_enabled' in request.form
+        )
+
+        # Theme configuration
+        setting.theme_name = (
+            request.form.get('theme_name')
+            or 'Professional Blue'
+        )
+
+        setting.primary_color = (
+            request.form.get('primary_color')
+            or '#0D6EFD'
+        )
+
+        setting.secondary_color = (
+            request.form.get('secondary_color')
+            or '#198754'
+        )
+
+        setting.accent_color = (
+            request.form.get('accent_color')
+            or '#6F42C1'
+        )
+
+        setting.sidebar_color = (
+            request.form.get('sidebar_color')
+            or '#17324D'
+        )
+
+        setting.sidebar_text_color = (
+            request.form.get('sidebar_text_color')
+            or '#FFFFFF'
+        )
+
+        setting.navbar_color = (
+            request.form.get('navbar_color')
+            or '#FFFFFF'
+        )
+
+        setting.button_color = (
+            request.form.get('button_color')
+            or '#0D6EFD'
+        )
+
+        setting.background_color = (
+            request.form.get('background_color')
+            or '#F4F7FB'
+        )
+
+        setting.card_color = (
+            request.form.get('card_color')
+            or '#FFFFFF'
+        )
+
+        setting.table_header_color = (
+            request.form.get('table_header_color')
+            or '#EAF2F8'
+        )
+
+        setting.success_color = (
+            request.form.get('success_color')
+            or '#198754'
+        )
+
+        setting.warning_color = (
+            request.form.get('warning_color')
+            or '#FFC107'
+        )
+
+        setting.danger_color = (
+            request.form.get('danger_color')
+            or '#DC3545'
+        )
+
+        setting.updated_on = datetime.utcnow()
+
         db.session.commit()
 
         log_audit(
             'UPDATE_SETTINGS',
             'SystemSetting',
             setting.id,
-            'System settings updated'
+            (
+                'Organisation branding, theme and system '
+                'settings updated'
+            )
         )
 
-        flash('Settings updated successfully.')
+        flash(
+            'Branding and system settings updated successfully.',
+            'success'
+        )
+
         return redirect(url_for('settings'))
 
-    return render_template('settings.html', setting=setting)
+    return render_template(
+        'settings.html',
+        setting=setting
+    )
+
+@app.route(
+    '/logo-management',
+    methods=['GET', 'POST']
+)
+@login_required
+@role_required('settings')
+def logo_management():
+    setting = SystemSetting.query.first()
+
+    if not setting:
+        setting = SystemSetting()
+        db.session.add(setting)
+        db.session.commit()
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+
+        try:
+            if action == 'upload_system_logo':
+                filename = save_logo_file(
+                    request.files.get('system_logo'),
+                    'system_logo'
+                )
+
+                if filename:
+                    setting.logo = filename
+
+            elif action == 'upload_report_logo':
+                filename = save_logo_file(
+                    request.files.get('report_logo'),
+                    'report_logo'
+                )
+
+                if filename:
+                    setting.report_logo = filename
+
+            elif action == 'upload_watermark_logo':
+                filename = save_logo_file(
+                    request.files.get(
+                        'watermark_logo'
+                    ),
+                    'watermark_logo'
+                )
+
+                if filename:
+                    setting.watermark_logo = filename
+
+            elif action == 'upload_favicon':
+                filename = save_logo_file(
+                    request.files.get('favicon'),
+                    'favicon'
+                )
+
+                if filename:
+                    setting.favicon = filename
+
+            elif action == 'remove_system_logo':
+                delete_logo_file(setting.logo)
+                setting.logo = None
+
+            elif action == 'remove_report_logo':
+                delete_logo_file(
+                    setting.report_logo
+                )
+                setting.report_logo = None
+
+            elif action == 'remove_watermark_logo':
+                delete_logo_file(
+                    setting.watermark_logo
+                )
+                setting.watermark_logo = None
+
+            elif action == 'remove_favicon':
+                delete_logo_file(setting.favicon)
+                setting.favicon = None
+
+            else:
+                flash(
+                    'Unknown logo action.',
+                    'error'
+                )
+
+                return redirect(
+                    url_for('logo_management')
+                )
+
+            db.session.commit()
+
+            log_audit(
+                'UPDATE_LOGOS',
+                'SystemSetting',
+                setting.id,
+                f'Logo action completed: {action}'
+            )
+
+            flash(
+                'Logo settings updated successfully.',
+                'success'
+            )
+
+        except ValueError as exc:
+            flash(str(exc), 'error')
+
+        except Exception as exc:
+            db.session.rollback()
+
+            flash(
+                f'Logo update failed: {exc}',
+                'error'
+            )
+
+        return redirect(
+            url_for('logo_management')
+        )
+
+    return render_template(
+        'logo_management.html',
+        setting=setting
+    )
+
 
 @app.route('/dashboard')
 @login_required
@@ -4087,6 +4965,21 @@ def shareout_statement_pdf(member_id):
 
     setting = SystemSetting.query.first()
 
+    primary_colour = pdf_colour(
+        setting.primary_color if setting else None,
+        '#0D6EFD'
+    )
+
+    secondary_colour = pdf_colour(
+        setting.secondary_color if setting else None,
+        '#198754'
+    )
+
+    table_header_colour = pdf_colour(
+        setting.table_header_color if setting else None,
+        '#EAF2F8'
+    )
+
     organization_name = (
         setting.organisation_name
         if setting and setting.organisation_name
@@ -4140,7 +5033,7 @@ def shareout_statement_pdf(member_id):
         parent=styles['Title'],
         fontSize=17,
         leading=21,
-        textColor=colors.HexColor('#1f4e78'),
+        textColor=colors.HexColor(primary_colour),
         spaceAfter=5,
     )
 
@@ -4150,7 +5043,7 @@ def shareout_statement_pdf(member_id):
         fontSize=8.5,
         leading=11,
         alignment=1,
-        textColor=colors.HexColor('#555555'),
+        textColor=colors.HexColor(primary_colour),
     )
 
     section_style = ParagraphStyle(
@@ -4158,7 +5051,7 @@ def shareout_statement_pdf(member_id):
         parent=styles['Heading2'],
         fontSize=11,
         leading=14,
-        textColor=colors.HexColor('#1f4e78'),
+        textColor=colors.HexColor(primary_colour),
         spaceBefore=8,
         spaceAfter=7,
     )
@@ -4177,6 +5070,16 @@ def shareout_statement_pdf(member_id):
             organization_name,
             title_style
         )
+    )
+    elements.append(
+        build_pdf_branding(
+            setting,
+            styles
+        )
+    )
+
+    elements.append(
+        Spacer(1, 8)
     )
 
     if registration_number:
@@ -4253,12 +5156,12 @@ def shareout_statement_pdf(member_id):
 
     member_table.setStyle(
         TableStyle([
-            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#eaf2f8')),
-            ('BACKGROUND', (2, 0), (2, -1), colors.HexColor('#eaf2f8')),
+            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor(table_header_colour)),
+            ('BACKGROUND', (2, 0), (2, -1), colors.HexColor(table_header_colour)),
             ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
             ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, -1), 8),
-            ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#b8c4ce')),
+            ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor(primary_colour)),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('TOPPADDING', (0, 0), (-1, -1), 5),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
@@ -4310,13 +5213,13 @@ def shareout_statement_pdf(member_id):
 
     calculation_table.setStyle(
         TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1f4e78')),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor(table_header_colour)),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, -1), 8),
             ('ALIGN', (1, 1), (1, -1), 'RIGHT'),
-            ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#b8c4ce')),
+            ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor(primary_colour)),
             ('ROWBACKGROUNDS', (0, 1), (-1, -1), [
                 colors.white,
                 colors.HexColor('#f7f9fb'),
@@ -4371,17 +5274,17 @@ def shareout_statement_pdf(member_id):
 
     deduction_table.setStyle(
         TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1f4e78')),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor(table_header_colour)),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
             ('FONTNAME', (0, 4), (-1, 6), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, -1), 8),
             ('ALIGN', (1, 1), (1, -1), 'RIGHT'),
-            ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#b8c4ce')),
+            ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor(primary_colour)),
             ('ROWBACKGROUNDS', (0, 1), (-1, -1), [
                 colors.white,
-                colors.HexColor('#f7f9fb'),
+                colors.HexColor(table_header_colour),
             ]),
             ('TOPPADDING', (0, 0), (-1, -1), 5),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
@@ -4438,16 +5341,16 @@ def shareout_statement_pdf(member_id):
 
     payment_table.setStyle(
         TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1f4e78')),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor(table_header_colour)),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, -1), 7.5),
             ('ALIGN', (4, 1), (4, -1), 'RIGHT'),
-            ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#b8c4ce')),
+            ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor(primary_colour)),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('ROWBACKGROUNDS', (0, 1), (-1, -1), [
                 colors.white,
-                colors.HexColor('#f7f9fb'),
+                colors.HexColor(table_header_colour),
             ]),
             ('TOPPADDING', (0, 0), (-1, -1), 5),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
@@ -4502,7 +5405,19 @@ def shareout_statement_pdf(member_id):
         )
     )
 
-    document.build(elements)
+    document.build(
+    elements,
+    onFirstPage=lambda canvas, doc: draw_pdf_footer(
+        canvas,
+        doc,
+        setting
+    ),
+    onLaterPages=lambda canvas, doc: draw_pdf_footer(
+        canvas,
+        doc,
+        setting
+    )
+)
 
     buffer.seek(0)
 
@@ -4518,10 +5433,10 @@ def shareout_statement_pdf(member_id):
     )
 
     filename = (
-        f'shareout_statement_'
-        f'{member.member_no}_'
-        f'{start_month}_to_{end_month}.pdf'
-    )
+            f'shareout_statement_'
+            f'{member.member_no}_'
+            f'{start_month}_to_{end_month}.pdf'
+        )
 
     return Response(
         buffer.getvalue(),
