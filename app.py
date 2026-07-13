@@ -57,17 +57,24 @@ ALLOWED_LOGO_EXTENSIONS = {
     'webp',
 }
 
-if os.environ.get('RENDER'):
+if os.environ.get('LOGO_UPLOAD_FOLDER'):
+    # Use a configured persistent folder when available.
     LOGO_UPLOAD_FOLDER = Path(
-        os.environ.get(
-            'LOGO_UPLOAD_FOLDER',
-            '/var/data/logos'
-        )
+        os.environ['LOGO_UPLOAD_FOLDER']
     )
+
+elif os.environ.get('RENDER'):
+    # Writable temporary storage on Render.
+    # Files stored here will not survive every restart or redeploy.
+    LOGO_UPLOAD_FOLDER = Path('/tmp/logos')
+
 else:
-    LOGO_UPLOAD_FOLDER = Path(
-        app.root_path
-    ) / 'static' / 'logos'
+    # Local development storage.
+    LOGO_UPLOAD_FOLDER = (
+        Path(app.root_path)
+        / 'static'
+        / 'logos'
+    )
 
 LOGO_UPLOAD_FOLDER.mkdir(
     parents=True,
