@@ -267,112 +267,66 @@ Record member payments and monitor the year-end distribution process
 <div class="payment-register-page">
 
     <!-- Page Header -->
-    <div class="payment-hero">
-        <div class="row align-items-center">
+<div class="payment-hero">
+    <div class="row align-items-center">
 
-            <div class="col-lg-7 mb-3 mb-lg-0">
-                <h2>
-                    <i class="fas fa-money-check-alt me-2"></i>
-                    Share-Out Payment Register
-                </h2>
+        <div class="col-lg-6 mb-3 mb-lg-0">
+            <h2>
+                <i class="fas fa-money-check-alt me-2"></i>
+                Share-Out Payment Register
+            </h2>
 
-                <p>
-                    Record full or partial payments, monitor balances
-                    and reconcile the distribution process.
-                </p>
-            </div>
-
-            <div class="col-lg-5">
-                <div class="d-flex flex-wrap justify-content-lg-end gap-2 no-print">
-
-                    <a
-                        href="{{ url_for('shareout_control_centre') }}"
-                        class="btn btn-outline-light"
-                    >
-                        <i class="fas fa-arrow-left me-1"></i>
-                        Control Centre
-                    </a>
-
-                    <a
-                        href="{{ url_for(
-                            'shareout_schedule',
-                            start_month=start_month,
-                            end_month=end_month,
-                            expenses=expenses,
-                            other_income=other_income
-                        ) }}"
-                        class="btn btn-light"
-                    >
-                        <i class="fas fa-list-alt me-1"></i>
-                        Members Schedule
-                    </a>
-
-                    <a
-                        href="{{ url_for(
-                            'distributions_pdf',
-                            start_month=start_month,
-                            end_month=end_month,
-                            expenses=expenses,
-                            other_income=other_income
-                        ) }}"
-                        class="btn btn-warning"
-                        target="_blank"
-                    >
-                        <i class="fas fa-file-pdf me-1"></i>
-                        Payment Register PDF
-                    </a>
-
-                </div>
-            </div>
-
+            <p>
+                Record full or partial payments, monitor balances
+                and reconcile the distribution process.
+            </p>
         </div>
+
+        <div class="col-lg-6">
+            <div class="d-flex flex-wrap justify-content-lg-end gap-2 no-print">
+
+                <a
+                    href="{{ url_for('shareout_control_centre') }}"
+                    class="btn btn-outline-light"
+                >
+                    <i class="fas fa-arrow-left me-1"></i>
+                    Control Centre
+                </a>
+
+                <a
+                    href="{{ url_for(
+                        'shareout_schedule',
+                        start_month=start_month,
+                        end_month=end_month,
+                        expenses=expenses,
+                        other_income=other_income
+                    ) }}"
+                    class="btn btn-light"
+                >
+                    <i class="fas fa-list-alt me-1"></i>
+                    Members Schedule
+                </a>
+
+                <a
+                    href="{{ url_for(
+                        'distributions_pdf',
+                        start_month=start_month,
+                        end_month=end_month,
+                        expenses=expenses,
+                        other_income=other_income
+                    ) }}"
+                    class="btn btn-warning"
+                    target="_blank"
+                >
+                    <i class="fas fa-file-pdf me-1"></i>
+                    Payment Register PDF
+                </a>
+
+            </div>
+        </div>
+
     </div>
-
-    <div class="actions" style="margin:20px 0; display:flex; gap:10px; flex-wrap:wrap;">
-
-    <a
-        href="{{ url_for(
-            'distributions_pdf',
-            start_month=start_month,
-            end_month=end_month,
-            expenses=expenses,
-            other_income=other_income
-        ) }}"
-        class="btn primary"
-        target="_blank"
-    >
-        📄 Payment Register PDF
-    </a>
-
-    <a
-        href="{{ url_for('shareout_schedule') }}"
-        class="btn"
-    >
-        📋 Members Share-Out Schedule
-    </a>
-
-    <a
-        href="{{ url_for('shareout') }}"
-        class="btn"
-    >
-        🧮 Share-Out Calculator
-    </a>
-
 </div>
-    <a
-    href="{{ url_for(
-        'distributions_pdf',
-        start_month=start_month,
-        end_month=end_month,
-        expenses=expenses,
-        other_income=other_income
-    ) }}"
-    class="btn btn-light"
-    target="_blank"
->
-    <i class="fas fa-file-pdf me-1"></i>
-    Payment Register PDF
-</a>
 
     <!-- Locked Notice -->
     {% if cycle_locked %}
