@@ -4586,6 +4586,756 @@ def distributions():
         cycle=cycle,
         cycle_locked=cycle_locked,
     )
+@app.route('/distributions.pdf')
+@login_required
+@role_required('distributions')
+def distributions_pdf():
+    today_month = date.today().strftime('%Y-%m')
+
+    start_month = (
+        request.args.get('start_month')
+        or f'{date.today().year}-01'
+    )
+
+    end_month = (
+        request.args.get('end_month')
+        or today_month
+    )
+
+    expenses = money(
+        request.args.get('expenses') or 0
+    )
+
+    other_income = money(
+        request.args.get('other_income') or 0
+    )
+
+    start_date = datetime.strptime(
+        start_month + '-01',
+        '%Y-%m-%d'
+    ).date()
+
+    end_year, end_mon = [
+        int(value)
+        for value in end_month.split('-')
+    ]
+
+    end_date = (
+        date(end_year, end_mon, 28)
+        + timedelta(days=4)
+    ).replace(day=1) - timedelta(days=1)
+
+    setting = SystemSetting.query.first()
+
+    organization_name = (
+        setting.organisation_name
+        if setting and setting.organisation_name
+        else CLIENT_NAME
+    )
+
+    shareout_data = calculate_shareout_data(
+        start_month=start_month,
+        end_month=end_month,
+        expenses=expenses,
+        other_income=other_income,
+    )
+
+    cycle = get_shareout_cycle(
+        start_month,
+        end_month,
+    )
+
+    cycle_status = (
+        cycle.status
+        if cycle
+        else 'Draft'
+    )
+
+    payments = Distribution.query.filter(
+        Distribution.paid_on >= start_date,
+        Distribution.paid_on <= end_date,
+    ).order_by(
+        Distribution.paid_on.asc(),
+        Distribution.id.asc(),
+    ).all()
+
+    total_paid = money(
+        sum(
+            (
+                money(payment.amount)
+                for payment in payments
+            ),
+            Decimal('0.00')
+        )
+    )
+
+    payments_by_member = dict(
+        db.session.query(
+            Distribution.member_id,
+            db.func.coalesce(
+                db.func.sum(Distribution.amount),
+                0
+            )
+        )
+        .filter(Distribution.paid_on >= start_date)
+        .filter(Distribution.paid_on <= end_date)
+        .group_by(Distribution.member_id)
+        .all()
+    )
+
+    payment_schedule = []
+
+    members_paid = 0
+    members_partially_paid = 0
+    members_pending = 0
+    members_overpaid = 0
+    members_requiring_review = 0
+
+    total_outstanding = Decimal('0.00')
+
+    for row in shareout_data['rows']:
+        member_id = row['member_id']
+
+        net_shareout = money(
+            row.get(
+                'net_shareout',
+                row.get('net_payable', 0)
+            )
+        )
+
+        amount_paid = money(
+            payments_by_member.get(
+                member_id,
+                Decimal('0.00')
+            )
+        )
+
+        outstanding_balance = money(
+            net_shareout - amount_paid
+        )
+
+        if net_shareout <= 0:
+            payment_status = 'Review'
+            members_requiring_review += 1
+
+        elif outstanding_balance < 0:
+            payment_status = 'Overpaid'
+            members_overpaid += 1
+
+        elif amount_paid <= 0:
+            payment_status = 'Pending'
+            members_pending += 1
+
+        elif outstanding_balance > 0:
+            payment_status = 'Partially Paid'
+            members_partially_paid += 1
+
+        else:
+            payment_status = 'Paid'
+            members_paid += 1
+
+        if outstanding_balance > 0:
+            total_outstanding += outstanding_balance
+
+        payment_schedule.append({
+            **row,
+            'net_shareout': net_shareout,
+            'amount_paid': amount_paid,
+            'outstanding_balance': outstanding_balance,
+            'payment_status': payment_status,
+        })
+
+    total_outstanding = money(
+        total_outstanding
+    )
+
+    eligible_members = len([
+        row
+        for row in payment_schedule
+        if money(row['net_shareout']) > 0
+    ])
+
+    payment_progress = (
+        0
+        if eligible_members == 0
+        else round(
+            (members_paid / eligible_members) * 100
+        )
+    )
+
+    bank_paid = money(
+        sum(
+            (
+                money(payment.amount)
+                for payment in payments
+                if payment.method == 'Bank Transfer'
+            ),
+            Decimal('0.00')
+        )
+    )
+
+    mobile_paid = money(
+        sum(
+            (
+                money(payment.amount)
+                for payment in payments
+                if payment.method in [
+                    'Mobile Money',
+                    'Airtel Money',
+                    'MTN Money',
+                ]
+            ),
+            Decimal('0.00')
+        )
+    )
+
+    cash_paid = money(
+        sum(
+            (
+                money(payment.amount)
+                for payment in payments
+                if payment.method == 'Cash'
+            ),
+            Decimal('0.00')
+        )
+    )
+
+    missing_references = sum(
+        1
+        for payment in payments
+        if not payment.reference
+    )
+
+    primary_colour = pdf_colour(
+        setting.primary_color if setting else None,
+        '#0D6EFD'
+    )
+
+    secondary_colour = pdf_colour(
+        setting.secondary_color if setting else None,
+        '#198754'
+    )
+
+    table_header_colour = pdf_colour(
+        setting.table_header_color if setting else None,
+        '#EAF2F8'
+    )
+
+    success_colour = pdf_colour(
+        setting.success_color if setting else None,
+        '#198754'
+    )
+
+    warning_colour = pdf_colour(
+        setting.warning_color if setting else None,
+        '#FFC107'
+    )
+
+    danger_colour = pdf_colour(
+        setting.danger_color if setting else None,
+        '#DC3545'
+    )
+
+    buffer = io.BytesIO()
+
+    document = SimpleDocTemplate(
+        buffer,
+        pagesize=landscape(A4),
+        rightMargin=12 * mm,
+        leftMargin=12 * mm,
+        topMargin=12 * mm,
+        bottomMargin=17 * mm,
+        title=(
+            f'Distribution Payment Register '
+            f'{start_month} to {end_month}'
+        ),
+        author=organization_name,
+    )
+
+    styles = getSampleStyleSheet()
+    elements = []
+
+    title_style = ParagraphStyle(
+        'DistributionRegisterTitle',
+        parent=styles['Heading1'],
+        fontSize=15,
+        leading=18,
+        textColor=primary_colour,
+        spaceAfter=7,
+    )
+
+    section_style = ParagraphStyle(
+        'DistributionRegisterSection',
+        parent=styles['Heading2'],
+        fontSize=10,
+        leading=12,
+        textColor=primary_colour,
+        spaceBefore=7,
+        spaceAfter=6,
+    )
+
+    small_style = ParagraphStyle(
+        'DistributionRegisterSmall',
+        parent=styles['Normal'],
+        fontSize=6.5,
+        leading=8,
+    )
+
+    elements.append(
+        build_pdf_branding(
+            setting,
+            styles
+        )
+    )
+
+    elements.append(Spacer(1, 6))
+
+    elements.append(
+        Paragraph(
+            'DISTRIBUTION PAYMENT REGISTER',
+            title_style
+        )
+    )
+
+    period_table = Table(
+        [[
+            'Share-Out Period',
+            f'{start_month} to {end_month}',
+            'Cycle Status',
+            cycle_status,
+        ]],
+        colWidths=[
+            32 * mm,
+            55 * mm,
+            29 * mm,
+            42 * mm,
+        ],
+        hAlign='LEFT',
+    )
+
+    period_table.setStyle(
+        TableStyle([
+            ('BACKGROUND', (0, 0), (0, -1), table_header_colour),
+            ('BACKGROUND', (2, 0), (2, -1), table_header_colour),
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 7.5),
+            ('GRID', (0, 0), (-1, -1), 0.4, primary_colour),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ])
+    )
+
+    elements.append(period_table)
+    elements.append(Spacer(1, 8))
+
+    summary_data = [
+        [
+            'Total Paid',
+            kwacha(total_paid),
+            'Outstanding',
+            kwacha(total_outstanding),
+            'Progress',
+            f'{payment_progress}%',
+        ],
+        [
+            'Eligible Members',
+            str(eligible_members),
+            'Paid',
+            str(members_paid),
+            'Partially Paid',
+            str(members_partially_paid),
+        ],
+        [
+            'Pending',
+            str(members_pending),
+            'Overpaid',
+            str(members_overpaid),
+            'Require Review',
+            str(members_requiring_review),
+        ],
+        [
+            'Bank Transfers',
+            kwacha(bank_paid),
+            'Mobile Money',
+            kwacha(mobile_paid),
+            'Cash Payments',
+            kwacha(cash_paid),
+        ],
+        [
+            'Missing References',
+            str(missing_references),
+            'Net Payable',
+            kwacha(shareout_data['total_net_payable']),
+            'Share-Out Fund',
+            kwacha(shareout_data['shareout_fund']),
+        ],
+    ]
+
+    summary_table = Table(
+        summary_data,
+        colWidths=[
+            32 * mm,
+            30 * mm,
+            30 * mm,
+            30 * mm,
+            32 * mm,
+            32 * mm,
+        ],
+        hAlign='LEFT',
+    )
+
+    summary_table.setStyle(
+        TableStyle([
+            ('BACKGROUND', (0, 0), (0, -1), table_header_colour),
+            ('BACKGROUND', (2, 0), (2, -1), table_header_colour),
+            ('BACKGROUND', (4, 0), (4, -1), table_header_colour),
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
+            ('FONTNAME', (4, 0), (4, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 7),
+            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+            ('ALIGN', (3, 0), (3, -1), 'RIGHT'),
+            ('ALIGN', (5, 0), (5, -1), 'RIGHT'),
+            (
+                'GRID',
+                (0, 0),
+                (-1, -1),
+                0.35,
+                colors.HexColor('#AAB7C4')
+            ),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ])
+    )
+
+    elements.append(summary_table)
+    elements.append(Spacer(1, 8))
+
+    elements.append(
+        Paragraph(
+            'Member Payment Status',
+            section_style
+        )
+    )
+
+    member_data = [[
+        'Member',
+        'Net Share-Out',
+        'Amount Paid',
+        'Outstanding',
+        'Status',
+    ]]
+
+    for row in payment_schedule:
+        member_data.append([
+            Paragraph(
+                (
+                    f"<b>{row['member_no']}</b><br/>"
+                    f"{row['full_name']}"
+                ),
+                small_style
+            ),
+            kwacha(row['net_shareout']),
+            kwacha(row['amount_paid']),
+            kwacha(row['outstanding_balance']),
+            row['payment_status'],
+        ])
+
+    if not payment_schedule:
+        member_data.append([
+            'No Share-Out allocations found',
+            '',
+            '',
+            '',
+            '',
+        ])
+
+    member_table = Table(
+        member_data,
+        repeatRows=1,
+        colWidths=[
+            62 * mm,
+            34 * mm,
+            34 * mm,
+            34 * mm,
+            32 * mm,
+        ],
+        hAlign='LEFT',
+    )
+
+    member_style = [
+        ('BACKGROUND', (0, 0), (-1, 0), primary_colour),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 6.5),
+        ('FONTSIZE', (0, 1), (-1, -1), 6.2),
+        ('ALIGN', (1, 1), (3, -1), 'RIGHT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        (
+            'GRID',
+            (0, 0),
+            (-1, -1),
+            0.3,
+            colors.HexColor('#AAB7C4')
+        ),
+        (
+            'ROWBACKGROUNDS',
+            (0, 1),
+            (-1, -1),
+            [
+                colors.white,
+                table_header_colour,
+            ]
+        ),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+    ]
+
+    for row_number, row in enumerate(
+        payment_schedule,
+        start=1
+    ):
+        status = row['payment_status']
+
+        if status == 'Paid':
+            status_colour = success_colour
+        elif status == 'Partially Paid':
+            status_colour = warning_colour
+        elif status in ['Overpaid', 'Review']:
+            status_colour = danger_colour
+        else:
+            status_colour = primary_colour
+
+        member_style.extend([
+            (
+                'TEXTCOLOR',
+                (4, row_number),
+                (4, row_number),
+                status_colour
+            ),
+            (
+                'FONTNAME',
+                (4, row_number),
+                (4, row_number),
+                'Helvetica-Bold'
+            ),
+        ])
+
+    member_table.setStyle(
+        TableStyle(member_style)
+    )
+
+    elements.append(member_table)
+    elements.append(Spacer(1, 8))
+
+    elements.append(
+        Paragraph(
+            'Payment Transaction Register',
+            section_style
+        )
+    )
+
+    transaction_data = [[
+        'Date',
+        'Member',
+        'Method',
+        'Reference',
+        'Authorized By',
+        'Amount',
+    ]]
+
+    for payment in payments:
+        transaction_data.append([
+            payment.paid_on.strftime('%d %b %Y'),
+            Paragraph(
+                (
+                    f'<b>{payment.member.member_no}</b><br/>'
+                    f'{payment.member.full_name}'
+                ),
+                small_style
+            ),
+            payment.method,
+            payment.reference or 'Missing',
+            payment.authorized_by or '-',
+            kwacha(payment.amount),
+        ])
+
+    if not payments:
+        transaction_data.append([
+            'No payments recorded',
+            '',
+            '',
+            '',
+            '',
+            '',
+        ])
+
+    transaction_table = Table(
+        transaction_data,
+        repeatRows=1,
+        colWidths=[
+            25 * mm,
+            50 * mm,
+            35 * mm,
+            42 * mm,
+            38 * mm,
+            30 * mm,
+        ],
+        hAlign='LEFT',
+    )
+
+    transaction_style = [
+        ('BACKGROUND', (0, 0), (-1, 0), primary_colour),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 6.5),
+        ('FONTSIZE', (0, 1), (-1, -1), 6.2),
+        ('ALIGN', (5, 1), (5, -1), 'RIGHT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        (
+            'GRID',
+            (0, 0),
+            (-1, -1),
+            0.3,
+            colors.HexColor('#AAB7C4')
+        ),
+        (
+            'ROWBACKGROUNDS',
+            (0, 1),
+            (-1, -1),
+            [
+                colors.white,
+                table_header_colour,
+            ]
+        ),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+    ]
+
+    for row_number, payment in enumerate(
+        payments,
+        start=1
+    ):
+        if not payment.reference:
+            transaction_style.extend([
+                (
+                    'TEXTCOLOR',
+                    (3, row_number),
+                    (3, row_number),
+                    danger_colour
+                ),
+                (
+                    'FONTNAME',
+                    (3, row_number),
+                    (3, row_number),
+                    'Helvetica-Bold'
+                ),
+            ])
+
+    transaction_table.setStyle(
+        TableStyle(transaction_style)
+    )
+
+    elements.append(transaction_table)
+    elements.append(Spacer(1, 12))
+
+    certification_data = [
+        [
+            '________________________',
+            '________________________',
+            '________________________',
+            '________________________',
+        ],
+        [
+            'Prepared By',
+            'Verified By',
+            'Treasurer',
+            'Chairperson',
+        ],
+        [
+            'Date: __________________',
+            'Date: __________________',
+            'Date: __________________',
+            'Date: __________________',
+        ],
+    ]
+
+    certification_table = Table(
+        certification_data,
+        colWidths=[
+            47 * mm,
+            47 * mm,
+            47 * mm,
+            47 * mm,
+        ],
+    )
+
+    certification_table.setStyle(
+        TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTSIZE', (0, 0), (-1, -1), 7),
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ])
+    )
+
+    elements.append(certification_table)
+
+    generated_on = datetime.now().strftime(
+        '%d %B %Y at %H:%M'
+    )
+
+    elements.append(Spacer(1, 7))
+
+    elements.append(
+        Paragraph(
+            f'Generated on {generated_on}',
+            small_style
+        )
+    )
+
+    document.build(
+        elements,
+        onFirstPage=lambda canvas, doc: draw_pdf_footer(
+            canvas,
+            doc,
+            setting
+        ),
+        onLaterPages=lambda canvas, doc: draw_pdf_footer(
+            canvas,
+            doc,
+            setting
+        ),
+    )
+
+    buffer.seek(0)
+
+    log_audit(
+        'EXPORT_DISTRIBUTION_REGISTER_PDF',
+        'Distribution',
+        None,
+        (
+            f'Distribution Payment Register PDF exported '
+            f'for {start_month} to {end_month}'
+        )
+    )
+
+    filename = (
+        f'distribution_payment_register_'
+        f'{start_month}_to_{end_month}.pdf'
+    )
+
+    return Response(
+        buffer.getvalue(),
+        mimetype='application/pdf',
+        headers={
+            'Content-Disposition':
+                f'inline; filename="{filename}"'
+        }
+    )
 
 @app.route(
     '/share-out-approval',
