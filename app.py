@@ -5073,12 +5073,6 @@ def shareout_statement_pdf(member_id):
     elements = []
 
     elements.append(
-        Paragraph(
-            organization_name,
-            title_style
-        )
-    )
-    elements.append(
         build_pdf_branding(
             setting,
             styles
@@ -5089,33 +5083,7 @@ def shareout_statement_pdf(member_id):
         Spacer(1, 8)
     )
 
-    if registration_number:
-        elements.append(
-            Paragraph(
-                f'Registration No: {registration_number}',
-                centre_style
-            )
-        )
-
-    contact_parts = [
-        value
-        for value in [
-            organization_address,
-            organization_phone,
-            organization_email,
-        ]
-        if value
-    ]
-
-    if contact_parts:
-        elements.append(
-            Paragraph(
-                ' | '.join(contact_parts),
-                centre_style
-            )
-        )
-
-    elements.append(Spacer(1, 8))
+    
 
     elements.append(
         Paragraph(
@@ -5220,7 +5188,7 @@ def shareout_statement_pdf(member_id):
 
     calculation_table.setStyle(
         TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), table_header_colour),
+            ('BACKGROUND', (0, 0), (-1, 0), primary_colour),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
@@ -5281,7 +5249,7 @@ def shareout_statement_pdf(member_id):
 
     deduction_table.setStyle(
         TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), table_header_colour),
+            ('BACKGROUND', (0, 0), (-1, 0), primary_colour),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
@@ -5348,7 +5316,7 @@ def shareout_statement_pdf(member_id):
 
     payment_table.setStyle(
         TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), table_header_colour),
+            ('BACKGROUND', (0, 0), (-1, 0), primary_colour),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, -1), 7.5),
@@ -5365,7 +5333,7 @@ def shareout_statement_pdf(member_id):
     )
 
     elements.append(payment_table)
-    elements.append(Spacer(1, 22))
+    elements.append(Spacer(1, 10))
 
     signature_data = [
         [
@@ -5393,8 +5361,8 @@ def shareout_statement_pdf(member_id):
         TableStyle([
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('FONTSIZE', (0, 0), (-1, -1), 8),
-            ('TOPPADDING', (0, 0), (-1, -1), 4),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('TOPPADDING', (0, 0), (-1, -1), 2),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
         ])
     )
 

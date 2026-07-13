@@ -3,81 +3,439 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ settings.organisation_name }} | {{ settings.product_name }}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+  <title>
+    {{ settings.organisation_name }} |
+    {{ settings.product_name }}
+  </title>
+
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='style.css') }}"
+  >
+
+  <style>
+    :root {
+      --primary-color:
+        {{ settings.primary_color or '#0D6EFD' }};
+
+      --secondary-color:
+        {{ settings.secondary_color or '#198754' }};
+
+      --accent-color:
+        {{ settings.accent_color or '#6F42C1' }};
+
+      --sidebar-color:
+        {{ settings.sidebar_color or '#17324D' }};
+
+      --sidebar-text-color:
+        {{ settings.sidebar_text_color or '#FFFFFF' }};
+
+      --navbar-color:
+        {{ settings.navbar_color or '#FFFFFF' }};
+
+      --button-color:
+        {{ settings.button_color or '#0D6EFD' }};
+
+      --background-color:
+        {{ settings.background_color or '#F4F7FB' }};
+
+      --card-color:
+        {{ settings.card_color or '#FFFFFF' }};
+
+      --table-header-color:
+        {{ settings.table_header_color or '#EAF2F8' }};
+
+      --success-color:
+        {{ settings.success_color or '#198754' }};
+
+      --warning-color:
+        {{ settings.warning_color or '#FFC107' }};
+
+      --danger-color:
+        {{ settings.danger_color or '#DC3545' }};
+    }
+
+    body {
+      background: var(--background-color);
+    }
+
+    .sidebar {
+      background:
+        linear-gradient(
+          180deg,
+          var(--sidebar-color),
+          color-mix(
+            in srgb,
+            var(--sidebar-color) 82%,
+            black
+          )
+        );
+      color: var(--sidebar-text-color);
+    }
+
+    .sidebar .brand,
+    .sidebar .brand strong,
+    .sidebar .brand span,
+    .sidebar-footer,
+    .sidebar-footer strong,
+    .sidebar-footer small {
+      color: var(--sidebar-text-color);
+    }
+
+    .sidebar nav a {
+      color: var(--sidebar-text-color);
+      border-left: 4px solid transparent;
+      transition:
+        background 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.2s ease;
+    }
+
+    .sidebar nav a:hover {
+      background:
+        color-mix(
+          in srgb,
+          var(--primary-color) 24%,
+          transparent
+        );
+      border-left-color: var(--accent-color);
+      transform: translateX(2px);
+    }
+
+    .sidebar nav a.active {
+      background:
+        color-mix(
+          in srgb,
+          var(--primary-color) 38%,
+          transparent
+        );
+      border-left-color: var(--accent-color);
+    }
+
+    .topbar {
+      background: var(--navbar-color);
+    }
+
+    .main {
+      background: var(--background-color);
+    }
+
+    .panel,
+    .card,
+    .kpi,
+    .decision-card,
+    .summary-card,
+    .module-card {
+      background: var(--card-color);
+    }
+
+    .btn,
+    button,
+    input[type="submit"] {
+      border-color: var(--button-color);
+    }
+
+    .btn.primary,
+    .btn-primary,
+    button.primary,
+    input[type="submit"].primary {
+      background: var(--button-color) !important;
+      border-color: var(--button-color) !important;
+      color: white !important;
+    }
+
+    .btn.primary:hover,
+    .btn-primary:hover,
+    button.primary:hover,
+    input[type="submit"].primary:hover {
+      filter: brightness(0.92);
+    }
+
+    a {
+      color: var(--primary-color);
+    }
+
+    .good-text,
+    .text-success {
+      color: var(--success-color) !important;
+    }
+
+    .bad-text,
+    .text-danger {
+      color: var(--danger-color) !important;
+    }
+
+    .text-warning {
+      color: var(--warning-color) !important;
+    }
+
+    .alert.success,
+    .alert-success {
+      border-left-color: var(--success-color);
+    }
+
+    .alert.error,
+    .alert-danger {
+      border-left-color: var(--danger-color);
+    }
+
+    .alert.warning,
+    .alert-warning {
+      border-left-color: var(--warning-color);
+    }
+
+    table thead th {
+      background: var(--table-header-color);
+    }
+
+    .user-pill {
+      border-color:
+        color-mix(
+          in srgb,
+          var(--primary-color) 25%,
+          #dee2e6
+        );
+    }
+
+    .user-pill a {
+      color: var(--button-color);
+    }
+
+    .footer {
+      color:
+        color-mix(
+          in srgb,
+          var(--sidebar-color) 70%,
+          #6c757d
+        );
+    }
+
+    @supports not (
+      color:
+      color-mix(
+        in srgb,
+        black,
+        white
+      )
+    ) {
+      .sidebar {
+        background: var(--sidebar-color);
+      }
+
+      .sidebar nav a:hover {
+        background: rgba(255, 255, 255, 0.10);
+      }
+    }
+  </style>
 </head>
 
 <body>
+
   <aside class="sidebar">
+
     <div class="brand">
-      <img src="{{ url_for('static', filename='higher-achievers-logo.jpeg') }}" alt="{{ settings.organisation_name }} logo">
+
+      {% if settings.logo %}
+      <img
+        src="{{ url_for(
+            'uploaded_logo',
+            filename=settings.logo
+        ) }}"
+        alt="{{ settings.organisation_name }} logo"
+    >
+      {% else %}
+        <img
+          src="{{ url_for(
+            'static',
+            filename='higher-achievers-logo.jpeg'
+          ) }}"
+          alt="{{ settings.organisation_name }} logo"
+        >
+      {% endif %}
+
       <div>
-        <strong>{{ settings.organisation_name }}</strong>
-        <span>Running on {{ settings.product_name }}</span>
+        <strong>
+          {{ settings.organisation_name }}
+        </strong>
+
+        <span>
+          Running on {{ settings.product_name }}
+        </span>
       </div>
+
     </div>
 
     <nav>
-  {% if user_can('dashboard') %}
-  <a href="{{ url_for('executive_dashboard') }}">▣ Dashboard</a>
-  {% endif %}
-  {% if user_can('members') %}<a href="{{ url_for('members') }}">👥 Members</a>{% endif %}
-  {% if user_can('contributions') %}<a href="{{ url_for('contributions') }}">💰 Contributions</a>{% endif %}
-  {% if user_can('loans') %}<a href="{{ url_for('loans') }}">🏦 Loans & Repayments</a>{% endif %}
-  {% if user_can('distributions') %}<a href="{{ url_for('distributions') }}">📤 Distributions</a>{% endif %}
-  {% if user_can('meetings') %}<a href="{{ url_for('meetings') }}">📅 Meetings</a>{% endif %}
-  {% if user_can('reports') %}<a href="{{ url_for('reports') }}">📈 Reports</a>{% endif %}
-  
-  <a href="{{ url_for('statements') }}">📄 Member Statements</a>
-  <a href="{{ url_for('shareout_control_centre') }}">
-    🧮 Share-Out
-  </a>
-  <a href="{{ url_for('fines') }}">⚠️ Fines & Penalties</a>
-  <a href="{{ url_for('welfare') }}">🤝 Welfare Fund</a>
-  <a href="{{ url_for('attendance') }}">✅ Attendance Register</a>
-  <a href="{{ url_for('notifications') }}">📱 SMS & WhatsApp</a>
-  {% if user_can('accounting') %}
-  <a href="{{ url_for('accounting') }}">📚 Accounting</a>
-  <a href="{{ url_for('month_end') }}">🧮 Month-End Processing</a>
-  {% endif %}
-  <a href="{{ url_for('audit_trail') }}">📝 Audit Trail</a>
-  <a href="{{ url_for('backups') }}">💾 Backup & Restore</a>
-  {% if user_can('users') %}<a href="{{ url_for('users') }}">🔐 Users & Roles</a>{% endif %}
-  {% if user_can('settings') %}
-  <a href="{{ url_for('settings') }}">⚙️ Settings</a>
-  {% endif %}
-  <li>
-    <a href="{{ url_for('system_settings') }}">
-        <i class="fa-solid fa-gears"></i>
-        System Settings
-    </a>
-</li>
 
-</nav>
+      {% if user_can('dashboard') %}
+      <a href="{{ url_for('executive_dashboard') }}">
+        ▣ Dashboard
+      </a>
+      {% endif %}
+
+      {% if user_can('members') %}
+      <a href="{{ url_for('members') }}">
+        👥 Members
+      </a>
+      {% endif %}
+
+      {% if user_can('contributions') %}
+      <a href="{{ url_for('contributions') }}">
+        💰 Contributions
+      </a>
+      {% endif %}
+
+      {% if user_can('loans') %}
+      <a href="{{ url_for('loans') }}">
+        🏦 Loans & Repayments
+      </a>
+      {% endif %}
+
+      {% if user_can('distributions') %}
+      <a href="{{ url_for('distributions') }}">
+        📤 Distributions
+      </a>
+      {% endif %}
+
+      {% if user_can('meetings') %}
+      <a href="{{ url_for('meetings') }}">
+        📅 Meetings
+      </a>
+      {% endif %}
+
+      {% if user_can('reports') %}
+      <a href="{{ url_for('reports') }}">
+        📈 Reports
+      </a>
+      {% endif %}
+
+      <a href="{{ url_for('statements') }}">
+        📄 Member Statements
+      </a>
+
+      <a href="{{ url_for('shareout_control_centre') }}">
+        🧮 Share-Out
+      </a>
+
+      <a href="{{ url_for('fines') }}">
+        ⚠️ Fines & Penalties
+      </a>
+
+      <a href="{{ url_for('welfare') }}">
+        🤝 Welfare Fund
+      </a>
+
+      <a href="{{ url_for('attendance') }}">
+        ✅ Attendance Register
+      </a>
+
+      <a href="{{ url_for('notifications') }}">
+        📱 SMS & WhatsApp
+      </a>
+
+      {% if user_can('accounting') %}
+      <a href="{{ url_for('accounting') }}">
+        📚 Accounting
+      </a>
+
+      <a href="{{ url_for('month_end') }}">
+        🧮 Month-End Processing
+      </a>
+      {% endif %}
+
+      <a href="{{ url_for('audit_trail') }}">
+        📝 Audit Trail
+      </a>
+
+      <a href="{{ url_for('backups') }}">
+        💾 Backup & Restore
+      </a>
+
+      {% if user_can('users') %}
+      <a href="{{ url_for('users') }}">
+        🔐 Users & Roles
+      </a>
+      {% endif %}
+
+      {% if user_can('settings') %}
+      <a href="{{ url_for('settings') }}">
+        🎨 Branding & Theme Centre
+      </a>
+     
+      <a href="{{ url_for('logo_management') }}">
+    🖼️ Logo Management
+      </a>
+       {% endif %}
+    </nav>
+
     <div class="sidebar-footer">
-        <small>Produced by</small>
+      <small>Produced by</small>
       <strong>{{ producer_name }}</strong>
     </div>
+
   </aside>
+
   <main class="main">
+
     <header class="topbar">
+
       <div>
-        <h1>{% block page_title %}Village Banking System{% endblock %}</h1>
-        <p>{% block subtitle %}Professional community finance management{% endblock %}</p>
+        <h1>
+          {% block page_title %}
+          Village Banking System
+          {% endblock %}
+        </h1>
+
+        <p>
+          {% block subtitle %}
+          Professional community finance management
+          {% endblock %}
+        </p>
       </div>
+
       <div class="user-pill">
-        <span>{{ current_user.full_name if current_user else 'Guest' }}</span>
-        <small>{{ current_user.role if current_user else '' }}</small>
-        {% if current_user %}<a href="{{ url_for('logout') }}">Logout</a>{% endif %}
+
+        <span>
+          {{ current_user.full_name if current_user else 'Guest' }}
+        </span>
+
+        <small>
+          {{ current_user.role if current_user else '' }}
+        </small>
+
+        {% if current_user %}
+        <a href="{{ url_for('logout') }}">
+          Logout
+        </a>
+        {% endif %}
+
       </div>
+
     </header>
+
     {% with messages = get_flashed_messages(with_categories=true) %}
+
       {% if messages %}
-        {% for category, msg in messages %}<div class="alert {{ category }}">{{ msg }}</div>{% endfor %}
+
+        {% for category, msg in messages %}
+        <div class="alert {{ category }}">
+          {{ msg }}
+        </div>
+        {% endfor %}
+
       {% endif %}
+
     {% endwith %}
+
     {% block content %}{% endblock %}
-    <footer class="footer">© {{ current_year }} {{ producer_name }}. Built for {{ client_name }}.</footer>
+
+    <footer class="footer">
+      © {{ current_year }} {{ producer_name }}.
+      Built for {{ client_name }}.
+    </footer>
+
   </main>
+
 </body>
 </html>
