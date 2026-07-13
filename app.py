@@ -9529,16 +9529,49 @@ def shareout_pdf():
     recommendation = shareout_data[
         'recommendation'
     ]
+    primary_colour = pdf_colour(
+        setting.primary_color if setting else None,
+        '#0D6EFD'
+    )
+
+    secondary_colour = pdf_colour(
+        setting.secondary_color if setting else None,
+        '#198754'
+    )
+
+    table_header_colour = pdf_colour(
+        setting.table_header_color if setting else None,
+        '#EAF2F8'
+    )
+
+    success_colour = pdf_colour(
+        setting.success_color if setting else None,
+        '#198754'
+    )
+
+    warning_colour = pdf_colour(
+        setting.warning_color if setting else None,
+        '#FFC107'
+    )
+
+    danger_colour = pdf_colour(
+        setting.danger_color if setting else None,
+        '#DC3545'
+    )
+
     buffer = io.BytesIO()
 
     document = SimpleDocTemplate(
         buffer,
         pagesize=landscape(A4),
-        rightMargin=24,
-        leftMargin=24,
-        topMargin=24,
-        bottomMargin=24,
-        title=f'Share-Out Report {start_month} to {end_month}',
+        rightMargin=12 * mm,
+        leftMargin=12 * mm,
+        topMargin=12 * mm,
+        bottomMargin=17 * mm,
+        title=(
+            f'Members Share-Out Schedule '
+            f'{start_month} to {end_month}'
+        ),
         author=organization_name,
     )
 
@@ -9546,91 +9579,152 @@ def shareout_pdf():
     elements = []
 
     title_style = ParagraphStyle(
-        'ShareOutTitle',
-        parent=styles['Title'],
-        fontSize=18,
-        leading=22,
-        alignment=TA_CENTER,
-        spaceAfter=6,
-    )
-
-    subtitle_style = ParagraphStyle(
-        'ShareOutSubtitle',
-        parent=styles['Normal'],
-        fontSize=9,
-        leading=12,
-        alignment=TA_CENTER,
-        textColor=colors.HexColor('#555555'),
-        spaceAfter=4,
+        'ShareOutScheduleTitle',
+        parent=styles['Heading1'],
+        fontSize=15,
+        leading=18,
+        textColor=primary_colour,
+        spaceBefore=3,
+        spaceAfter=7,
     )
 
     section_style = ParagraphStyle(
-        'ShareOutSection',
+        'ShareOutScheduleSection',
         parent=styles['Heading2'],
-        fontSize=12,
-        leading=15,
-        textColor=colors.HexColor('#1f4e78'),
-        spaceBefore=8,
-        spaceAfter=8,
+        fontSize=10,
+        leading=12,
+        textColor=primary_colour,
+        spaceBefore=6,
+        spaceAfter=6,
     )
 
-    normal_small = ParagraphStyle(
-        'ShareOutSmall',
+    small_style = ParagraphStyle(
+        'ShareOutScheduleSmall',
         parent=styles['Normal'],
-        fontSize=7,
-        leading=9,
+        fontSize=6.5,
+        leading=8,
+    )
+
+    small_bold_style = ParagraphStyle(
+        'ShareOutScheduleSmallBold',
+        parent=small_style,
+        fontName='Helvetica-Bold',
+    )
+
+    centred_small_style = ParagraphStyle(
+        'ShareOutScheduleCentredSmall',
+        parent=small_style,
+        alignment=1,
     )
 
     elements.append(
+        build_pdf_branding(
+            setting,
+            styles
+        )
+    )
+
+    elements.append(Spacer(1, 6))
+
+    elements.append(
         Paragraph(
-            organization_name,
+            'MEMBERS SHARE-OUT SCHEDULE',
             title_style
         )
     )
 
-    if registration_number:
-        elements.append(
-            Paragraph(
-                f'Registration No: {registration_number}',
-                subtitle_style
-            )
-        )
-
-    contact_parts = [
-        value
-        for value in [
-            organization_address,
-            organization_phone,
-            organization_email,
+    period_data = [
+        [
+            'Share-Out Period',
+            f'{start_month} to {end_month}',
+            'Cycle Status',
+            (
+                get_shareout_cycle(
+                    start_month,
+                    end_month
+                ).status
+                if get_shareout_cycle(
+                    start_month,
+                    end_month
+                )
+                else 'Draft'
+            ),
         ]
-        if value
     ]
 
-    if contact_parts:
-        elements.append(
-            Paragraph(
-                ' | '.join(contact_parts),
-                subtitle_style
-            )
-        )
+    period_table = Table(
+        period_data,
+        colWidths=[
+            32 * mm,
+            55 * mm,
+            29 * mm,
+            42 * mm,
+        ],
+        hAlign='LEFT',
+    )
 
+    period_table.setStyle(
+        TableStyle([
+            (
+                'BACKGROUND',
+                (0, 0),
+                (0, -1),
+                table_header_colour
+            ),
+            (
+                'BACKGROUND',
+                (2, 0),
+                (2, -1),
+                table_header_colour
+            ),
+            (
+                'FONTNAME',
+                (0, 0),
+                (0, -1),
+                'Helvetica-Bold'
+            ),
+            (
+                'FONTNAME',
+                (2, 0),
+                (2, -1),
+                'Helvetica-Bold'
+            ),
+            (
+                'FONTSIZE',
+                (0, 0),
+                (-1, -1),
+                7.5
+            ),
+            (
+                'GRID',
+                (0, 0),
+                (-1, -1),
+                0.4,
+                primary_colour
+            ),
+            (
+                'VALIGN',
+                (0, 0),
+                (-1, -1),
+                'MIDDLE'
+            ),
+            (
+                'TOPPADDING',
+                (0, 0),
+                (-1, -1),
+                5
+            ),
+            (
+                'BOTTOMPADDING',
+                (0, 0),
+                (-1, -1),
+                5
+            ),
+        ])
+    )
+
+    elements.append(period_table)
     elements.append(Spacer(1, 8))
-
-    elements.append(
-        Paragraph(
-            'MEMBERS SHARE-OUT REPORT',
-            section_style
-        )
-    )
-
-    elements.append(
-        Paragraph(
-            f'Period: {start_month} to {end_month}',
-            styles['Normal']
-        )
-    )
-
-    elements.append(Spacer(1, 10))
 
     summary_data = [
         [
@@ -9638,17 +9732,15 @@ def shareout_pdf():
             kwacha(total_contributions),
             'Savings Interest',
             kwacha(total_savings_interest),
-        ],
-        [
             'Fines Paid',
             kwacha(fines_paid_total),
-            'Other Income',
-            kwacha(other_income),
         ],
         [
+            'Other Income',
+            kwacha(other_income),
             'Expenses',
             kwacha(expenses),
-            'Previous Distributions',
+            'Distributions',
             kwacha(distributions_total),
         ],
         [
@@ -9656,98 +9748,234 @@ def shareout_pdf():
             kwacha(surplus),
             'Share-Out Fund',
             kwacha(shareout_fund),
+            'Net Payable',
+            kwacha(total_net_payable),
         ],
         [
             'Eligible Members',
             str(eligible_members),
-            'Members Requiring Review',
+            'Require Review',
             str(members_requiring_review),
-        ],
-        [
-            'Average Share-Out',
-            kwacha(average_shareout),
-            'Total Net Payable',
-            kwacha(total_net_payable),
+            'Readiness Score',
+            f'{readiness_score}%',
         ],
     ]
 
     summary_table = Table(
         summary_data,
-        colWidths=[110, 100, 125, 100],
+        colWidths=[
+            34 * mm,
+            31 * mm,
+            30 * mm,
+            31 * mm,
+            29 * mm,
+            31 * mm,
+        ],
         hAlign='LEFT',
     )
 
     summary_table.setStyle(
         TableStyle([
-            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#eaf2f8')),
-            ('BACKGROUND', (2, 0), (2, -1), colors.HexColor('#eaf2f8')),
-            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 8),
-            ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#b8c4ce')),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
-            ('ALIGN', (3, 0), (3, -1), 'RIGHT'),
-            ('TOPPADDING', (0, 0), (-1, -1), 5),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+            (
+                'BACKGROUND',
+                (0, 0),
+                (0, -1),
+                table_header_colour
+            ),
+            (
+                'BACKGROUND',
+                (2, 0),
+                (2, -1),
+                table_header_colour
+            ),
+            (
+                'BACKGROUND',
+                (4, 0),
+                (4, -1),
+                table_header_colour
+            ),
+            (
+                'FONTNAME',
+                (0, 0),
+                (0, -1),
+                'Helvetica-Bold'
+            ),
+            (
+                'FONTNAME',
+                (2, 0),
+                (2, -1),
+                'Helvetica-Bold'
+            ),
+            (
+                'FONTNAME',
+                (4, 0),
+                (4, -1),
+                'Helvetica-Bold'
+            ),
+            (
+                'FONTSIZE',
+                (0, 0),
+                (-1, -1),
+                7
+            ),
+            (
+                'ALIGN',
+                (1, 0),
+                (1, -1),
+                'RIGHT'
+            ),
+            (
+                'ALIGN',
+                (3, 0),
+                (3, -1),
+                'RIGHT'
+            ),
+            (
+                'ALIGN',
+                (5, 0),
+                (5, -1),
+                'RIGHT'
+            ),
+            (
+                'GRID',
+                (0, 0),
+                (-1, -1),
+                0.35,
+                colors.HexColor('#AAB7C4')
+            ),
+            (
+                'VALIGN',
+                (0, 0),
+                (-1, -1),
+                'MIDDLE'
+            ),
+            (
+                'TOPPADDING',
+                (0, 0),
+                (-1, -1),
+                4
+            ),
+            (
+                'BOTTOMPADDING',
+                (0, 0),
+                (-1, -1),
+                4
+            ),
         ])
     )
 
     elements.append(summary_table)
-    elements.append(Spacer(1, 14))
+    elements.append(Spacer(1, 7))
 
-    readiness_colour = (
-        colors.HexColor('#d4edda')
+    readiness_background = (
+        success_colour
         if distribution_ready
-        else colors.HexColor('#f8d7da')
+        else warning_colour
     )
 
-    readiness_data = [
-        [
-            'Readiness Score',
-            f'{readiness_score}%',
-            'Recommendation',
-            recommendation,
-        ]
-    ]
+    readiness_text_colour = (
+        colors.white
+        if distribution_ready
+        else colors.black
+    )
 
     readiness_table = Table(
-        readiness_data,
-        colWidths=[100, 70, 100, 250],
-        hAlign='LEFT',
+        [[
+            'Executive Recommendation',
+            recommendation,
+            'Readiness',
+            f'{readiness_score}%',
+        ]],
+        colWidths=[
+            40 * mm,
+            95 * mm,
+            24 * mm,
+            27 * mm,
+        ],
     )
 
     readiness_table.setStyle(
         TableStyle([
-            ('BACKGROUND', (0, 0), (-1, -1), readiness_colour),
-            ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
-            ('FONTNAME', (2, 0), (2, 0), 'Helvetica-Bold'),
-            ('FONTNAME', (3, 0), (3, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 8),
-            ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#888888')),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('TOPPADDING', (0, 0), (-1, -1), 6),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            (
+                'BACKGROUND',
+                (0, 0),
+                (-1, -1),
+                readiness_background
+            ),
+            (
+                'TEXTCOLOR',
+                (0, 0),
+                (-1, -1),
+                readiness_text_colour
+            ),
+            (
+                'FONTNAME',
+                (0, 0),
+                (0, 0),
+                'Helvetica-Bold'
+            ),
+            (
+                'FONTNAME',
+                (2, 0),
+                (2, 0),
+                'Helvetica-Bold'
+            ),
+            (
+                'FONTNAME',
+                (1, 0),
+                (1, 0),
+                'Helvetica-Bold'
+            ),
+            (
+                'FONTSIZE',
+                (0, 0),
+                (-1, -1),
+                7.5
+            ),
+            (
+                'GRID',
+                (0, 0),
+                (-1, -1),
+                0.4,
+                primary_colour
+            ),
+            (
+                'VALIGN',
+                (0, 0),
+                (-1, -1),
+                'MIDDLE'
+            ),
+            (
+                'TOPPADDING',
+                (0, 0),
+                (-1, -1),
+                5
+            ),
+            (
+                'BOTTOMPADDING',
+                (0, 0),
+                (-1, -1),
+                5
+            ),
         ])
     )
 
     elements.append(readiness_table)
 
     if readiness_messages:
-        elements.append(Spacer(1, 6))
+        elements.append(Spacer(1, 4))
 
         for message in readiness_messages:
             elements.append(
                 Paragraph(
                     f'• {message}',
-                    normal_small
+                    small_style
                 )
             )
 
-    elements.append(Spacer(1, 14))
+    elements.append(Spacer(1, 7))
 
-    table_data = [[
+    schedule_data = [[
         'Member',
         'Contributions',
         'Savings\nInterest',
@@ -9761,10 +9989,13 @@ def shareout_pdf():
     ]]
 
     for row in rows:
-        table_data.append([
+        schedule_data.append([
             Paragraph(
-                f"<b>{row['member_no']}</b><br/>{row['full_name']}",
-                normal_small
+                (
+                    f"<b>{row['member_no']}</b><br/>"
+                    f"{row['full_name']}"
+                ),
+                small_style
             ),
             kwacha(row['contributed']),
             kwacha(row['savings_interest']),
@@ -9774,12 +10005,15 @@ def shareout_pdf():
             kwacha(row['outstanding_loans']),
             kwacha(row['fine_balance']),
             kwacha(row['total_deductions']),
-            kwacha(row['net_payable']),
+            kwacha(row['net_shareout']),
         ])
 
     if not rows:
-        table_data.append([
-            'No Share-Out records found for the selected period.',
+        schedule_data.append([
+            Paragraph(
+                'No Share-Out records found for this period.',
+                small_style
+            ),
             '',
             '',
             '',
@@ -9791,74 +10025,360 @@ def shareout_pdf():
             '',
         ])
 
-    shareout_table = Table(
-        table_data,
+    schedule_table = Table(
+        schedule_data,
         repeatRows=1,
         colWidths=[
-            105,
-            65,
-            58,
-            62,
-            42,
-            65,
-            65,
-            52,
-            62,
-            65,
+            36 * mm,
+            23 * mm,
+            22 * mm,
+            23 * mm,
+            17 * mm,
+            24 * mm,
+            25 * mm,
+            19 * mm,
+            24 * mm,
+            25 * mm,
         ],
         hAlign='LEFT',
     )
 
-    shareout_table.setStyle(
-        TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1f4e78')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 6.5),
-            ('ALIGN', (1, 1), (-1, -1), 'RIGHT'),
-            ('ALIGN', (4, 1), (4, -1), 'RIGHT'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('GRID', (0, 0), (-1, -1), 0.35, colors.HexColor('#b8c4ce')),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [
+    schedule_style = [
+        (
+            'BACKGROUND',
+            (0, 0),
+            (-1, 0),
+            primary_colour
+        ),
+        (
+            'TEXTCOLOR',
+            (0, 0),
+            (-1, 0),
+            colors.white
+        ),
+        (
+            'FONTNAME',
+            (0, 0),
+            (-1, 0),
+            'Helvetica-Bold'
+        ),
+        (
+            'FONTSIZE',
+            (0, 0),
+            (-1, 0),
+            6
+        ),
+        (
+            'FONTSIZE',
+            (0, 1),
+            (-1, -1),
+            5.8
+        ),
+        (
+            'ALIGN',
+            (1, 1),
+            (-1, -1),
+            'RIGHT'
+        ),
+        (
+            'VALIGN',
+            (0, 0),
+            (-1, -1),
+            'MIDDLE'
+        ),
+        (
+            'GRID',
+            (0, 0),
+            (-1, -1),
+            0.3,
+            colors.HexColor('#AAB7C4')
+        ),
+        (
+            'ROWBACKGROUNDS',
+            (0, 1),
+            (-1, -1),
+            [
                 colors.white,
-                colors.HexColor('#f7f9fb'),
-            ]),
-            ('FONTSIZE', (0, 1), (-1, -1), 6.5),
-            ('TOPPADDING', (0, 0), (-1, -1), 4),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                table_header_colour,
+            ]
+        ),
+        (
+            'TOPPADDING',
+            (0, 0),
+            (-1, -1),
+            3
+        ),
+        (
+            'BOTTOMPADDING',
+            (0, 0),
+            (-1, -1),
+            3
+        ),
+    ]
+
+    for row_number, row in enumerate(
+        rows,
+        start=1
+    ):
+        net_payable = money(
+            row['net_shareout']
+        )
+
+        if net_payable < 0:
+            schedule_style.append(
+                (
+                    'TEXTCOLOR',
+                    (9, row_number),
+                    (9, row_number),
+                    danger_colour
+                )
+            )
+
+        else:
+            schedule_style.append(
+                (
+                    'TEXTCOLOR',
+                    (9, row_number),
+                    (9, row_number),
+                    success_colour
+                )
+            )
+
+        schedule_style.append(
+            (
+                'FONTNAME',
+                (9, row_number),
+                (9, row_number),
+                'Helvetica-Bold'
+            )
+        )
+
+    schedule_table.setStyle(
+        TableStyle(schedule_style)
+    )
+
+    elements.append(schedule_table)
+    elements.append(Spacer(1, 8))
+
+    totals_data = [[
+        'Grand Totals',
+        kwacha(total_contributions),
+        kwacha(total_savings_interest),
+        '',
+        '',
+        kwacha(
+            sum(
+                (
+                    money(row['gross_shareout'])
+                    for row in rows
+                ),
+                Decimal('0.00')
+            )
+        ),
+        kwacha(
+            sum(
+                (
+                    money(row['outstanding_loans'])
+                    for row in rows
+                ),
+                Decimal('0.00')
+            )
+        ),
+        kwacha(
+            sum(
+                (
+                    money(row['fine_balance'])
+                    for row in rows
+                ),
+                Decimal('0.00')
+            )
+        ),
+        kwacha(
+            sum(
+                (
+                    money(row['total_deductions'])
+                    for row in rows
+                ),
+                Decimal('0.00')
+            )
+        ),
+        kwacha(total_net_payable),
+    ]]
+
+    totals_table = Table(
+        totals_data,
+        colWidths=[
+            36 * mm,
+            23 * mm,
+            22 * mm,
+            23 * mm,
+            17 * mm,
+            24 * mm,
+            25 * mm,
+            19 * mm,
+            24 * mm,
+            25 * mm,
+        ],
+    )
+
+    totals_table.setStyle(
+        TableStyle([
+            (
+                'BACKGROUND',
+                (0, 0),
+                (-1, -1),
+                secondary_colour
+            ),
+            (
+                'TEXTCOLOR',
+                (0, 0),
+                (-1, -1),
+                colors.white
+            ),
+            (
+                'FONTNAME',
+                (0, 0),
+                (-1, -1),
+                'Helvetica-Bold'
+            ),
+            (
+                'FONTSIZE',
+                (0, 0),
+                (-1, -1),
+                6
+            ),
+            (
+                'ALIGN',
+                (1, 0),
+                (-1, -1),
+                'RIGHT'
+            ),
+            (
+                'GRID',
+                (0, 0),
+                (-1, -1),
+                0.35,
+                colors.white
+            ),
+            (
+                'TOPPADDING',
+                (0, 0),
+                (-1, -1),
+                4
+            ),
+            (
+                'BOTTOMPADDING',
+                (0, 0),
+                (-1, -1),
+                4
+            ),
         ])
     )
 
-    elements.append(shareout_table)
-    elements.append(Spacer(1, 12))
-
-    footer_text = (
-        f'Highest Share-Out: {kwacha(highest_shareout)}'
-        f' | Lowest Share-Out: {kwacha(lowest_shareout)}'
-        f' | Average Contribution: {kwacha(average_contribution)}'
-    )
+    elements.append(totals_table)
+    elements.append(Spacer(1, 13))
 
     elements.append(
         Paragraph(
-            footer_text,
-            normal_small
+            'Certification and Approval',
+            section_style
         )
     )
+
+    certification_data = [
+        [
+            '________________________',
+            '________________________',
+            '________________________',
+            '________________________',
+        ],
+        [
+            'Prepared By',
+            'Verified By',
+            'Treasurer',
+            'Chairperson',
+        ],
+        [
+            '',
+            '',
+            '',
+            '',
+        ],
+        [
+            'Date: __________________',
+            'Date: __________________',
+            'Date: __________________',
+            'Date: __________________',
+        ],
+    ]
+
+    certification_table = Table(
+        certification_data,
+        colWidths=[
+            47 * mm,
+            47 * mm,
+            47 * mm,
+            47 * mm,
+        ],
+    )
+
+    certification_table.setStyle(
+        TableStyle([
+            (
+                'ALIGN',
+                (0, 0),
+                (-1, -1),
+                'CENTER'
+            ),
+            (
+                'FONTSIZE',
+                (0, 0),
+                (-1, -1),
+                7
+            ),
+            (
+                'TOPPADDING',
+                (0, 0),
+                (-1, -1),
+                3
+            ),
+            (
+                'BOTTOMPADDING',
+                (0, 0),
+                (-1, -1),
+                3
+            ),
+        ])
+    )
+
+    elements.append(certification_table)
 
     generated_on = datetime.now().strftime(
         '%d %B %Y at %H:%M'
     )
 
-    elements.append(Spacer(1, 8))
+    elements.append(Spacer(1, 7))
 
     elements.append(
         Paragraph(
             f'Generated on {generated_on}',
-            normal_small
+            small_style
         )
     )
 
-    document.build(elements)
+    document.build(
+        elements,
+        onFirstPage=lambda canvas, doc: draw_pdf_footer(
+            canvas,
+            doc,
+            setting
+        ),
+        onLaterPages=lambda canvas, doc: draw_pdf_footer(
+            canvas,
+            doc,
+            setting
+        ),
+    )
 
     buffer.seek(0)
 
@@ -9867,13 +10387,14 @@ def shareout_pdf():
         'ShareOut',
         None,
         (
-            f'Share-out PDF exported for '
-            f'{start_month} to {end_month}'
+            f'Branded Members Share-Out Schedule PDF '
+            f'exported for {start_month} to {end_month}'
         )
     )
 
     filename = (
-        f'shareout_{start_month}_to_{end_month}.pdf'
+        f'members_shareout_schedule_'
+        f'{start_month}_to_{end_month}.pdf'
     )
 
     return Response(
@@ -9883,8 +10404,7 @@ def shareout_pdf():
             'Content-Disposition':
                 f'inline; filename="{filename}"'
         }
-    )
-   
+    )   
 @app.route('/shareout.csv')
 @login_required
 @role_required('shareout')

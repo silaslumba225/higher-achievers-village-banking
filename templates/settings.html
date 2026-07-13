@@ -1,150 +1,1535 @@
 {% extends 'base.html' %}
-{% block page_title %}System Settings{% endblock %}
-{% block subtitle %}Manage system-wide configuration{% endblock %}
+
+{% block page_title %}Branding & Theme Centre{% endblock %}
+
+{% block subtitle %}
+Customize organisation identity, system colours and operating defaults
+{% endblock %}
 
 {% block content %}
-<!-- <label>Logo URL
-  <input
-    type="text"
-    name="logo_url"
-    value="{{ setting.logo_url or '' }}">
-</label> -->
 
-<section class="panel">
-  <h2>System Settings</h2>
+<link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+>
 
-  <form method="post" class="form-grid">
+<link
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    rel="stylesheet"
+>
 
-    <label>Organization Name
-      <input
-        type="text"
-        name="organization_name"
-        value="{{ setting.organisation_name }}"
-        required>
-    </label>
+<style>
+    .settings-page {
+        padding-bottom: 35px;
+    }
 
-    <label>Monthly Contribution Amount
-      <input
-        type="number"
-        step="0.01"
-        name="contribution_amount"
-        value="{{ setting.contribution_amount }}"
-        required>
-    </label>
+    .settings-hero {
+        background: linear-gradient(
+            135deg,
+            var(--preview-primary, #0d6efd),
+            var(--preview-secondary, #198754)
+        );
+        border-radius: 18px;
+        padding: 30px;
+        color: white;
+        margin-bottom: 25px;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+    }
 
-    <label>Organization Address
-    <input
-        type="text"
-        name="organization_address"
-        value="{{ setting.organization_address or '' }}">
-    </label>
+    .settings-card,
+    .preview-card {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
+    }
 
-    <label>Organization Phone
-    <input
-        type="text"
-        name="organization_phone"
-        value="{{ setting.organization_phone or '' }}">
-    </label>
+    .settings-card {
+        margin-bottom: 24px;
+    }
 
-    <label>Organization Email
-    <input
-        type="email"
-        name="organization_email"
-        value="{{ setting.organization_email or '' }}">
-    </label>
+    .settings-card .card-header {
+        background: white;
+        border: none;
+        border-radius: 16px 16px 0 0;
+        padding: 22px 24px 8px;
+    }
 
-    <label>Registration Number
-    <input
-        type="text"
-        name="registration_number"
-        value="{{ setting.registration_number or '' }}">
-    </label>
+    .settings-card .card-body {
+        padding: 20px 24px 26px;
+    }
 
-    <label>Savings Interest Rate (%)
-      <input
-        type="number"
-        step="0.01"
-        name="savings_interest_rate"
-        value="{{ setting.savings_interest_rate }}"
-        required>
-    </label>
+    .section-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 13px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 19px;
+        margin-right: 12px;
+    }
 
-    <label>Loan Interest Rate (%)
-      <input
-        type="number"
-        step="0.01"
-        name="loan_interest_rate"
-        value="{{ setting.loan_interest_rate }}"
-        required>
-    </label>
+    .form-control,
+    .form-select {
+        min-height: 45px;
+        border-radius: 10px;
+        background: #fffbea;
+    }
 
-    <label>Welfare Contribution Amount
-      <input
-        type="number"
-        step="0.01"
-        name="welfare_contribution_amount"
-        value="{{ setting.welfare_contribution_amount }}"
-        required>
-    </label>
-    <label>Organization Address
-        <input type="text" name="organization_address" value="{{ setting.organization_address or '' }}">
-    </label>
+    textarea.form-control {
+        min-height: 95px;
+    }
 
-    <label>Organization Phone
-        <input type="text" name="organization_phone" value="{{ setting.organization_phone or '' }}">
-    </label>
+    .form-control:focus,
+    .form-select:focus {
+        background: white;
+    }
 
-    <label>Organization Email
-        <input type="email" name="organization_email" value="{{ setting.organization_email or '' }}">
-    </label>
+    .colour-field {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
 
-    <label>Registration Number
-        <input type="text" name="registration_number" value="{{ setting.registration_number or '' }}">
-    </label>
-    <h3>SMS & WhatsApp Settings</h3>
+    .colour-field input[type="color"] {
+        width: 54px;
+        height: 45px;
+        padding: 3px;
+        border: 1px solid #ced4da;
+        border-radius: 10px;
+        background: white;
+    }
 
-    <label>SMS Provider
-      <input type="text" name="sms_provider" value="{{ setting.sms_provider or 'Manual' }}">
-    </label>
+    .colour-field input[type="text"] {
+        flex-grow: 1;
+    }
 
-    <label>SMS API Key
-      <input type="text" name="sms_api_key" value="{{ setting.sms_api_key or '' }}">
-    </label>
+    .theme-preset {
+        border: 1px solid #dee2e6;
+        border-radius: 13px;
+        padding: 13px;
+        cursor: pointer;
+        background: white;
+        transition: all 0.2s ease;
+    }
 
-    <label>SMS Sender ID
-      <input type="text" name="sms_sender_id" value="{{ setting.sms_sender_id or '' }}">
-    </label>
+    .theme-preset:hover {
+        transform: translateY(-2px);
+        border-color: #0d6efd;
+        box-shadow: 0 6px 16px rgba(13, 110, 253, 0.1);
+    }
 
-    <label>
-      <input type="checkbox" name="whatsapp_enabled" {% if setting.whatsapp_enabled %}checked{% endif %}>
-      Enable WhatsApp Messaging
-    </label>
-    <label>Africa's Talking Username
-      <input type="text" name="sms_username" value="{{ setting.sms_username or '' }}">
-    </label>
-    <a class="btn" href="{{ url_for('sms_test') }}">
-      Test SMS
-    </a>
+    .theme-colours {
+        display: flex;
+        gap: 5px;
+        margin-bottom: 8px;
+    }
 
-    <button type="submit" class="primary">
-      Save Settings
-    </button>
+    .theme-colour {
+        height: 18px;
+        flex-grow: 1;
+        border-radius: 6px;
+    }
 
-  </form>
-</section>
-<section class="panel danger-zone">
-  <h2>Danger Zone</h2>
-  <p>This will delete all transactions but keep members, users, and settings.</p>
+    .preview-shell {
+        background: var(--preview-background, #f4f7fb);
+        border-radius: 15px;
+        overflow: hidden;
+        border: 1px solid #dee2e6;
+    }
 
-  <form method="post" action="{{ url_for('reset_transactions') }}">
-    <label>Type RESET to confirm
-      <input name="confirm" placeholder="RESET" required>
-    </label>
+    .preview-navbar {
+        background: var(--preview-navbar, #ffffff);
+        padding: 12px 15px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        font-weight: 700;
+    }
 
-    <button class="btn danger" type="submit">
-      Reset Transactions
-    </button>
-  </form>
-</section>
+    .preview-body {
+        display: flex;
+        min-height: 280px;
+    }
+
+    .preview-sidebar {
+        width: 34%;
+        background: var(--preview-sidebar, #17324d);
+        color: var(--preview-sidebar-text, #ffffff);
+        padding: 17px 12px;
+    }
+
+    .preview-sidebar div {
+        padding: 8px 10px;
+        border-radius: 7px;
+        margin-bottom: 5px;
+        font-size: 0.82rem;
+    }
+
+    .preview-sidebar .active {
+        background: var(--preview-primary, #0d6efd);
+    }
+
+    .preview-content {
+        width: 66%;
+        padding: 16px;
+    }
+
+    .preview-mini-card {
+        background: var(--preview-card, #ffffff);
+        border-radius: 10px;
+        padding: 13px;
+        margin-bottom: 12px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+    }
+
+    .preview-button {
+        display: inline-block;
+        background: var(--preview-button, #0d6efd);
+        color: white;
+        border-radius: 8px;
+        padding: 8px 13px;
+        font-size: 0.8rem;
+    }
+
+    .preview-table-head {
+        background: var(--preview-table-header, #eaf2f8);
+        padding: 8px;
+        border-radius: 7px;
+        margin-top: 10px;
+        font-size: 0.8rem;
+        font-weight: 700;
+    }
+
+    .switch-row {
+        border: 1px solid #edf0f2;
+        border-radius: 12px;
+        padding: 15px;
+        height: 100%;
+    }
+
+    .danger-zone {
+        border: 1px solid #f1aeb5;
+        background: #fff5f5;
+    }
+
+    .sticky-save {
+        position: sticky;
+        bottom: 15px;
+        z-index: 20;
+    }
+
+    .save-bar {
+        border-radius: 15px;
+        padding: 14px 18px;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+        backdrop-filter: blur(8px);
+    }
+</style>
+
+<div
+    class="settings-page"
+    id="settingsPage"
+    style="
+        --preview-primary: {{ setting.primary_color or '#0D6EFD' }};
+        --preview-secondary: {{ setting.secondary_color or '#198754' }};
+        --preview-sidebar: {{ setting.sidebar_color or '#17324D' }};
+        --preview-sidebar-text: {{ setting.sidebar_text_color or '#FFFFFF' }};
+        --preview-navbar: {{ setting.navbar_color or '#FFFFFF' }};
+        --preview-button: {{ setting.button_color or '#0D6EFD' }};
+        --preview-background: {{ setting.background_color or '#F4F7FB' }};
+        --preview-card: {{ setting.card_color or '#FFFFFF' }};
+        --preview-table-header: {{ setting.table_header_color or '#EAF2F8' }};
+    "
+>
+
+    <div class="settings-hero">
+        <div class="row align-items-center">
+
+            <div class="col-lg-8">
+                <h2 class="fw-bold mb-2">
+                    <i class="fas fa-palette me-2"></i>
+                    Branding & Theme Centre
+                </h2>
+
+                <p class="mb-0">
+                    Configure the organisation identity, preferred colours,
+                    financial defaults and communication settings.
+                </p>
+            </div>
+
+            <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                <span class="badge bg-light text-dark px-3 py-2">
+                    Current Theme:
+                    {{ setting.theme_name or 'Professional Blue' }}
+                </span>
+            </div>
+
+        </div>
+    </div>
+
+    <form method="post" id="settingsForm">
+
+        <div class="row g-4">
+
+            <div class="col-xl-8">
+
+                <!-- Organisation Identity -->
+                <div class="card settings-card">
+
+                    <div class="card-header">
+                        <div class="d-flex align-items-center">
+
+                            <div class="section-icon bg-primary-subtle text-primary">
+                                <i class="fas fa-building"></i>
+                            </div>
+
+                            <div>
+                                <h5 class="fw-bold mb-1">
+                                    Organisation Identity
+                                </h5>
+
+                                <p class="text-muted mb-0">
+                                    Details shown throughout the system and reports.
+                                </p>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="row g-3">
+
+                            <div class="col-md-8">
+                                <label class="form-label fw-semibold">
+                                    Organisation Name
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="organization_name"
+                                    class="form-control"
+                                    value="{{ setting.organisation_name or '' }}"
+                                    required
+                                >
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">
+                                    Short Name
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="short_name"
+                                    class="form-control"
+                                    value="{{ setting.short_name or '' }}"
+                                >
+                            </div>
+
+                            <div class="col-md-8">
+                                <label class="form-label fw-semibold">
+                                    Motto
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="motto"
+                                    class="form-control"
+                                    value="{{ setting.motto or '' }}"
+                                >
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">
+                                    Registration Number
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="registration_number"
+                                    class="form-control"
+                                    value="{{ setting.registration_number or '' }}"
+                                >
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    Organisation Phone
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="organization_phone"
+                                    class="form-control"
+                                    value="{{ setting.organization_phone or '' }}"
+                                >
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    Organisation Email
+                                </label>
+
+                                <input
+                                    type="email"
+                                    name="organization_email"
+                                    class="form-control"
+                                    value="{{ setting.organization_email or '' }}"
+                                >
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    Website
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="website"
+                                    class="form-control"
+                                    value="{{ setting.website or '' }}"
+                                    placeholder="https://..."
+                                >
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    Main Address
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="organization_address"
+                                    class="form-control"
+                                    value="{{ setting.organization_address or '' }}"
+                                >
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    Physical Address
+                                </label>
+
+                                <textarea
+                                    name="physical_address"
+                                    class="form-control"
+                                >{{ setting.physical_address or '' }}</textarea>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    Postal Address
+                                </label>
+
+                                <textarea
+                                    name="postal_address"
+                                    class="form-control"
+                                >{{ setting.postal_address or '' }}</textarea>
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Product Identity -->
+                <div class="card settings-card">
+
+                    <div class="card-header">
+                        <div class="d-flex align-items-center">
+
+                            <div class="section-icon bg-info-subtle text-info">
+                                <i class="fas fa-cube"></i>
+                            </div>
+
+                            <div>
+                                <h5 class="fw-bold mb-1">
+                                    Product Identity
+                                </h5>
+
+                                <p class="text-muted mb-0">
+                                    Commercial product and developer information.
+                                </p>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="row g-3">
+
+                            <div class="col-md-5">
+                                <label class="form-label fw-semibold">
+                                    Product Name
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="product_name"
+                                    class="form-control"
+                                    value="{{ setting.product_name or '' }}"
+                                >
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">
+                                    Version
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="product_version"
+                                    class="form-control"
+                                    value="{{ setting.product_version or '' }}"
+                                >
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">
+                                    Developed By
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="developer_name"
+                                    class="form-control"
+                                    value="{{ setting.developer_name or '' }}"
+                                >
+                            </div>
+
+                        </div>
+
+                        <div class="alert alert-info mt-3 mb-0">
+                            <i class="fas fa-image me-2"></i>
+                            Logo upload will be added as the next branding step.
+                            Your existing logo remains unchanged.
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Theme Presets -->
+                <div class="card settings-card">
+
+                    <div class="card-header">
+                        <div class="d-flex align-items-center">
+
+                            <div class="section-icon bg-warning-subtle text-warning">
+                                <i class="fas fa-swatchbook"></i>
+                            </div>
+
+                            <div>
+                                <h5 class="fw-bold mb-1">
+                                    Theme Library
+                                </h5>
+
+                                <p class="text-muted mb-0">
+                                    Choose a preset, then customize individual colours.
+                                </p>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+
+                        <input
+                            type="hidden"
+                            name="theme_name"
+                            id="theme_name"
+                            value="{{ setting.theme_name or 'Professional Blue' }}"
+                        >
+
+                        <div class="row g-3">
+
+                            <div class="col-md-4">
+                                <div
+                                    class="theme-preset"
+                                    onclick="applyTheme(
+                                        'Professional Blue',
+                                        '#0D6EFD',
+                                        '#198754',
+                                        '#6F42C1',
+                                        '#17324D',
+                                        '#FFFFFF',
+                                        '#FFFFFF',
+                                        '#0D6EFD',
+                                        '#F4F7FB',
+                                        '#FFFFFF',
+                                        '#EAF2F8'
+                                    )"
+                                >
+                                    <div class="theme-colours">
+                                        <div class="theme-colour" style="background:#0D6EFD;"></div>
+                                        <div class="theme-colour" style="background:#198754;"></div>
+                                        <div class="theme-colour" style="background:#17324D;"></div>
+                                    </div>
+
+                                    <strong>Professional Blue</strong>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div
+                                    class="theme-preset"
+                                    onclick="applyTheme(
+                                        'Emerald Green',
+                                        '#198754',
+                                        '#20C997',
+                                        '#D4A017',
+                                        '#12372A',
+                                        '#FFFFFF',
+                                        '#FFFFFF',
+                                        '#198754',
+                                        '#F1F8F4',
+                                        '#FFFFFF',
+                                        '#D1E7DD'
+                                    )"
+                                >
+                                    <div class="theme-colours">
+                                        <div class="theme-colour" style="background:#198754;"></div>
+                                        <div class="theme-colour" style="background:#20C997;"></div>
+                                        <div class="theme-colour" style="background:#12372A;"></div>
+                                    </div>
+
+                                    <strong>Emerald Green</strong>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div
+                                    class="theme-preset"
+                                    onclick="applyTheme(
+                                        'Community Orange',
+                                        '#FD7E14',
+                                        '#FFC107',
+                                        '#6F42C1',
+                                        '#5A2D0C',
+                                        '#FFFFFF',
+                                        '#FFFFFF',
+                                        '#FD7E14',
+                                        '#FFF8F1',
+                                        '#FFFFFF',
+                                        '#FFE5CC'
+                                    )"
+                                >
+                                    <div class="theme-colours">
+                                        <div class="theme-colour" style="background:#FD7E14;"></div>
+                                        <div class="theme-colour" style="background:#FFC107;"></div>
+                                        <div class="theme-colour" style="background:#5A2D0C;"></div>
+                                    </div>
+
+                                    <strong>Community Orange</strong>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div
+                                    class="theme-preset"
+                                    onclick="applyTheme(
+                                        'Executive Purple',
+                                        '#6F42C1',
+                                        '#D63384',
+                                        '#0DCAF0',
+                                        '#2E1A47',
+                                        '#FFFFFF',
+                                        '#FFFFFF',
+                                        '#6F42C1',
+                                        '#F7F3FC',
+                                        '#FFFFFF',
+                                        '#E9DDF7'
+                                    )"
+                                >
+                                    <div class="theme-colours">
+                                        <div class="theme-colour" style="background:#6F42C1;"></div>
+                                        <div class="theme-colour" style="background:#D63384;"></div>
+                                        <div class="theme-colour" style="background:#2E1A47;"></div>
+                                    </div>
+
+                                    <strong>Executive Purple</strong>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div
+                                    class="theme-preset"
+                                    onclick="applyTheme(
+                                        'Corporate Navy',
+                                        '#0B3D91',
+                                        '#2878B5',
+                                        '#D4AF37',
+                                        '#071E3D',
+                                        '#FFFFFF',
+                                        '#FFFFFF',
+                                        '#0B3D91',
+                                        '#F2F5FA',
+                                        '#FFFFFF',
+                                        '#D9E5F4'
+                                    )"
+                                >
+                                    <div class="theme-colours">
+                                        <div class="theme-colour" style="background:#0B3D91;"></div>
+                                        <div class="theme-colour" style="background:#2878B5;"></div>
+                                        <div class="theme-colour" style="background:#071E3D;"></div>
+                                    </div>
+
+                                    <strong>Corporate Navy</strong>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div
+                                    class="theme-preset"
+                                    onclick="applyTheme(
+                                        'Traditional Brown',
+                                        '#8B5E3C',
+                                        '#C89B3C',
+                                        '#B85C38',
+                                        '#3E2723',
+                                        '#FFFFFF',
+                                        '#FFFFFF',
+                                        '#8B5E3C',
+                                        '#FAF6F2',
+                                        '#FFFFFF',
+                                        '#E8D8CC'
+                                    )"
+                                >
+                                    <div class="theme-colours">
+                                        <div class="theme-colour" style="background:#8B5E3C;"></div>
+                                        <div class="theme-colour" style="background:#C89B3C;"></div>
+                                        <div class="theme-colour" style="background:#3E2723;"></div>
+                                    </div>
+
+                                    <strong>Traditional Brown</strong>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Custom Colours -->
+                <div class="card settings-card">
+
+                    <div class="card-header">
+                        <div class="d-flex align-items-center">
+
+                            <div class="section-icon bg-danger-subtle text-danger">
+                                <i class="fas fa-eye-dropper"></i>
+                            </div>
+
+                            <div>
+                                <h5 class="fw-bold mb-1">
+                                    Custom Colours
+                                </h5>
+
+                                <p class="text-muted mb-0">
+                                    Fine-tune the selected theme.
+                                </p>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="row g-3">
+
+                            {% set colours = [
+                                ('primary_color', 'Primary Colour', setting.primary_color or '#0D6EFD'),
+                                ('secondary_color', 'Secondary Colour', setting.secondary_color or '#198754'),
+                                ('accent_color', 'Accent Colour', setting.accent_color or '#6F42C1'),
+                                ('sidebar_color', 'Sidebar Colour', setting.sidebar_color or '#17324D'),
+                                ('sidebar_text_color', 'Sidebar Text', setting.sidebar_text_color or '#FFFFFF'),
+                                ('navbar_color', 'Navbar Colour', setting.navbar_color or '#FFFFFF'),
+                                ('button_color', 'Button Colour', setting.button_color or '#0D6EFD'),
+                                ('background_color', 'Page Background', setting.background_color or '#F4F7FB'),
+                                ('card_color', 'Card Colour', setting.card_color or '#FFFFFF'),
+                                ('table_header_color', 'Table Header', setting.table_header_color or '#EAF2F8'),
+                                ('success_color', 'Success Colour', setting.success_color or '#198754'),
+                                ('warning_color', 'Warning Colour', setting.warning_color or '#FFC107'),
+                                ('danger_color', 'Danger Colour', setting.danger_color or '#DC3545')
+                            ] %}
+
+                            {% for field, label, value in colours %}
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    {{ label }}
+                                </label>
+
+                                <div class="colour-field">
+
+                                    <input
+                                        type="color"
+                                        id="{{ field }}_picker"
+                                        value="{{ value }}"
+                                        oninput="syncColour('{{ field }}', this.value)"
+                                    >
+
+                                    <input
+                                        type="text"
+                                        name="{{ field }}"
+                                        id="{{ field }}"
+                                        class="form-control"
+                                        value="{{ value }}"
+                                        oninput="updatePreview()"
+                                    >
+
+                                </div>
+                            </div>
+
+                            {% endfor %}
+
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Financial Defaults -->
+                <div class="card settings-card">
+
+                    <div class="card-header">
+                        <div class="d-flex align-items-center">
+
+                            <div class="section-icon bg-success-subtle text-success">
+                                <i class="fas fa-coins"></i>
+                            </div>
+
+                            <div>
+                                <h5 class="fw-bold mb-1">
+                                    Financial Defaults
+                                </h5>
+
+                                <p class="text-muted mb-0">
+                                    Default operating values for the group.
+                                </p>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="row g-3">
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">
+                                    Monthly Contribution
+                                </label>
+
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    name="contribution_amount"
+                                    class="form-control"
+                                    value="{{ setting.contribution_amount or 0 }}"
+                                    required
+                                >
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">
+                                    Savings Interest Rate (%)
+                                </label>
+
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    name="savings_interest_rate"
+                                    class="form-control"
+                                    value="{{ setting.savings_interest_rate or 0 }}"
+                                    required
+                                >
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">
+                                    Loan Interest Rate (%)
+                                </label>
+
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    name="loan_interest_rate"
+                                    class="form-control"
+                                    value="{{ setting.loan_interest_rate or 0 }}"
+                                    required
+                                >
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">
+                                    Welfare Contribution
+                                </label>
+
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    name="welfare_contribution_amount"
+                                    class="form-control"
+                                    value="{{ setting.welfare_contribution_amount or 0 }}"
+                                >
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">
+                                    Default Interest Rate (%)
+                                </label>
+
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    name="default_interest_rate"
+                                    class="form-control"
+                                    value="{{ setting.default_interest_rate or 0 }}"
+                                >
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">
+                                    Default Loan Term
+                                </label>
+
+                                <input
+                                    type="number"
+                                    name="default_loan_term"
+                                    class="form-control"
+                                    value="{{ setting.default_loan_term or 6 }}"
+                                >
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">
+                                    Penalty Rate (%)
+                                </label>
+
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    name="penalty_rate"
+                                    class="form-control"
+                                    value="{{ setting.penalty_rate or 0 }}"
+                                >
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">
+                                    Share-Out Month
+                                </label>
+
+                                <select
+                                    name="share_out_month"
+                                    class="form-select"
+                                >
+                                    {% for month in [
+                                        'January', 'February', 'March',
+                                        'April', 'May', 'June',
+                                        'July', 'August', 'September',
+                                        'October', 'November', 'December'
+                                    ] %}
+                                        <option
+                                            value="{{ month }}"
+                                            {% if setting.share_out_month == month %}selected{% endif %}
+                                        >
+                                            {{ month }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">
+                                    Currency
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="currency"
+                                    class="form-control"
+                                    value="{{ setting.currency or 'ZMW' }}"
+                                >
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">
+                                    Currency Symbol
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="currency_symbol"
+                                    class="form-control"
+                                    value="{{ setting.currency_symbol or 'K' }}"
+                                >
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">
+                                    Decimal Places
+                                </label>
+
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="4"
+                                    name="decimal_places"
+                                    class="form-control"
+                                    value="{{ setting.decimal_places or 2 }}"
+                                >
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Meeting and Dashboard Options -->
+                <div class="card settings-card">
+
+                    <div class="card-header">
+                        <div class="d-flex align-items-center">
+
+                            <div class="section-icon bg-secondary-subtle text-secondary">
+                                <i class="fas fa-sliders"></i>
+                            </div>
+
+                            <div>
+                                <h5 class="fw-bold mb-1">
+                                    Operations & Dashboard
+                                </h5>
+
+                                <p class="text-muted mb-0">
+                                    Meeting frequencies and optional features.
+                                </p>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="row g-3 mb-3">
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    Committee Meeting Frequency
+                                </label>
+
+                                <select
+                                    name="committee_meeting_frequency"
+                                    class="form-select"
+                                >
+                                    {% for option in [
+                                        'Weekly',
+                                        'Fortnightly',
+                                        'Monthly',
+                                        'Quarterly'
+                                    ] %}
+                                        <option
+                                            value="{{ option }}"
+                                            {% if setting.committee_meeting_frequency == option %}selected{% endif %}
+                                        >
+                                            {{ option }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    Member Meeting Frequency
+                                </label>
+
+                                <select
+                                    name="member_meeting_frequency"
+                                    class="form-select"
+                                >
+                                    {% for option in [
+                                        'Weekly',
+                                        'Fortnightly',
+                                        'Monthly',
+                                        'Quarterly',
+                                        'Annually'
+                                    ] %}
+                                        <option
+                                            value="{{ option }}"
+                                            {% if setting.member_meeting_frequency == option %}selected{% endif %}
+                                        >
+                                            {{ option }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                        </div>
+
+                        <div class="row g-3">
+
+                            <div class="col-md-4">
+                                <div class="switch-row">
+
+                                    <div class="form-check form-switch">
+                                        <input
+                                            class="form-check-input"
+                                            type="checkbox"
+                                            name="enable_ai_advisor"
+                                            id="enable_ai_advisor"
+                                            {% if setting.enable_ai_advisor %}checked{% endif %}
+                                        >
+
+                                        <label
+                                            class="form-check-label fw-semibold"
+                                            for="enable_ai_advisor"
+                                        >
+                                            AI Advisor
+                                        </label>
+                                    </div>
+
+                                    <small class="text-muted">
+                                        Show management recommendations.
+                                    </small>
+
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="switch-row">
+
+                                    <div class="form-check form-switch">
+                                        <input
+                                            class="form-check-input"
+                                            type="checkbox"
+                                            name="enable_notifications"
+                                            id="enable_notifications"
+                                            {% if setting.enable_notifications %}checked{% endif %}
+                                        >
+
+                                        <label
+                                            class="form-check-label fw-semibold"
+                                            for="enable_notifications"
+                                        >
+                                            Notifications
+                                        </label>
+                                    </div>
+
+                                    <small class="text-muted">
+                                        Enable system notification features.
+                                    </small>
+
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="switch-row">
+
+                                    <div class="form-check form-switch">
+                                        <input
+                                            class="form-check-input"
+                                            type="checkbox"
+                                            name="enable_dashboard_charts"
+                                            id="enable_dashboard_charts"
+                                            {% if setting.enable_dashboard_charts %}checked{% endif %}
+                                        >
+
+                                        <label
+                                            class="form-check-label fw-semibold"
+                                            for="enable_dashboard_charts"
+                                        >
+                                            Dashboard Charts
+                                        </label>
+                                    </div>
+
+                                    <small class="text-muted">
+                                        Display analytical charts.
+                                    </small>
+
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Communication Settings -->
+                <div class="card settings-card">
+
+                    <div class="card-header">
+                        <div class="d-flex align-items-center">
+
+                            <div class="section-icon bg-info-subtle text-info">
+                                <i class="fas fa-message"></i>
+                            </div>
+
+                            <div>
+                                <h5 class="fw-bold mb-1">
+                                    SMS & WhatsApp Settings
+                                </h5>
+
+                                <p class="text-muted mb-0">
+                                    Configure communication providers.
+                                </p>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="row g-3">
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">
+                                    SMS Provider
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="sms_provider"
+                                    class="form-control"
+                                    value="{{ setting.sms_provider or 'Manual' }}"
+                                >
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">
+                                    SMS Username
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="sms_username"
+                                    class="form-control"
+                                    value="{{ setting.sms_username or '' }}"
+                                >
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">
+                                    SMS Sender ID
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="sms_sender_id"
+                                    class="form-control"
+                                    value="{{ setting.sms_sender_id or '' }}"
+                                >
+                            </div>
+
+                            <div class="col-md-8">
+                                <label class="form-label fw-semibold">
+                                    SMS API Key
+                                </label>
+
+                                <input
+                                    type="password"
+                                    name="sms_api_key"
+                                    class="form-control"
+                                    value="{{ setting.sms_api_key or '' }}"
+                                >
+                            </div>
+
+                            <div class="col-md-4 d-flex align-items-end">
+                                <div class="form-check form-switch mb-2">
+
+                                    <input
+                                        class="form-check-input"
+                                        type="checkbox"
+                                        name="whatsapp_enabled"
+                                        id="whatsapp_enabled"
+                                        {% if setting.whatsapp_enabled %}checked{% endif %}
+                                    >
+
+                                    <label
+                                        class="form-check-label fw-semibold"
+                                        for="whatsapp_enabled"
+                                    >
+                                        Enable WhatsApp
+                                    </label>
+
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <a
+                                    class="btn btn-outline-primary"
+                                    href="{{ url_for('sms_test') }}"
+                                >
+                                    <i class="fas fa-paper-plane me-1"></i>
+                                    Test SMS
+                                </a>
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Live Preview -->
+            <div class="col-xl-4">
+
+                <div class="card preview-card sticky-top" style="top:20px;">
+
+                    <div class="card-header bg-white border-0 p-4">
+                        <h5 class="fw-bold mb-1">
+                            Live Theme Preview
+                        </h5>
+
+                        <p class="text-muted mb-0">
+                            Changes appear here before saving.
+                        </p>
+                    </div>
+
+                    <div class="card-body p-4 pt-0">
+
+                        <div class="preview-shell">
+
+                            <div class="preview-navbar">
+                                {{ setting.short_name or 'Village Banking' }}
+                            </div>
+
+                            <div class="preview-body">
+
+                                <div class="preview-sidebar">
+                                    <div class="active">
+                                        Dashboard
+                                    </div>
+
+                                    <div>Members</div>
+                                    <div>Contributions</div>
+                                    <div>Loans</div>
+                                    <div>Share-Out</div>
+                                </div>
+
+                                <div class="preview-content">
+
+                                    <div class="preview-mini-card">
+                                        <small>Share-Out Fund</small>
+                                        <div class="fw-bold fs-5">
+                                            K250,000
+                                        </div>
+                                    </div>
+
+                                    <div class="preview-mini-card">
+                                        <span class="preview-button">
+                                            Save Record
+                                        </span>
+
+                                        <div class="preview-table-head">
+                                            Member Register
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <div class="mt-3">
+                            <strong id="selectedThemeName">
+                                {{ setting.theme_name or 'Professional Blue' }}
+                            </strong>
+
+                            <div class="small text-muted">
+                                Selected theme
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Save Bar -->
+        <div class="sticky-save mt-4">
+            <div class="save-bar d-flex flex-wrap justify-content-between align-items-center gap-3">
+
+                <div>
+                    <strong>Ready to apply your branding?</strong>
+
+                    <div class="small text-muted">
+                        Save to update organisation and theme settings.
+                    </div>
+                </div>
+
+                <button
+                    type="submit"
+                    class="btn btn-primary btn-lg px-4"
+                >
+                    <i class="fas fa-floppy-disk me-2"></i>
+                    Save Branding & Settings
+                </button>
+
+            </div>
+        </div>
+
+    </form>
+
+    <!-- Danger Zone -->
+    <div class="card settings-card danger-zone mt-4">
+
+        <div class="card-body p-4">
+
+            <h5 class="fw-bold text-danger">
+                <i class="fas fa-triangle-exclamation me-2"></i>
+                Danger Zone
+            </h5>
+
+            <p class="text-muted">
+                This deletes transactional records while retaining members,
+                users and settings.
+            </p>
+
+            <form
+                method="post"
+                action="{{ url_for('reset_transactions') }}"
+                onsubmit="return confirm(
+                    'This will delete transactional records. Continue?'
+                );"
+            >
+
+                <div class="row g-3 align-items-end">
+
+                    <div class="col-md-8">
+                        <label class="form-label fw-semibold">
+                            Type RESET to confirm
+                        </label>
+
+                        <input
+                            name="confirm"
+                            class="form-control"
+                            placeholder="RESET"
+                            required
+                        >
+                    </div>
+
+                    <div class="col-md-4">
+                        <button
+                            class="btn btn-danger w-100"
+                            type="submit"
+                        >
+                            <i class="fas fa-trash me-1"></i>
+                            Reset Transactions
+                        </button>
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function syncColour(fieldName, value) {
+        const textInput = document.getElementById(fieldName);
+
+        if (textInput) {
+            textInput.value = value.toUpperCase();
+        }
+
+        updatePreview();
+    }
+
+    function setField(fieldName, value) {
+        const textInput = document.getElementById(fieldName);
+        const colourPicker = document.getElementById(
+            fieldName + '_picker'
+        );
+
+        if (textInput) {
+            textInput.value = value;
+        }
+
+        if (colourPicker) {
+            colourPicker.value = value;
+        }
+    }
+
+    function applyTheme(
+        themeName,
+        primary,
+        secondary,
+        accent,
+        sidebar,
+        sidebarText,
+        navbar,
+        button,
+        background,
+        card,
+        tableHeader
+    ) {
+        document.getElementById('theme_name').value = themeName;
+        document.getElementById('selectedThemeName').textContent =
+            themeName;
+
+        setField('primary_color', primary);
+        setField('secondary_color', secondary);
+        setField('accent_color', accent);
+        setField('sidebar_color', sidebar);
+        setField('sidebar_text_color', sidebarText);
+        setField('navbar_color', navbar);
+        setField('button_color', button);
+        setField('background_color', background);
+        setField('card_color', card);
+        setField('table_header_color', tableHeader);
+
+        updatePreview();
+    }
+
+    function updatePreview() {
+        const page = document.getElementById('settingsPage');
+
+        const mappings = {
+            primary_color: '--preview-primary',
+            secondary_color: '--preview-secondary',
+            sidebar_color: '--preview-sidebar',
+            sidebar_text_color: '--preview-sidebar-text',
+            navbar_color: '--preview-navbar',
+            button_color: '--preview-button',
+            background_color: '--preview-background',
+            card_color: '--preview-card',
+            table_header_color: '--preview-table-header'
+        };
+
+        Object.entries(mappings).forEach(
+            ([fieldName, cssVariable]) => {
+                const field = document.getElementById(fieldName);
+
+                if (field && field.value) {
+                    page.style.setProperty(
+                        cssVariable,
+                        field.value
+                    );
+
+                    const picker = document.getElementById(
+                        fieldName + '_picker'
+                    );
+
+                    if (picker) {
+                        picker.value = field.value;
+                    }
+                }
+            }
+        );
+    }
+
+    document.addEventListener(
+        'DOMContentLoaded',
+        updatePreview
+    );
+</script>
 
 {% endblock %}
