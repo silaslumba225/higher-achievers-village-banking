@@ -5291,7 +5291,7 @@ def shareout_statement_pdf(member_id):
             ('GRID', (0, 0), (-1, -1), 0.4, primary_colour),
             ('ROWBACKGROUNDS', (0, 1), (-1, -1), [
                 colors.white,
-                colors.HexColor(table_header_colour),
+                table_header_colour,
             ]),
             ('TOPPADDING', (0, 0), (-1, -1), 5),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
