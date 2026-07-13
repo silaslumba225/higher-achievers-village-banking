@@ -5040,7 +5040,7 @@ def shareout_statement_pdf(member_id):
         parent=styles['Title'],
         fontSize=17,
         leading=21,
-        textColor=colors.HexColor(primary_colour),
+        textColor=primary_colour,
         spaceAfter=5,
     )
 
@@ -5050,7 +5050,7 @@ def shareout_statement_pdf(member_id):
         fontSize=8.5,
         leading=11,
         alignment=1,
-        textColor=colors.HexColor(primary_colour),
+        textColor=primary_colour,
     )
 
     section_style = ParagraphStyle(
@@ -5058,7 +5058,7 @@ def shareout_statement_pdf(member_id):
         parent=styles['Heading2'],
         fontSize=11,
         leading=14,
-        textColor=colors.HexColor(primary_colour),
+        textColor=primary_colour,
         spaceBefore=8,
         spaceAfter=7,
     )
@@ -5163,12 +5163,12 @@ def shareout_statement_pdf(member_id):
 
     member_table.setStyle(
         TableStyle([
-            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor(table_header_colour)),
-            ('BACKGROUND', (2, 0), (2, -1), colors.HexColor(table_header_colour)),
+            ('BACKGROUND', (0, 0), (0, -1),table_header_colour),
+            ('BACKGROUND', (2, 0), (2, -1),table_header_colour),
             ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
             ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, -1), 8),
-            ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor(primary_colour)),
+            ('GRID', (0, 0), (-1, -1), 0.4,primary_colour),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('TOPPADDING', (0, 0), (-1, -1), 5),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
@@ -5220,13 +5220,13 @@ def shareout_statement_pdf(member_id):
 
     calculation_table.setStyle(
         TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor(table_header_colour)),
+            ('BACKGROUND', (0, 0), (-1, 0), table_header_colour),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, -1), 8),
             ('ALIGN', (1, 1), (1, -1), 'RIGHT'),
-            ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor(primary_colour)),
+            ('GRID', (0, 0), (-1, -1), 0.4,primary_colour),
             ('ROWBACKGROUNDS', (0, 1), (-1, -1), [
                 colors.white,
                 colors.HexColor('#f7f9fb'),
@@ -5281,14 +5281,14 @@ def shareout_statement_pdf(member_id):
 
     deduction_table.setStyle(
         TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor(table_header_colour)),
+            ('BACKGROUND', (0, 0), (-1, 0), table_header_colour),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
             ('FONTNAME', (0, 4), (-1, 6), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, -1), 8),
             ('ALIGN', (1, 1), (1, -1), 'RIGHT'),
-            ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor(primary_colour)),
+            ('GRID', (0, 0), (-1, -1), 0.4, primary_colour),
             ('ROWBACKGROUNDS', (0, 1), (-1, -1), [
                 colors.white,
                 colors.HexColor(table_header_colour),
@@ -5348,16 +5348,16 @@ def shareout_statement_pdf(member_id):
 
     payment_table.setStyle(
         TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor(table_header_colour)),
+            ('BACKGROUND', (0, 0), (-1, 0), table_header_colour),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, -1), 7.5),
             ('ALIGN', (4, 1), (4, -1), 'RIGHT'),
-            ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor(primary_colour)),
+            ('GRID', (0, 0), (-1, -1), 0.4, primary_colour),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('ROWBACKGROUNDS', (0, 1), (-1, -1), [
                 colors.white,
-                colors.HexColor(table_header_colour),
+                table_header_colour,
             ]),
             ('TOPPADDING', (0, 0), (-1, -1), 5),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
