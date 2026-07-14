@@ -19,6 +19,7 @@ import requests
 import re
 from pypdf import PdfReader
 from pathlib import Path
+from reports import PDFReport
 from werkzeug.utils import secure_filename
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -3363,8 +3364,7 @@ def contribution_passbook(member_id):
 @login_required
 @role_required('contributions')
 def contribution_passbook_pdf(member_id):
-    system_setting = get_system_settings()
-
+    setting = get_system_settings()
     member = Member.query.get_or_404(member_id)
 
     contributions = Contribution.query.filter_by(
@@ -3374,74 +3374,543 @@ def contribution_passbook_pdf(member_id):
         Contribution.id.asc()
     ).all()
 
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    organization_name = (
+        setting.organisation_name
+        if setting and setting.organisation_name
+        else CLIENT_NAME
+    )
+
+    primary_colour = pdf_colour(
+        setting.primary_color if setting else None,
+        '#0D6EFD'
+    )
+
+    secondary_colour = pdf_colour(
+        setting.secondary_color if setting else None,
+        '#198754'
+    )
+
+    table_header_colour = pdf_colour(
+        setting.table_header_color if setting else None,
+        '#EAF2F8'
+    )
+
+    buffer = io.BytesIO()
+
+    document = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=16 * mm,
+        leftMargin=16 * mm,
+        topMargin=14 * mm,
+        bottomMargin=17 * mm,
+        title=(
+            f'Contribution Statement - '
+            f'{member.member_no} - {member.full_name}'
+        ),
+        author=organization_name,
+    )
+
     styles = getSampleStyleSheet()
     elements = []
 
-    elements.append(Paragraph(system_setting.organisation_name.upper(), styles["Title"]))
-    elements.append(
-    Paragraph(
-        f"Running on {system_setting.product_name} | Developed by {system_setting.developer_name}",
-        styles["Normal"]
+    title_style = ParagraphStyle(
+        'ContributionStatementTitle',
+        parent=styles['Heading1'],
+        fontSize=15,
+        leading=18,
+        textColor=primary_colour,
+        spaceBefore=3,
+        spaceAfter=8,
     )
-)
-    elements.append(Spacer(1, 12))
 
-    elements.append(Paragraph("MEMBER SAVINGS STATEMENT", styles["Heading2"]))
-    elements.append(Spacer(1, 12))
+    section_style = ParagraphStyle(
+        'ContributionStatementSection',
+        parent=styles['Heading2'],
+        fontSize=10,
+        leading=13,
+        textColor=secondary_colour,
+        spaceBefore=7,
+        spaceAfter=6,
+    )
 
-    elements.append(Paragraph(f"<b>Member No:</b> {member.member_no}", styles["Normal"]))
-    elements.append(Paragraph(f"<b>Member Name:</b> {member.full_name}", styles["Normal"]))
-    elements.append(Spacer(1, 12))
+    small_style = ParagraphStyle(
+        'ContributionStatementSmall',
+        parent=styles['Normal'],
+        fontSize=7,
+        leading=9,
+    )
 
-    data = [["Date", "Month", "Description", "Method", "Reference", "Deposit", "Balance"]]
+    elements.append(
+        build_pdf_branding(
+            setting,
+            styles
+        )
+    )
+
+    elements.append(Spacer(1, 7))
+
+    elements.append(
+        Paragraph(
+            'MEMBER CONTRIBUTION STATEMENT',
+            title_style
+        )
+    )
+
+    member_details = [
+        [
+            'Member Number',
+            member.member_no,
+            'Member Name',
+            member.full_name,
+        ],
+        [
+            'Group',
+            member.group_name or '-',
+            'Member Status',
+            member.status or '-',
+        ],
+    ]
+
+    member_table = Table(
+        member_details,
+        colWidths=[
+            31 * mm,
+            43 * mm,
+            29 * mm,
+            58 * mm,
+        ],
+    )
+
+    member_table.setStyle(
+        TableStyle([
+            (
+                'BACKGROUND',
+                (0, 0),
+                (0, -1),
+                table_header_colour
+            ),
+            (
+                'BACKGROUND',
+                (2, 0),
+                (2, -1),
+                table_header_colour
+            ),
+            (
+                'FONTNAME',
+                (0, 0),
+                (0, -1),
+                'Helvetica-Bold'
+            ),
+            (
+                'FONTNAME',
+                (2, 0),
+                (2, -1),
+                'Helvetica-Bold'
+            ),
+            (
+                'FONTSIZE',
+                (0, 0),
+                (-1, -1),
+                8
+            ),
+            (
+                'GRID',
+                (0, 0),
+                (-1, -1),
+                0.4,
+                primary_colour
+            ),
+            (
+                'VALIGN',
+                (0, 0),
+                (-1, -1),
+                'MIDDLE'
+            ),
+            (
+                'TOPPADDING',
+                (0, 0),
+                (-1, -1),
+                5
+            ),
+            (
+                'BOTTOMPADDING',
+                (0, 0),
+                (-1, -1),
+                5
+            ),
+        ])
+    )
+
+    elements.append(member_table)
+    elements.append(Spacer(1, 9))
 
     running_balance = money(0)
+    total_contributions = money(0)
 
-    for c in contributions:
-        running_balance += money(c.amount)
-        data.append([
-            str(c.paid_on),
-            c.month,
-            f"Savings contribution for {c.month}",
-            c.method,
-            c.reference or "-",
-            kwacha(c.amount),
-            kwacha(running_balance)
+    transaction_data = [[
+        'Date',
+        'Month',
+        'Description',
+        'Method',
+        'Reference',
+        'Deposit',
+        'Balance',
+    ]]
+
+    for contribution in contributions:
+        contribution_amount = money(
+            contribution.amount
+        )
+
+        running_balance = money(
+            running_balance + contribution_amount
+        )
+
+        total_contributions = money(
+            total_contributions + contribution_amount
+        )
+
+        transaction_data.append([
+            contribution.paid_on.strftime('%d %b %Y')
+            if contribution.paid_on
+            else '-',
+            contribution.month or '-',
+            Paragraph(
+                (
+                    'Savings contribution for '
+                    f'{contribution.month or "-"}'
+                ),
+                small_style
+            ),
+            contribution.method or '-',
+            contribution.reference or '-',
+            kwacha(contribution_amount),
+            kwacha(running_balance),
         ])
 
-    data.append(["", "", "", "", "Current Balance", "", kwacha(running_balance)])
+    if not contributions:
+        transaction_data.append([
+            'No contributions recorded',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+        ])
 
-    table = Table(data, repeatRows=1)
+    transaction_data.append([
+        '',
+        '',
+        '',
+        '',
+        'Current Balance',
+        '',
+        kwacha(running_balance),
+    ])
 
-    table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1f4e79")),
-        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("ALIGN", (5, 1), (-1, -1), "RIGHT"),
-        ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#f2f2f2")),
-        ("FONTNAME", (4, -1), (-1, -1), "Helvetica-Bold"),
-    ]))
+    elements.append(
+        Paragraph(
+            'Contribution Transaction History',
+            section_style
+        )
+    )
 
-    elements.append(table)
-    elements.append(Spacer(1, 20))
-    elements.append(Paragraph(f"Generated on: {date.today()}", styles["Normal"]))
+    transaction_table = Table(
+        transaction_data,
+        repeatRows=1,
+        colWidths=[
+            22 * mm,
+            18 * mm,
+            48 * mm,
+            25 * mm,
+            25 * mm,
+            23 * mm,
+            25 * mm,
+        ],
+    )
 
-    doc.build(elements)
+    transaction_table.setStyle(
+        TableStyle([
+            (
+                'BACKGROUND',
+                (0, 0),
+                (-1, 0),
+                primary_colour
+            ),
+            (
+                'TEXTCOLOR',
+                (0, 0),
+                (-1, 0),
+                colors.white
+            ),
+            (
+                'FONTNAME',
+                (0, 0),
+                (-1, 0),
+                'Helvetica-Bold'
+            ),
+            (
+                'FONTSIZE',
+                (0, 0),
+                (-1, 0),
+                6.5
+            ),
+            (
+                'FONTSIZE',
+                (0, 1),
+                (-1, -1),
+                6.2
+            ),
+            (
+                'ALIGN',
+                (5, 1),
+                (-1, -1),
+                'RIGHT'
+            ),
+            (
+                'VALIGN',
+                (0, 0),
+                (-1, -1),
+                'MIDDLE'
+            ),
+            (
+                'GRID',
+                (0, 0),
+                (-1, -1),
+                0.35,
+                colors.HexColor('#AAB7C4')
+            ),
+            (
+                'ROWBACKGROUNDS',
+                (0, 1),
+                (-1, -2),
+                [
+                    colors.white,
+                    table_header_colour,
+                ]
+            ),
+            (
+                'BACKGROUND',
+                (0, -1),
+                (-1, -1),
+                secondary_colour
+            ),
+            (
+                'TEXTCOLOR',
+                (0, -1),
+                (-1, -1),
+                colors.white
+            ),
+            (
+                'FONTNAME',
+                (4, -1),
+                (-1, -1),
+                'Helvetica-Bold'
+            ),
+            (
+                'TOPPADDING',
+                (0, 0),
+                (-1, -1),
+                4
+            ),
+            (
+                'BOTTOMPADDING',
+                (0, 0),
+                (-1, -1),
+                4
+            ),
+        ])
+    )
+
+    elements.append(transaction_table)
+    elements.append(Spacer(1, 10))
+
+    summary_data = [
+        [
+            'Number of Contributions',
+            str(len(contributions)),
+            'Total Contributions',
+            kwacha(total_contributions),
+        ],
+        [
+            'Current Savings Balance',
+            kwacha(running_balance),
+            'Statement Date',
+            date.today().strftime('%d %B %Y'),
+        ],
+    ]
+
+    summary_table = Table(
+        summary_data,
+        colWidths=[
+            42 * mm,
+            39 * mm,
+            42 * mm,
+            39 * mm,
+        ],
+    )
+
+    summary_table.setStyle(
+        TableStyle([
+            (
+                'BACKGROUND',
+                (0, 0),
+                (0, -1),
+                table_header_colour
+            ),
+            (
+                'BACKGROUND',
+                (2, 0),
+                (2, -1),
+                table_header_colour
+            ),
+            (
+                'FONTNAME',
+                (0, 0),
+                (0, -1),
+                'Helvetica-Bold'
+            ),
+            (
+                'FONTNAME',
+                (2, 0),
+                (2, -1),
+                'Helvetica-Bold'
+            ),
+            (
+                'FONTSIZE',
+                (0, 0),
+                (-1, -1),
+                8
+            ),
+            (
+                'ALIGN',
+                (1, 0),
+                (1, -1),
+                'RIGHT'
+            ),
+            (
+                'ALIGN',
+                (3, 0),
+                (3, -1),
+                'RIGHT'
+            ),
+            (
+                'GRID',
+                (0, 0),
+                (-1, -1),
+                0.4,
+                primary_colour
+            ),
+            (
+                'TOPPADDING',
+                (0, 0),
+                (-1, -1),
+                5
+            ),
+            (
+                'BOTTOMPADDING',
+                (0, 0),
+                (-1, -1),
+                5
+            ),
+        ])
+    )
+
+    elements.append(summary_table)
+    elements.append(Spacer(1, 18))
+
+    signature_data = [
+        [
+            '________________________',
+            '________________________',
+            '________________________',
+        ],
+        [
+            'Member Signature',
+            'Treasurer',
+            'Chairperson',
+        ],
+    ]
+
+    signature_table = Table(
+        signature_data,
+        colWidths=[
+            56 * mm,
+            56 * mm,
+            56 * mm,
+        ],
+    )
+
+    signature_table.setStyle(
+        TableStyle([
+            (
+                'ALIGN',
+                (0, 0),
+                (-1, -1),
+                'CENTER'
+            ),
+            (
+                'FONTSIZE',
+                (0, 0),
+                (-1, -1),
+                8
+            ),
+            (
+                'TOPPADDING',
+                (0, 0),
+                (-1, -1),
+                3
+            ),
+            (
+                'BOTTOMPADDING',
+                (0, 0),
+                (-1, -1),
+                3
+            ),
+        ])
+    )
+
+    elements.append(signature_table)
+
+    document.build(
+        elements,
+        onFirstPage=lambda canvas, doc: draw_pdf_footer(
+            canvas,
+            doc,
+            setting
+        ),
+        onLaterPages=lambda canvas, doc: draw_pdf_footer(
+            canvas,
+            doc,
+            setting
+        ),
+    )
 
     buffer.seek(0)
 
-    filename = f"savings_statement_{member.member_no}.pdf"
+    log_audit(
+        'EXPORT_CONTRIBUTION_STATEMENT_PDF',
+        'Member',
+        member.id,
+        (
+            f'Contribution statement PDF exported for '
+            f'{member.full_name}'
+        )
+    )
+
+    filename = (
+        f'contribution_statement_'
+        f'{member.member_no}.pdf'
+    )
 
     return send_file(
         buffer,
-        as_attachment=True,
+        as_attachment=False,
         download_name=filename,
-        mimetype="application/pdf"
+        mimetype='application/pdf'
     )
-
 # ------------------------------------------------------------
 # LOAN PROCESSING WORKFLOW
 #
@@ -5612,6 +6081,7 @@ def shareout_approval():
         outstanding_balance=outstanding_balance,
         operator_name=operator_name,
 )
+
 @app.route('/share-out-statement/<int:member_id>/pdf')
 @login_required
 @role_required('shareout')
@@ -6171,6 +6641,393 @@ def shareout_statement_pdf(member_id):
                 f'inline; filename="{filename}"'
         }
     )
+
+@app.route('/share-out-statement/<int:member_id>/pdf-v2')
+@login_required
+@role_required('shareout')
+def shareout_statement_pdf_v2(member_id):
+    today_month = date.today().strftime('%Y-%m')
+
+    start_month = (
+        request.args.get('start_month')
+        or f'{date.today().year}-01'
+    )
+
+    end_month = (
+        request.args.get('end_month')
+        or today_month
+    )
+
+    expenses = money(
+        request.args.get('expenses') or 0
+    )
+
+    other_income = money(
+        request.args.get('other_income') or 0
+    )
+
+    member = Member.query.get_or_404(member_id)
+    setting = get_system_settings()
+
+    shareout_data = calculate_shareout_data(
+        start_month=start_month,
+        end_month=end_month,
+        expenses=expenses,
+        other_income=other_income,
+    )
+
+    member_shareout = next(
+        (
+            row
+            for row in shareout_data['rows']
+            if row['member_id'] == member_id
+        ),
+        None
+    )
+
+    if not member_shareout:
+        flash(
+            'No Share-Out calculation was found for this member '
+            'during the selected period.',
+            'error'
+        )
+
+        return redirect(
+            url_for(
+                'shareout_schedule',
+                start_month=start_month,
+                end_month=end_month,
+                expenses=expenses,
+                other_income=other_income,
+            )
+        )
+
+    start_date = datetime.strptime(
+        start_month + '-01',
+        '%Y-%m-%d'
+    ).date()
+
+    end_year, end_mon = [
+        int(value)
+        for value in end_month.split('-')
+    ]
+
+    end_date = (
+        date(end_year, end_mon, 28)
+        + timedelta(days=4)
+    ).replace(day=1) - timedelta(days=1)
+
+    payments = Distribution.query.filter(
+        Distribution.member_id == member_id,
+        Distribution.paid_on >= start_date,
+        Distribution.paid_on <= end_date,
+    ).order_by(
+        Distribution.paid_on.asc(),
+        Distribution.id.asc(),
+    ).all()
+
+    total_paid = money(
+        sum(
+            (
+                money(payment.amount)
+                for payment in payments
+            ),
+            Decimal('0.00')
+        )
+    )
+
+    net_shareout = money(
+        member_shareout.get(
+            'net_shareout',
+            member_shareout.get('net_payable', 0)
+        )
+    )
+
+    outstanding_balance = money(
+        net_shareout - total_paid
+    )
+
+    if outstanding_balance < 0:
+        payment_status = 'Overpaid'
+    elif total_paid <= 0:
+        payment_status = 'Pending'
+    elif outstanding_balance > 0:
+        payment_status = 'Partially Paid'
+    else:
+        payment_status = 'Paid'
+
+    cycle = get_shareout_cycle(
+        start_month,
+        end_month,
+    )
+
+    cycle_status = (
+        cycle.status
+        if cycle
+        else 'Draft'
+    )
+
+    filename = (
+        f'shareout_statement_v2_'
+        f'{member.member_no}_'
+        f'{start_month}_to_{end_month}.pdf'
+    )
+
+    report = PDFReport(
+        setting=setting,
+        title='Individual Share-Out Statement',
+        filename=filename,
+        orientation='portrait',
+        logo_upload_folder=LOGO_UPLOAD_FOLDER,
+        default_logo_path=(
+            Path(app.root_path)
+            / 'static'
+            / 'higher-achievers-logo.jpeg'
+        ),
+        left_margin=16,
+        right_margin=16,
+        top_margin=12,
+        bottom_margin=17,
+    )
+
+    report.add_branding()
+    report.add_title(
+        'INDIVIDUAL SHARE-OUT STATEMENT'
+    )
+
+    report.add_information_table(
+        [
+            [
+                'Member Number',
+                member.member_no,
+                'Statement Period',
+                f'{start_month} to {end_month}',
+            ],
+            [
+                'Member Name',
+                member.full_name,
+                'Cycle Status',
+                cycle_status,
+            ],
+            [
+                'Group',
+                member_shareout.get('group_name') or '-',
+                'Payment Status',
+                payment_status,
+            ],
+        ],
+        col_widths=[
+            30 * mm,
+            52 * mm,
+            30 * mm,
+            52 * mm,
+        ],
+    )
+
+    report.add_spacer(8)
+
+    report.add_section(
+        'Share-Out Calculation'
+    )
+
+    report.add_data_table(
+        [
+            ['Description', 'Amount'],
+            [
+                'Total Contributions',
+                kwacha(
+                    member_shareout.get(
+                        'contributed',
+                        0
+                    )
+                ),
+            ],
+            [
+                'Savings Interest',
+                kwacha(
+                    member_shareout.get(
+                        'savings_interest',
+                        0
+                    )
+                ),
+            ],
+            [
+                'Gross Savings Value',
+                kwacha(
+                    member_shareout.get(
+                        'gross_savings_value',
+                        0
+                    )
+                ),
+            ],
+            [
+                'Contribution Share',
+                (
+                    f"{member_shareout.get('percent', 0)}%"
+                ),
+            ],
+            [
+                'Profit Share',
+                kwacha(
+                    member_shareout.get(
+                        'profit_share',
+                        0
+                    )
+                ),
+            ],
+            [
+                'Gross Share-Out',
+                kwacha(
+                    member_shareout.get(
+                        'gross_shareout',
+                        0
+                    )
+                ),
+            ],
+        ],
+        col_widths=[
+            105 * mm,
+            55 * mm,
+        ],
+        numeric_columns=(1,),
+        font_size=8,
+        header_font_size=8,
+    )
+
+    report.add_spacer(8)
+
+    report.add_section(
+        'Deductions and Payment Position'
+    )
+
+    report.add_data_table(
+        [
+            ['Description', 'Amount'],
+            [
+                'Outstanding Loans',
+                kwacha(
+                    member_shareout.get(
+                        'outstanding_loans',
+                        0
+                    )
+                ),
+            ],
+            [
+                'Outstanding Fines',
+                kwacha(
+                    member_shareout.get(
+                        'fine_balance',
+                        0
+                    )
+                ),
+            ],
+            [
+                'Total Deductions',
+                kwacha(
+                    member_shareout.get(
+                        'total_deductions',
+                        0
+                    )
+                ),
+            ],
+            [
+                'Net Share-Out',
+                kwacha(net_shareout),
+            ],
+            [
+                'Total Paid',
+                kwacha(total_paid),
+            ],
+            [
+                'Outstanding Balance',
+                kwacha(outstanding_balance),
+            ],
+        ],
+        col_widths=[
+            105 * mm,
+            55 * mm,
+        ],
+        numeric_columns=(1,),
+        font_size=8,
+        header_font_size=8,
+    )
+
+    report.add_spacer(8)
+
+    report.add_section(
+        'Payment History'
+    )
+
+    payment_rows = [[
+        'Date',
+        'Method',
+        'Reference',
+        'Authorized By',
+        'Amount',
+    ]]
+
+    for payment in payments:
+        payment_rows.append([
+            (
+                payment.paid_on.strftime('%d %b %Y')
+                if payment.paid_on
+                else '-'
+            ),
+            payment.method or '-',
+            payment.reference or '-',
+            payment.authorized_by or '-',
+            kwacha(payment.amount),
+        ])
+
+    if not payments:
+        payment_rows.append([
+            'No payments recorded',
+            '',
+            '',
+            '',
+            '',
+        ])
+
+    report.add_data_table(
+        payment_rows,
+        col_widths=[
+            25 * mm,
+            32 * mm,
+            38 * mm,
+            38 * mm,
+            27 * mm,
+        ],
+        numeric_columns=(4,),
+        font_size=7.5,
+        header_font_size=7.5,
+    )
+
+    report.add_spacer(14)
+
+    report.add_signatures([
+        'Member Signature',
+        'Treasurer',
+        'Chairperson',
+    ])
+
+    pdf_response = report.response(
+        inline=True
+    )
+
+    log_audit(
+        'EXPORT_SHAREOUT_STATEMENT_PDF_V2',
+        'Member',
+        member.id,
+        (
+            f'Version 2 Share-Out statement PDF '
+            f'generated for {member.full_name}; '
+            f'period {start_month} to {end_month}'
+        )
+    )
+
+    return pdf_response
+
+
 @app.route('/share-out-dashboard')
 @login_required
 @role_required('shareout')
