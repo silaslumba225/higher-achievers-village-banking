@@ -5806,6 +5806,478 @@ def distributions_pdf():
         }
     )
 
+@app.route('/distributions-v2.pdf')
+@login_required
+@role_required('distributions')
+def distributions_pdf_v2():
+    today_month = date.today().strftime('%Y-%m')
+
+    start_month = (
+        request.args.get('start_month')
+        or f'{date.today().year}-01'
+    )
+
+    end_month = (
+        request.args.get('end_month')
+        or today_month
+    )
+
+    expenses = money(
+        request.args.get('expenses') or 0
+    )
+
+    other_income = money(
+        request.args.get('other_income') or 0
+    )
+
+    start_date = datetime.strptime(
+        start_month + '-01',
+        '%Y-%m-%d'
+    ).date()
+
+    end_year, end_mon = [
+        int(value)
+        for value in end_month.split('-')
+    ]
+
+    end_date = (
+        date(end_year, end_mon, 28)
+        + timedelta(days=4)
+    ).replace(day=1) - timedelta(days=1)
+
+    setting = get_system_settings()
+
+    shareout_data = calculate_shareout_data(
+        start_month=start_month,
+        end_month=end_month,
+        expenses=expenses,
+        other_income=other_income,
+    )
+
+    cycle = get_shareout_cycle(
+        start_month,
+        end_month,
+    )
+
+    cycle_status = (
+        cycle.status
+        if cycle
+        else 'Draft'
+    )
+
+    payments = Distribution.query.filter(
+        Distribution.paid_on >= start_date,
+        Distribution.paid_on <= end_date,
+    ).order_by(
+        Distribution.paid_on.asc(),
+        Distribution.id.asc(),
+    ).all()
+
+    total_paid = money(
+        sum(
+            (
+                money(payment.amount)
+                for payment in payments
+            ),
+            Decimal('0.00')
+        )
+    )
+
+    payments_by_member = dict(
+        db.session.query(
+            Distribution.member_id,
+            db.func.coalesce(
+                db.func.sum(Distribution.amount),
+                0
+            )
+        )
+        .filter(
+            Distribution.paid_on >= start_date,
+            Distribution.paid_on <= end_date,
+        )
+        .group_by(
+            Distribution.member_id
+        )
+        .all()
+    )
+
+    payment_schedule = []
+
+    members_paid = 0
+    members_partially_paid = 0
+    members_pending = 0
+    members_overpaid = 0
+    members_requiring_review = 0
+
+    total_outstanding = Decimal('0.00')
+
+    for row in shareout_data['rows']:
+        member_id = row['member_id']
+
+        net_shareout = money(
+            row.get(
+                'net_shareout',
+                row.get('net_payable', 0)
+            )
+        )
+
+        amount_paid = money(
+            payments_by_member.get(
+                member_id,
+                Decimal('0.00')
+            )
+        )
+
+        outstanding_balance = money(
+            net_shareout - amount_paid
+        )
+
+        if net_shareout <= 0:
+            payment_status = 'Review'
+            members_requiring_review += 1
+
+        elif outstanding_balance < 0:
+            payment_status = 'Overpaid'
+            members_overpaid += 1
+
+        elif amount_paid <= 0:
+            payment_status = 'Pending'
+            members_pending += 1
+
+        elif outstanding_balance > 0:
+            payment_status = 'Partially Paid'
+            members_partially_paid += 1
+
+        else:
+            payment_status = 'Paid'
+            members_paid += 1
+
+        if outstanding_balance > 0:
+            total_outstanding += outstanding_balance
+
+        payment_schedule.append({
+            **row,
+            'net_shareout': net_shareout,
+            'amount_paid': amount_paid,
+            'outstanding_balance': outstanding_balance,
+            'payment_status': payment_status,
+        })
+
+    total_outstanding = money(
+        total_outstanding
+    )
+
+    eligible_members = len([
+        row
+        for row in payment_schedule
+        if money(row['net_shareout']) > 0
+    ])
+
+    payment_progress = (
+        0
+        if eligible_members == 0
+        else round(
+            (members_paid / eligible_members) * 100
+        )
+    )
+
+    bank_paid = money(
+        sum(
+            (
+                money(payment.amount)
+                for payment in payments
+                if payment.method == 'Bank Transfer'
+            ),
+            Decimal('0.00')
+        )
+    )
+
+    mobile_paid = money(
+        sum(
+            (
+                money(payment.amount)
+                for payment in payments
+                if payment.method in [
+                    'Mobile Money',
+                    'Airtel Money',
+                    'MTN Money',
+                ]
+            ),
+            Decimal('0.00')
+        )
+    )
+
+    cash_paid = money(
+        sum(
+            (
+                money(payment.amount)
+                for payment in payments
+                if payment.method == 'Cash'
+            ),
+            Decimal('0.00')
+        )
+    )
+
+    missing_references = sum(
+        1
+        for payment in payments
+        if not payment.reference
+    )
+
+    filename = (
+        f'distribution_payment_register_v2_'
+        f'{start_month}_to_{end_month}.pdf'
+    )
+
+    report = PDFReport(
+        setting=setting,
+        title='Distribution Payment Register',
+        filename=filename,
+        orientation='landscape',
+        logo_upload_folder=LOGO_UPLOAD_FOLDER,
+        default_logo_path=(
+            Path(app.root_path)
+            / 'static'
+            / 'higher-achievers-logo.jpeg'
+        ),
+        left_margin=12,
+        right_margin=12,
+        top_margin=12,
+        bottom_margin=17,
+    )
+
+    report.add_branding()
+
+    report.add_title(
+        'DISTRIBUTION PAYMENT REGISTER'
+    )
+
+    report.add_information_table(
+        [[
+            'Share-Out Period',
+            f'{start_month} to {end_month}',
+            'Cycle Status',
+            cycle_status,
+        ]],
+        col_widths=[
+            32 * mm,
+            55 * mm,
+            29 * mm,
+            42 * mm,
+        ],
+    )
+
+    report.add_spacer(8)
+
+    report.add_information_table(
+        [
+            [
+                'Total Paid',
+                kwacha(total_paid),
+                'Outstanding',
+                kwacha(total_outstanding),
+                'Progress',
+                f'{payment_progress}%',
+            ],
+            [
+                'Eligible Members',
+                str(eligible_members),
+                'Paid',
+                str(members_paid),
+                'Partially Paid',
+                str(members_partially_paid),
+            ],
+            [
+                'Pending',
+                str(members_pending),
+                'Overpaid',
+                str(members_overpaid),
+                'Require Review',
+                str(members_requiring_review),
+            ],
+            [
+                'Bank Transfers',
+                kwacha(bank_paid),
+                'Mobile Money',
+                kwacha(mobile_paid),
+                'Cash Payments',
+                kwacha(cash_paid),
+            ],
+            [
+                'Missing References',
+                str(missing_references),
+                'Net Payable',
+                kwacha(
+                    shareout_data.get(
+                        'total_net_payable',
+                        0
+                    )
+                ),
+                'Share-Out Fund',
+                kwacha(
+                    shareout_data.get(
+                        'shareout_fund',
+                        0
+                    )
+                ),
+            ],
+        ],
+        col_widths=[
+            32 * mm,
+            30 * mm,
+            30 * mm,
+            30 * mm,
+            32 * mm,
+            32 * mm,
+        ],
+        label_columns=(0, 2, 4),
+        font_size=7,
+    )
+
+    report.add_spacer(8)
+
+    report.add_section(
+        'Member Payment Status'
+    )
+
+    member_rows = [[
+        'Member',
+        'Net Share-Out',
+        'Amount Paid',
+        'Outstanding',
+        'Status',
+    ]]
+
+    for row in payment_schedule:
+        member_rows.append([
+            Paragraph(
+                (
+                    f"<b>{row.get('member_no', '-')}</b><br/>"
+                    f"{row.get('full_name', '-')}"
+                ),
+                report.small_style,
+            ),
+            kwacha(row['net_shareout']),
+            kwacha(row['amount_paid']),
+            kwacha(row['outstanding_balance']),
+            row['payment_status'],
+        ])
+
+    if not payment_schedule:
+        member_rows.append([
+            'No Share-Out allocations found',
+            '',
+            '',
+            '',
+            '',
+        ])
+
+    report.add_data_table(
+        member_rows,
+        col_widths=[
+            62 * mm,
+            34 * mm,
+            34 * mm,
+            34 * mm,
+            32 * mm,
+        ],
+        numeric_columns=(1, 2, 3),
+        font_size=6.2,
+        header_font_size=6.5,
+    )
+
+    report.add_spacer(8)
+
+    report.add_section(
+        'Payment Transaction Register'
+    )
+
+    transaction_rows = [[
+        'Date',
+        'Member',
+        'Method',
+        'Reference',
+        'Authorized By',
+        'Amount',
+    ]]
+
+    for payment in payments:
+        transaction_rows.append([
+            (
+                payment.paid_on.strftime('%d %b %Y')
+                if payment.paid_on
+                else '-'
+            ),
+            Paragraph(
+                (
+                    f'<b>{payment.member.member_no}</b><br/>'
+                    f'{payment.member.full_name}'
+                ),
+                report.small_style,
+            ),
+            payment.method or '-',
+            payment.reference or 'Missing',
+            payment.authorized_by or '-',
+            kwacha(payment.amount),
+        ])
+
+    if not payments:
+        transaction_rows.append([
+            'No payments recorded',
+            '',
+            '',
+            '',
+            '',
+            '',
+        ])
+
+    report.add_data_table(
+        transaction_rows,
+        col_widths=[
+            25 * mm,
+            50 * mm,
+            35 * mm,
+            42 * mm,
+            38 * mm,
+            30 * mm,
+        ],
+        numeric_columns=(5,),
+        font_size=6.2,
+        header_font_size=6.5,
+    )
+
+    report.add_spacer(12)
+
+    report.add_section(
+        'Certification and Approval'
+    )
+
+    report.add_signatures(
+        [
+            'Prepared By',
+            'Verified By',
+            'Treasurer',
+            'Chairperson',
+        ],
+        include_dates=True,
+    )
+
+    pdf_response = report.response(
+        inline=True
+    )
+
+    log_audit(
+        'EXPORT_DISTRIBUTION_REGISTER_PDF_V2',
+        'Distribution',
+        None,
+        (
+            f'Version 2 Distribution Payment Register '
+            f'generated for {start_month} to {end_month}'
+        )
+    )
+
+    return pdf_response
+
 @app.route(
     '/share-out-approval',
     methods=['GET', 'POST']
