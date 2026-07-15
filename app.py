@@ -20,7 +20,6 @@ import re
 from pypdf import PdfReader
 from pathlib import Path
 from reports import PDFReport
-from werkzeug.utils import secure_filename
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle

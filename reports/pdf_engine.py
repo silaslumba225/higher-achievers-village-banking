@@ -130,11 +130,11 @@ class PDFReport:
         self.section_style = ParagraphStyle(
             'PDFReportSection',
             parent=self.styles['Heading2'],
-            fontSize=10,
-            leading=13,
+            fontSize=8,
+            leading=10,
             textColor=self.secondary_colour,
-            spaceBefore=7,
-            spaceAfter=6,
+            spaceBefore=5,
+            spaceAfter=4,
         )
 
         self.small_style = ParagraphStyle(
