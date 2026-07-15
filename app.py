@@ -11451,7 +11451,421 @@ def shareout_pdf():
             'Content-Disposition':
                 f'inline; filename="{filename}"'
         }
-    )   
+    )
+
+@app.route('/shareout-v2.pdf')
+@login_required
+@role_required('shareout')
+def shareout_pdf_v2():
+    setting = get_system_settings()
+
+    organization_name = (
+        setting.organisation_name
+        if setting and setting.organisation_name
+        else CLIENT_NAME
+    )
+
+    today_month = date.today().strftime('%Y-%m')
+
+    start_month = (
+        request.args.get('start_month')
+        or f'{date.today().year}-01'
+    )
+
+    end_month = (
+        request.args.get('end_month')
+        or today_month
+    )
+
+    expenses = money(
+        request.args.get('expenses') or 0
+    )
+
+    other_income = money(
+        request.args.get('other_income') or 0
+    )
+
+    shareout_data = calculate_shareout_data(
+        start_month=start_month,
+        end_month=end_month,
+        expenses=expenses,
+        other_income=other_income,
+    )
+
+    rows = shareout_data['rows']
+
+    total_contributions = money(
+        shareout_data.get(
+            'total_contributions',
+            0
+        )
+    )
+
+    total_savings_interest = money(
+        shareout_data.get(
+            'total_savings_interest',
+            0
+        )
+    )
+
+    fines_paid_total = money(
+        shareout_data.get(
+            'fines_paid_total',
+            0
+        )
+    )
+
+    distributions_total = money(
+        shareout_data.get(
+            'distributions_total',
+            0
+        )
+    )
+
+    surplus = money(
+        shareout_data.get(
+            'surplus',
+            0
+        )
+    )
+
+    shareout_fund = money(
+        shareout_data.get(
+            'shareout_fund',
+            0
+        )
+    )
+
+    total_net_payable = money(
+        shareout_data.get(
+            'total_net_payable',
+            0
+        )
+    )
+
+    eligible_members = shareout_data.get(
+        'eligible_members',
+        0
+    )
+
+    members_requiring_review = shareout_data.get(
+        'members_requiring_review',
+        0
+    )
+
+    readiness_score = shareout_data.get(
+        'readiness_score',
+        0
+    )
+
+    recommendation = shareout_data.get(
+        'recommendation',
+        'Review Share-Out Calculation'
+    )
+
+    readiness_messages = shareout_data.get(
+        'readiness_messages',
+        []
+    )
+
+    cycle = get_shareout_cycle(
+        start_month,
+        end_month,
+    )
+
+    cycle_status = (
+        cycle.status
+        if cycle
+        else 'Draft'
+    )
+
+    filename = (
+        f'members_shareout_schedule_v2_'
+        f'{start_month}_to_{end_month}.pdf'
+    )
+
+    report = PDFReport(
+        setting=setting,
+        title='Members Share-Out Schedule',
+        filename=filename,
+        orientation='landscape',
+        logo_upload_folder=LOGO_UPLOAD_FOLDER,
+        default_logo_path=(
+            Path(app.root_path)
+            / 'static'
+            / 'higher-achievers-logo.jpeg'
+        ),
+        left_margin=12,
+        right_margin=12,
+        top_margin=12,
+        bottom_margin=17,
+    )
+
+    report.add_branding()
+
+    report.add_title(
+        'MEMBERS SHARE-OUT SCHEDULE'
+    )
+
+    report.add_information_table(
+        [[
+            'Share-Out Period',
+            f'{start_month} to {end_month}',
+            'Cycle Status',
+            cycle_status,
+        ]],
+        col_widths=[
+            32 * mm,
+            55 * mm,
+            29 * mm,
+            42 * mm,
+        ],
+    )
+
+    report.add_spacer(8)
+
+    report.add_information_table(
+        [
+            [
+                'Total Contributions',
+                kwacha(total_contributions),
+                'Savings Interest',
+                kwacha(total_savings_interest),
+                'Fines Paid',
+                kwacha(fines_paid_total),
+            ],
+            [
+                'Other Income',
+                kwacha(other_income),
+                'Expenses',
+                kwacha(expenses),
+                'Distributions',
+                kwacha(distributions_total),
+            ],
+            [
+                'Surplus / Income',
+                kwacha(surplus),
+                'Share-Out Fund',
+                kwacha(shareout_fund),
+                'Net Payable',
+                kwacha(total_net_payable),
+            ],
+            [
+                'Eligible Members',
+                str(eligible_members),
+                'Require Review',
+                str(members_requiring_review),
+                'Readiness Score',
+                f'{readiness_score}%',
+            ],
+        ],
+        col_widths=[
+            34 * mm,
+            31 * mm,
+            30 * mm,
+            31 * mm,
+            29 * mm,
+            31 * mm,
+        ],
+        label_columns=(0, 2, 4),
+        font_size=7,
+    )
+
+    report.add_spacer(7)
+
+    report.add_information_table(
+        [[
+            'Executive Recommendation',
+            recommendation,
+            'Readiness',
+            f'{readiness_score}%',
+        ]],
+        col_widths=[
+            40 * mm,
+            95 * mm,
+            24 * mm,
+            27 * mm,
+        ],
+        label_columns=(0, 2),
+        font_size=7.5,
+    )
+
+    if readiness_messages:
+        report.add_spacer(4)
+
+        for message in readiness_messages:
+            report.add_paragraph(
+                f'• {message}',
+                report.small_style,
+            )
+
+    report.add_spacer(7)
+
+    report.add_section(
+        'Member Share-Out Schedule'
+    )
+
+    schedule_rows = [[
+        'Member',
+        'Contributions',
+        'Savings Interest',
+        'Gross Savings',
+        'Share %',
+        'Gross Share-Out',
+        'Loans + Interest',
+        'Fines',
+        'Total Deductions',
+        'Net Payable',
+    ]]
+
+    total_gross_shareout = Decimal('0.00')
+    total_outstanding_loans = Decimal('0.00')
+    total_fines = Decimal('0.00')
+    total_deductions = Decimal('0.00')
+
+    for row in rows:
+        net_payable = money(
+            row.get(
+                'net_shareout',
+                row.get('net_payable', 0)
+            )
+        )
+
+        gross_shareout = money(
+            row.get('gross_shareout', 0)
+        )
+
+        outstanding_loans = money(
+            row.get('outstanding_loans', 0)
+        )
+
+        fine_balance = money(
+            row.get('fine_balance', 0)
+        )
+
+        member_deductions = money(
+            row.get('total_deductions', 0)
+        )
+
+        total_gross_shareout += gross_shareout
+        total_outstanding_loans += outstanding_loans
+        total_fines += fine_balance
+        total_deductions += member_deductions
+
+        schedule_rows.append([
+            Paragraph(
+                (
+                    f"<b>{row.get('member_no', '-')}</b><br/>"
+                    f"{row.get('full_name', '-')}"
+                ),
+                report.small_style,
+            ),
+            kwacha(
+                row.get('contributed', 0)
+            ),
+            kwacha(
+                row.get('savings_interest', 0)
+            ),
+            kwacha(
+                row.get('gross_savings_value', 0)
+            ),
+            f"{row.get('percent', 0)}%",
+            kwacha(gross_shareout),
+            kwacha(outstanding_loans),
+            kwacha(fine_balance),
+            kwacha(member_deductions),
+            kwacha(net_payable),
+        ])
+
+    if not rows:
+        schedule_rows.append([
+            'No Share-Out records found',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+        ])
+
+    schedule_rows.append([
+        'GRAND TOTALS',
+        kwacha(total_contributions),
+        kwacha(total_savings_interest),
+        '',
+        '',
+        kwacha(total_gross_shareout),
+        kwacha(total_outstanding_loans),
+        kwacha(total_fines),
+        kwacha(total_deductions),
+        kwacha(total_net_payable),
+    ])
+
+    report.add_data_table(
+        schedule_rows,
+        col_widths=[
+            36 * mm,
+            23 * mm,
+            22 * mm,
+            23 * mm,
+            17 * mm,
+            24 * mm,
+            25 * mm,
+            19 * mm,
+            24 * mm,
+            25 * mm,
+        ],
+        numeric_columns=(
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+        ),
+        font_size=5.8,
+        header_font_size=6,
+        total_row=True,
+    )
+
+    report.add_spacer(13)
+
+    report.add_section(
+        'Certification and Approval'
+    )
+
+    report.add_signatures(
+        [
+            'Prepared By',
+            'Verified By',
+            'Treasurer',
+            'Chairperson',
+        ],
+        include_dates=True,
+    )
+
+    pdf_response = report.response(
+        inline=True
+    )
+
+    log_audit(
+        'EXPORT_SHAREOUT_PDF_V2',
+        'ShareOut',
+        None,
+        (
+            f'Version 2 Members Share-Out Schedule '
+            f'generated for {start_month} to {end_month}'
+        )
+    )
+
+    return pdf_response
+
 @app.route('/shareout.csv')
 @login_required
 @role_required('shareout')
