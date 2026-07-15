@@ -3911,6 +3911,208 @@ def contribution_passbook_pdf(member_id):
         download_name=filename,
         mimetype='application/pdf'
     )
+
+@app.route('/contributions/passbook/<int:member_id>/pdf-v2')
+@login_required
+@role_required('contributions')
+def contribution_passbook_pdf_v2(member_id):
+    setting = get_system_settings()
+    member = Member.query.get_or_404(member_id)
+
+    contributions = Contribution.query.filter_by(
+        member_id=member.id
+    ).order_by(
+        Contribution.paid_on.asc(),
+        Contribution.id.asc()
+    ).all()
+
+    running_balance = money(0)
+    total_contributions = money(0)
+
+    transaction_rows = [[
+        'Date',
+        'Month',
+        'Description',
+        'Method',
+        'Reference',
+        'Deposit',
+        'Balance',
+    ]]
+
+    for contribution in contributions:
+        amount = money(contribution.amount)
+
+        running_balance = money(
+            running_balance + amount
+        )
+
+        total_contributions = money(
+            total_contributions + amount
+        )
+
+        transaction_rows.append([
+            (
+                contribution.paid_on.strftime('%d %b %Y')
+                if contribution.paid_on
+                else '-'
+            ),
+            contribution.month or '-',
+            Paragraph(
+                (
+                    'Savings contribution for '
+                    f'{contribution.month or "-"}'
+                ),
+                getSampleStyleSheet()['Normal'],
+            ),
+            contribution.method or '-',
+            contribution.reference or '-',
+            kwacha(amount),
+            kwacha(running_balance),
+        ])
+
+    if not contributions:
+        transaction_rows.append([
+            'No contributions recorded',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+        ])
+
+    transaction_rows.append([
+        '',
+        '',
+        '',
+        '',
+        'CURRENT BALANCE',
+        '',
+        kwacha(running_balance),
+    ])
+
+    filename = (
+        f'contribution_statement_v2_'
+        f'{member.member_no}.pdf'
+    )
+
+    report = PDFReport(
+        setting=setting,
+        title='Member Contribution Statement',
+        filename=filename,
+        orientation='portrait',
+        logo_upload_folder=LOGO_UPLOAD_FOLDER,
+        default_logo_path=(
+            Path(app.root_path)
+            / 'static'
+            / 'higher-achievers-logo.jpeg'
+        ),
+        left_margin=14,
+        right_margin=14,
+        top_margin=12,
+        bottom_margin=17,
+    )
+
+    report.add_branding()
+
+    report.add_title(
+        'MEMBER CONTRIBUTION STATEMENT'
+    )
+
+    report.add_information_table(
+        [
+            [
+                'Member Number',
+                member.member_no,
+                'Member Name',
+                member.full_name,
+            ],
+            [
+                'Group',
+                member.group_name or '-',
+                'Member Status',
+                member.status or '-',
+            ],
+        ],
+        col_widths=[
+            31 * mm,
+            43 * mm,
+            29 * mm,
+            58 * mm,
+        ],
+    )
+
+    report.add_spacer(8)
+
+    report.add_section(
+        'Contribution Transaction History'
+    )
+
+    report.add_data_table(
+        transaction_rows,
+        col_widths=[
+            22 * mm,
+            18 * mm,
+            48 * mm,
+            25 * mm,
+            25 * mm,
+            23 * mm,
+            25 * mm,
+        ],
+        numeric_columns=(5, 6),
+        font_size=6.2,
+        header_font_size=6.5,
+        total_row=True,
+    )
+
+    report.add_spacer(10)
+
+    report.add_information_table(
+        [
+            [
+                'Number of Contributions',
+                str(len(contributions)),
+                'Total Contributions',
+                kwacha(total_contributions),
+            ],
+            [
+                'Current Savings Balance',
+                kwacha(running_balance),
+                'Statement Date',
+                date.today().strftime('%d %B %Y'),
+            ],
+        ],
+        col_widths=[
+            42 * mm,
+            39 * mm,
+            42 * mm,
+            39 * mm,
+        ],
+    )
+
+    report.add_spacer(16)
+
+    report.add_signatures([
+        'Member Signature',
+        'Treasurer',
+        'Chairperson',
+    ])
+
+    pdf_response = report.response(
+        inline=True
+    )
+
+    log_audit(
+        'EXPORT_CONTRIBUTION_STATEMENT_PDF_V2',
+        'Member',
+        member.id,
+        (
+            f'Version 2 Contribution Statement '
+            f'generated for {member.full_name}'
+        )
+    )
+
+    return pdf_response
 # ------------------------------------------------------------
 # LOAN PROCESSING WORKFLOW
 #
