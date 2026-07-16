@@ -1459,6 +1459,17 @@ def ensure_settings_columns():
 def money(value):
     return Decimal(value or 0).quantize(Decimal('0.01'))
 
+def normalize_import_header(value):
+    value = str(value or '').strip().lower()
+
+    value = re.sub(
+        r'[^a-z0-9]+',
+        '_',
+        value
+    )
+
+    return value.strip('_')
+
 @app.route('/uploaded-logo/<path:filename>')
 def uploaded_logo(filename):
     return send_from_directory(
@@ -3173,11 +3184,13 @@ def member_toggle(member_id):
     log_audit('TOGGLE_MEMBER_STATUS', 'Member', member.id, f'{member.member_no} status changed to {member.status}')
     flash(f'Member status changed to {member.status}.')
     return redirect(url_for('members'))
+
 @app.route('/members/import', methods=['GET', 'POST'])
 @login_required
 @role_required('members')
 def members_import():
     results = {
+        'processed': 0,
         'created': 0,
         'updated': 0,
         'skipped': 0,
@@ -3185,78 +3198,171 @@ def members_import():
     }
 
     if request.method == 'POST':
-        file = request.files.get('file')
+        uploaded_file = request.files.get('file')
 
-        if not file or file.filename == '':
-            flash('Please select a CSV or Excel file to import.', 'error')
-            return render_template('members_import.html', results=results)
+        if not uploaded_file or not uploaded_file.filename:
+            flash(
+                'Please select a CSV or Excel file to import.',
+                'error'
+            )
 
-        filename = file.filename.lower()
+            return render_template(
+                'members_import.html',
+                results=results
+            )
+
+        filename = uploaded_file.filename.lower()
 
         try:
             rows = []
 
             if filename.endswith('.xlsx'):
-                workbook = load_workbook(file)
+                workbook = load_workbook(
+                    uploaded_file,
+                    data_only=True
+                )
+
                 sheet = workbook.active
 
                 headers = [
-                    str(cell.value or '').strip().lower()
+                    normalize_import_header(cell.value)
                     for cell in sheet[1]
                 ]
 
-                required = ['member_no', 'full_name']
-                missing = [col for col in required if col not in headers]
-
-                if missing:
-                    flash(f'Missing required columns: {", ".join(missing)}', 'error')
-                    return render_template('members_import.html', results=results)
-
-                for line_no, values in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+                for line_no, values in enumerate(
+                    sheet.iter_rows(
+                        min_row=2,
+                        values_only=True
+                    ),
+                    start=2
+                ):
                     row = dict(zip(headers, values))
                     rows.append((line_no, row))
 
             elif filename.endswith('.csv'):
-                raw = file.stream.read()
+                raw = uploaded_file.stream.read()
 
                 try:
                     decoded = raw.decode('utf-8-sig')
                 except UnicodeDecodeError:
                     decoded = raw.decode('latin-1')
 
-                stream = io.StringIO(decoded, newline=None)
+                stream = io.StringIO(
+                    decoded,
+                    newline=None
+                )
+
                 reader = csv.DictReader(stream)
 
-                required = ['member_no', 'full_name']
-                missing = [col for col in required if col not in reader.fieldnames]
+                original_headers = reader.fieldnames or []
 
-                if missing:
-                    flash(f'Missing required columns: {", ".join(missing)}', 'error')
-                    return render_template('members_import.html', results=results)
+                normalized_headers = [
+                    normalize_import_header(header)
+                    for header in original_headers
+                ]
 
-                for line_no, row in enumerate(reader, start=2):
-                    rows.append((line_no, row))
+                for line_no, values in enumerate(
+                    reader,
+                    start=2
+                ):
+                    normalized_row = {}
+
+                    for original, normalized in zip(
+                        original_headers,
+                        normalized_headers
+                    ):
+                        normalized_row[normalized] = (
+                            values.get(original)
+                        )
+
+                    rows.append(
+                        (line_no, normalized_row)
+                    )
 
             else:
-                flash('Unsupported file type. Please upload .xlsx or .csv file.', 'error')
-                return render_template('members_import.html', results=results)
+                flash(
+                    (
+                        'Unsupported file type. '
+                        'Please upload an .xlsx or .csv file.'
+                    ),
+                    'error'
+                )
+
+                return render_template(
+                    'members_import.html',
+                    results=results
+                )
+
+            if not rows:
+                flash(
+                    'The selected file contains no member records.',
+                    'warning'
+                )
+
+                return render_template(
+                    'members_import.html',
+                    results=results
+                )
 
             for line_no, row in rows:
-                member_no = str(row.get('member_no') or '').strip()
-                full_name = str(row.get('full_name') or '').strip()
+                results['processed'] += 1
 
-                if not member_no or not full_name:
+                member_no = str(
+                    row.get('member_no') or ''
+                ).strip().upper()
+
+                full_name = str(
+                    row.get('full_name') or ''
+                ).strip()
+
+                if not full_name:
                     results['skipped'] += 1
-                    results['errors'].append(f'Line {line_no}: member_no and full_name are required.')
+
+                    results['errors'].append(
+                        (
+                            f'Line {line_no}: '
+                            'full_name is required.'
+                        )
+                    )
+
                     continue
 
-               
-                phone = str(row.get('phone') or '').strip()
-                national_id = str(row.get('national_id') or '').strip()
-                group_name = str(row.get('group_name') or '').strip()
-                status = str(row.get('status') or 'Active').strip() or 'Active'
+                if not member_no:
+                    member_no = get_next_member_number()
 
-                member = Member.query.filter_by(member_no=member_no).first()
+                phone = str(
+                    row.get('phone') or ''
+                ).strip() or None
+
+                national_id = str(
+                    row.get('national_id') or ''
+                ).strip() or None
+
+                group_name = str(
+                    row.get('group_name')
+                    or row.get('group')
+                    or ''
+                ).strip() or None
+
+                status = str(
+                    row.get('status') or 'Active'
+                ).strip() or 'Active'
+
+                member_type = str(
+                    row.get('member_type')
+                    or 'Ordinary Member'
+                ).strip() or 'Ordinary Member'
+
+                committee_position = str(
+                    row.get('committee_position')
+                    or ''
+                ).strip() or None
+
+                member = Member.query.filter(
+                    db.func.upper(
+                        Member.member_no
+                    ) == member_no
+                ).first()
 
                 if member:
                     member.full_name = full_name
@@ -3264,41 +3370,95 @@ def members_import():
                     member.national_id = national_id
                     member.group_name = group_name
                     member.status = status
+                    member.member_type = member_type
+                    member.committee_position = (
+                        committee_position
+                    )
+
                     results['updated'] += 1
+
                 else:
+                    if national_id:
+                        duplicate_national_id = (
+                            Member.query.filter_by(
+                                national_id=national_id
+                            ).first()
+                        )
+
+                        if duplicate_national_id:
+                            results['skipped'] += 1
+
+                            results['errors'].append(
+                                (
+                                    f'Line {line_no}: '
+                                    f'National ID {national_id} '
+                                    'already belongs to '
+                                    f'{duplicate_national_id.full_name}.'
+                                )
+                            )
+
+                            continue
+
                     member = Member(
                         member_no=member_no,
                         full_name=full_name,
                         phone=phone,
                         national_id=national_id,
                         group_name=group_name,
-                        status=status
+                        status=status,
+                        member_type=member_type,
+                        committee_position=(
+                            committee_position
+                        )
                     )
+
                     db.session.add(member)
+                    db.session.flush()
+
                     results['created'] += 1
 
-                
             db.session.commit()
 
             log_audit(
                 'IMPORT_MEMBERS',
                 'Member',
                 None,
-                f'Bulk member import completed. Created: {results["created"]}, Updated: {results["updated"]}, Skipped: {results["skipped"]}'
+                (
+                    'Bulk member import completed. '
+                    f'Processed: {results["processed"]}; '
+                    f'Created: {results["created"]}; '
+                    f'Updated: {results["updated"]}; '
+                    f'Skipped: {results["skipped"]}'
+                )
             )
 
             flash(
-                f'Import complete. Created {results["created"]}, '
-                f'updated {results["updated"]}, '
-                f'skipped {results["skipped"]}.'
+                (
+                    'Import completed. '
+                    f'Created {results["created"]}, '
+                    f'updated {results["updated"]}, '
+                    f'skipped {results["skipped"]}.'
+                ),
+                'success'
             )
-            return render_template('members_import.html', results=results)
 
-        except Exception as e:
+        except Exception as exc:
             db.session.rollback()
-            flash(f'Import failed: {str(e)}', 'error')
 
-    return render_template('members_import.html', results=results)
+            flash(
+                f'Import failed: {exc}',
+                'error'
+            )
+
+        return render_template(
+            'members_import.html',
+            results=results
+        )
+
+    return render_template(
+        'members_import.html',
+        results=results
+    )
 
 @app.route('/contributions', methods=['GET', 'POST'])
 @login_required
