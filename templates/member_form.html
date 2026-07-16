@@ -3,6 +3,8 @@
 {% block subtitle %}Maintain member registration details{% endblock %}
 
 {% block content %}
+
+{% set form_data = form_data | default({}, true) %}
 <div class="actions">
     <a class="btn" href="{{ url_for('members') }}">
         ← Back to Members Register

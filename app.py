@@ -3194,7 +3194,11 @@ def member_edit(member_id):
         flash('Member updated successfully.')
         return redirect(url_for('members'))
 
-    return render_template('member_form.html', member=member)
+    return render_template(
+    'member_form.html',
+    member=member,
+    form_data={}
+        )
 
 
 @app.route('/members/<int:member_id>/toggle', methods=['POST'])
