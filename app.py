@@ -1845,6 +1845,33 @@ def cash_account(method):
         return '1020'
 
     return '1000'
+
+def get_next_member_number():
+    members = Member.query.with_entities(
+        Member.member_no
+    ).all()
+
+    highest_number = 0
+
+    for (member_no,) in members:
+        if not member_no:
+            continue
+
+        match = re.fullmatch(
+            r'M(\d+)',
+            member_no.strip(),
+            re.IGNORECASE
+        )
+
+        if match:
+            number = int(match.group(1))
+            highest_number = max(
+                highest_number,
+                number
+            )
+
+    return f'M{highest_number + 1:03d}'
+
 @app.route('/system-settings', methods=['GET', 'POST'])
 @login_required
 @role_required('settings')
@@ -3003,39 +3030,111 @@ def member_profile(member_id):
         **intelligence_data
     )
 
-@app.route('/members/new', methods=['GET','POST'])
+@app.route('/members/new', methods=['GET', 'POST'])
 @login_required
 @role_required('members')
 def member_new():
-    if request.method == 'POST':
-        member_no = request.form['member_no'].strip()
+    next_member_no = get_next_member_number()
 
-        existing = Member.query.filter_by(member_no=member_no).first()
+    if request.method == 'POST':
+        member_no = (
+            request.form.get('member_no')
+            or next_member_no
+        ).strip().upper()
+
+        existing = Member.query.filter(
+            db.func.upper(Member.member_no) == member_no
+        ).first()
+
         if existing:
-            flash(f'Member number {member_no} already exists in the database.', 'error')
-            return render_template(
-                'member_form.html',
-                member=None
+            flash(
+                (
+                    f'Member number {member_no} '
+                    'already exists in the database.'
+                ),
+                'error'
             )
 
-        m = Member(
+            return render_template(
+                'member_form.html',
+                member=None,
+                next_member_no=next_member_no,
+                form_data=request.form
+            )
+
+        full_name = (
+            request.form.get('full_name')
+            or ''
+        ).strip()
+
+        if not full_name:
+            flash(
+                'Member name is required.',
+                'error'
+            )
+
+            return render_template(
+                'member_form.html',
+                member=None,
+                next_member_no=next_member_no,
+                form_data=request.form
+            )
+
+        member = Member(
             member_no=member_no,
-            full_name=request.form['full_name'].strip(),
-            phone=request.form.get('phone'),
-            national_id=request.form.get('national_id'),
-            group_name=request.form.get('group_name'),
-            member_type=request.form.get('member_type') or 'Ordinary Member',
-            committee_position=request.form.get('committee_position') or None
+            full_name=full_name,
+            phone=(
+                request.form.get('phone')
+                or ''
+            ).strip() or None,
+            national_id=(
+                request.form.get('national_id')
+                or ''
+            ).strip() or None,
+            group_name=(
+                request.form.get('group_name')
+                or ''
+            ).strip() or None,
+            member_type=(
+                request.form.get('member_type')
+                or 'Ordinary Member'
+            ),
+            committee_position=(
+                request.form.get(
+                    'committee_position'
+                )
+                or None
+            )
         )
 
-        db.session.add(m)
+        db.session.add(member)
         db.session.commit()
 
-        log_audit('CREATE_MEMBER', 'Member', m.id, f'{m.member_no} - {m.full_name}')
-        flash('Member added successfully.')
-        return redirect(url_for('members'))
+        log_audit(
+            'CREATE_MEMBER',
+            'Member',
+            member.id,
+            (
+                f'{member.member_no} - '
+                f'{member.full_name}'
+            )
+        )
 
-    return render_template('member_form.html')
+        flash(
+            'Member added successfully.',
+            'success'
+        )
+
+        return redirect(
+            url_for('members')
+        )
+
+    return render_template(
+        'member_form.html',
+        member=None,
+        next_member_no=next_member_no,
+        form_data={}
+    )
 
 @app.route('/members/<int:member_id>/edit', methods=['GET', 'POST'])
 @login_required

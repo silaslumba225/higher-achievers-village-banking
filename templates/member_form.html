@@ -11,11 +11,35 @@
 <section class="panel narrow">
   <form method="post" class="form-grid single">
     <label>Member No
-      <input name="member_no" value="{{ member.member_no if member else '' }}" required>
+      <input
+    type="text"
+    name="member_no"
+    value="{{
+        form_data.get(
+            'member_no',
+            member.member_no
+            if member
+            else next_member_no
+        )
+    }}"
+    required
+>
     </label>
 
     <label>Full Name
-      <input name="full_name" value="{{ member.full_name if member else '' }}" required>
+      <input
+    type="text"
+    name="full_name"
+    value="{{
+        form_data.get(
+            'full_name',
+            member.full_name
+            if member
+            else ''
+        )
+    }}"
+    required
+>
     </label>
 
     <label>Phone
