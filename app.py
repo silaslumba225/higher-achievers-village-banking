@@ -2817,21 +2817,38 @@ def members():
     query = Member.query
 
     if q:
+        search_term = f'%{q}%'
+
         query = query.filter(
-            Member.full_name.contains(q) |
-            Member.member_no.contains(q) |
-            Member.phone.contains(q)
+            db.or_(
+                Member.full_name.ilike(search_term),
+                Member.member_no.ilike(search_term),
+                Member.phone.ilike(search_term),
+                Member.national_id.ilike(search_term),
+                Member.group_name.ilike(search_term),
+                Member.member_type.ilike(search_term),
+                Member.committee_position.ilike(search_term),
+            )
         )
 
-    pagination = query.order_by(Member.member_no).paginate(
+    pagination = query.order_by(
+        Member.member_no.asc()
+    ).paginate(
         page=page,
         per_page=per_page,
         error_out=False
     )
 
     total_members = Member.query.count()
-    active_members = Member.query.filter_by(status='Active').count()
-    inactive_members = total_members - active_members
+
+    active_members = Member.query.filter_by(
+        status='Active'
+    ).count()
+
+    inactive_members = max(
+        total_members - active_members,
+        0
+    )
 
     committee_members = Member.query.filter(
         Member.committee_position.isnot(None),
@@ -2841,26 +2858,34 @@ def members():
     current_month = date.today().strftime('%Y-%m')
 
     if db.engine.dialect.name == 'sqlite':
-        member_month_expression = db.func.strftime('%Y-%m', Member.created_at)
+        member_month_expression = db.func.strftime(
+            '%Y-%m',
+            Member.created_at
+        )
     else:
-        member_month_expression = db.func.to_char(Member.created_at, 'YYYY-MM')
+        member_month_expression = db.func.to_char(
+            Member.created_at,
+            'YYYY-MM'
+        )
 
     new_members_this_month = Member.query.filter(
         member_month_expression == current_month
     ).count()
+
+    search_result_count = pagination.total
 
     return render_template(
         'members.html',
         members=pagination.items,
         pagination=pagination,
         q=q,
+        search_result_count=search_result_count,
         total_members=total_members,
         active_members=active_members,
         inactive_members=inactive_members,
         committee_members=committee_members,
         new_members_this_month=new_members_this_month
     )
-
 @app.route('/member/<int:member_id>/savings')
 @login_required
 @role_required('members')
