@@ -1,96 +1,590 @@
 {% extends 'base.html' %}
-{% block page_title %}{{ 'Edit Member' if member else 'New Member' }}{% endblock %}
-{% block subtitle %}Maintain member registration details{% endblock %}
+
+{% block page_title %}
+  {{ 'Edit Member' if member else 'Register New Member' }}
+{% endblock %}
+
+{% block subtitle %}
+  {{ 'Update the member registration details' if member else 'Add a new member to the village banking group' }}
+{% endblock %}
 
 {% block content %}
 
 {% set form_data = form_data | default({}, true) %}
-<div class="actions">
-    <a class="btn" href="{{ url_for('members') }}">
-        ← Back to Members Register
+
+<style>
+  .member-form-page {
+    max-width: 980px;
+    margin: 0 auto;
+    padding-bottom: 32px;
+  }
+
+  .member-form-hero {
+    background: linear-gradient(
+      135deg,
+      var(--primary-color, #155eef),
+      var(--secondary-color, #198754)
+    );
+    color: white;
+    border-radius: 22px;
+    padding: 26px;
+    margin-bottom: 22px;
+    box-shadow: 0 12px 28px rgba(16, 24, 40, 0.14);
+  }
+
+  .member-form-hero h2 {
+    margin: 0 0 6px;
+    font-weight: 750;
+  }
+
+  .member-form-hero p {
+    margin: 0;
+    opacity: 0.92;
+  }
+
+  .member-form-card {
+    background: var(--card-color, #ffffff);
+    border: 1px solid #e5e7eb;
+    border-radius: 22px;
+    padding: 26px;
+    box-shadow: 0 10px 26px rgba(16, 24, 40, 0.07);
+  }
+
+  .member-form-section {
+    margin-bottom: 26px;
+  }
+
+  .member-form-section:last-child {
+    margin-bottom: 0;
+  }
+
+  .section-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 12px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .section-heading-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+    display: grid;
+    place-items: center;
+    color: var(--primary-color, #155eef);
+    background: var(--table-header-color, #eaf2f8);
+    font-size: 18px;
+  }
+
+  .section-heading h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 750;
+  }
+
+  .section-heading p {
+    margin: 2px 0 0;
+    color: #667085;
+    font-size: 0.86rem;
+  }
+
+  .member-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+
+  .member-form-field.full-width {
+    grid-column: 1 / -1;
+  }
+
+  .member-form-field label {
+    display: block;
+    margin-bottom: 7px;
+    color: #344054;
+    font-weight: 700;
+  }
+
+  .required-mark {
+    color: var(--danger-color, #dc3545);
+  }
+
+  .field-help {
+    display: block;
+    margin-top: 6px;
+    color: #667085;
+    font-size: 0.78rem;
+  }
+
+  .member-form-field input,
+  .member-form-field select {
+    width: 100%;
+    min-height: 46px;
+    padding: 10px 12px;
+    border: 1px solid #d0d5dd;
+    border-radius: 11px;
+    background: #fffbea;
+    color: #101828;
+    outline: none;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease,
+      background 0.2s ease;
+  }
+
+  .member-form-field input:focus,
+  .member-form-field select:focus {
+    background: white;
+    border-color: var(--primary-color, #155eef);
+    box-shadow: 0 0 0 3px
+      color-mix(
+        in srgb,
+        var(--primary-color, #155eef) 14%,
+        transparent
+      );
+  }
+
+  .member-number-box {
+    position: relative;
+  }
+
+  .generated-badge {
+    position: absolute;
+    top: 38px;
+    right: 9px;
+    padding: 5px 9px;
+    border-radius: 999px;
+    color: #166534;
+    background: #dcfce7;
+    font-size: 0.72rem;
+    font-weight: 750;
+    pointer-events: none;
+  }
+
+  .member-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding-top: 22px;
+    margin-top: 24px;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  .member-form-actions .btn,
+  .member-form-actions button {
+    min-width: 145px;
+    min-height: 44px;
+    border-radius: 11px;
+    font-weight: 700;
+  }
+
+  .back-row {
+    margin-bottom: 16px;
+  }
+
+  .back-row .btn {
+    border-radius: 11px;
+  }
+
+  .form-note {
+    padding: 13px 15px;
+    margin-bottom: 20px;
+    border-left: 4px solid var(--primary-color, #155eef);
+    border-radius: 10px;
+    color: #344054;
+    background: var(--table-header-color, #eaf2f8);
+    font-size: 0.88rem;
+  }
+
+  @media (max-width: 720px) {
+    .member-form-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .member-form-field.full-width {
+      grid-column: auto;
+    }
+
+    .member-form-actions {
+      flex-direction: column-reverse;
+    }
+
+    .member-form-actions .btn,
+    .member-form-actions button {
+      width: 100%;
+    }
+  }
+</style>
+
+<div class="member-form-page">
+
+  <div class="back-row">
+    <a
+      class="btn"
+      href="{{ url_for('members') }}"
+    >
+      ← Back to Members Register
     </a>
-</div>
-<section class="panel narrow">
-  <form method="post" class="form-grid single">
-    <label>Member No
-      <input
-    type="text"
-    name="member_no"
-    value="{{
-        form_data.get(
-            'member_no',
-            member.member_no
-            if member
-            else next_member_no
-        )
-    }}"
-    required
->
-    </label>
+  </div>
 
-    <label>Full Name
-      <input
-    type="text"
-    name="full_name"
-    value="{{
-        form_data.get(
-            'full_name',
-            member.full_name
-            if member
-            else ''
-        )
-    }}"
-    required
->
-    </label>
+  <div class="member-form-hero">
+    <h2>
+      {% if member %}
+        Edit Member Record
+      {% else %}
+        Register New Member
+      {% endif %}
+    </h2>
 
-    <label>Phone
-      <input name="phone" value="{{ member.phone if member else '' }}">
-    </label>
+    <p>
+      {% if member %}
+        Review and update the member information below.
+      {% else %}
+        Complete the registration details for the new member.
+      {% endif %}
+    </p>
+  </div>
 
-    <label>NRC / ID
-      <input name="national_id" value="{{ member.national_id if member else '' }}">
-    </label>
+  <div class="member-form-card">
 
-    <label>Group
-      <input name="group_name" value="{{ member.group_name if member else '' }}">
-    </label>
+    <div class="form-note">
+      Fields marked with
+      <strong class="required-mark">*</strong>
+      are required.
+    </div>
 
-    <label>Status
-      <select name="status">
-        {% for s in ['Active', 'Inactive'] %}
-          <option value="{{ s }}" {% if member and member.status == s %}selected{% endif %}>{{ s }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    <label>Member Type
-    <select name="member_type">
-      <option value="Ordinary Member" {% if member and member.member_type == 'Ordinary Member' %}selected{% endif %}>Ordinary Member</option>
-      <option value="Committee Member" {% if member and member.member_type == 'Committee Member' %}selected{% endif %}>Committee Member</option>
-    </select>
-  </label>
+    <form method="post">
 
-  <label>Committee Position
-    <select name="committee_position">
-      <option value="">None</option>
-      <option value="Chairperson" {% if member and member.committee_position == 'Chairperson' %}selected{% endif %}>Chairperson</option>
-      <option value="Vice Chairperson" {% if member and member.committee_position == 'Vice Chairperson' %}selected{% endif %}>Vice Chairperson</option>
-      <option value="Treasurer" {% if member and member.committee_position == 'Treasurer' %}selected{% endif %}>Treasurer</option>
-      <option value="Secretary" {% if member and member.committee_position == 'Secretary' %}selected{% endif %}>Secretary</option>
-      <option value="Auditor" {% if member and member.committee_position == 'Auditor' %}selected{% endif %}>Auditor</option>
-      <option value="Committee Member" {% if member and member.committee_position == 'Committee Member' %}selected{% endif %}>Committee Member</option>
-    </select>
-  </label>
+      <!-- Basic Details -->
+      <div class="member-form-section">
 
-    <div class="actions">
-        <button type="submit" class="primary">
-            Save Member
+        <div class="section-heading">
+          <div class="section-heading-icon">
+            👤
+          </div>
+
+          <div>
+            <h3>Basic Member Details</h3>
+            <p>Identification and contact information.</p>
+          </div>
+        </div>
+
+        <div class="member-form-grid">
+
+          <div class="member-form-field member-number-box">
+            <label for="member_no">
+              Member Number
+              <span class="required-mark">*</span>
+            </label>
+
+            <input
+              type="text"
+              id="member_no"
+              name="member_no"
+              value="{{
+                form_data.get(
+                  'member_no',
+                  member.member_no
+                  if member
+                  else next_member_no
+                )
+              }}"
+              maxlength="20"
+              autocomplete="off"
+              required
+            >
+
+            {% if not member %}
+              <span class="generated-badge">
+                Auto-generated
+              </span>
+            {% endif %}
+
+            <small class="field-help">
+              The suggested number may be changed if necessary.
+            </small>
+          </div>
+
+          <div class="member-form-field">
+            <label for="full_name">
+              Full Name
+              <span class="required-mark">*</span>
+            </label>
+
+            <input
+              type="text"
+              id="full_name"
+              name="full_name"
+              value="{{
+                form_data.get(
+                  'full_name',
+                  member.full_name
+                  if member
+                  else ''
+                )
+              }}"
+              maxlength="120"
+              autocomplete="name"
+              required
+            >
+          </div>
+
+          <div class="member-form-field">
+            <label for="phone">
+              Phone Number
+            </label>
+
+            <input
+              type="text"
+              id="phone"
+              name="phone"
+              value="{{
+                form_data.get(
+                  'phone',
+                  member.phone
+                  if member and member.phone
+                  else ''
+                )
+              }}"
+              maxlength="30"
+              autocomplete="tel"
+              placeholder="Example: 0977 000000"
+            >
+          </div>
+
+          <div class="member-form-field">
+            <label for="national_id">
+              NRC / National ID
+            </label>
+
+            <input
+              type="text"
+              id="national_id"
+              name="national_id"
+              value="{{
+                form_data.get(
+                  'national_id',
+                  member.national_id
+                  if member and member.national_id
+                  else ''
+                )
+              }}"
+              maxlength="50"
+              placeholder="Enter NRC or other identification"
+            >
+          </div>
+
+          <div class="member-form-field">
+            <label for="group_name">
+              Group
+            </label>
+
+            <input
+              type="text"
+              id="group_name"
+              name="group_name"
+              value="{{
+                form_data.get(
+                  'group_name',
+                  member.group_name
+                  if member and member.group_name
+                  else ''
+                )
+              }}"
+              maxlength="80"
+              placeholder="Example: Group 1"
+            >
+          </div>
+
+          <div class="member-form-field">
+            <label for="status">
+              Member Status
+            </label>
+
+            {% set selected_status = form_data.get(
+              'status',
+              member.status if member else 'Active'
+            ) %}
+
+            <select
+              id="status"
+              name="status"
+            >
+              {% for status_option in ['Active', 'Inactive'] %}
+                <option
+                  value="{{ status_option }}"
+                  {% if selected_status == status_option %}selected{% endif %}
+                >
+                  {{ status_option }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Membership and Committee -->
+      <div class="member-form-section">
+
+        <div class="section-heading">
+          <div class="section-heading-icon">
+            🏛️
+          </div>
+
+          <div>
+            <h3>Membership and Committee Role</h3>
+            <p>
+              Classify the member and assign a committee role where applicable.
+            </p>
+          </div>
+        </div>
+
+        <div class="member-form-grid">
+
+          <div class="member-form-field">
+            <label for="member_type">
+              Member Type
+            </label>
+
+            {% set selected_member_type = form_data.get(
+              'member_type',
+              member.member_type
+              if member and member.member_type
+              else 'Ordinary Member'
+            ) %}
+
+            <select
+              id="member_type"
+              name="member_type"
+              onchange="toggleCommitteePosition()"
+            >
+              {% for type_option in [
+                'Ordinary Member',
+                'Committee Member'
+              ] %}
+                <option
+                  value="{{ type_option }}"
+                  {% if selected_member_type == type_option %}selected{% endif %}
+                >
+                  {{ type_option }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div
+            class="member-form-field"
+            id="committeePositionField"
+          >
+            <label for="committee_position">
+              Committee Position
+            </label>
+
+            {% set selected_position = form_data.get(
+              'committee_position',
+              member.committee_position
+              if member and member.committee_position
+              else ''
+            ) %}
+
+            <select
+              id="committee_position"
+              name="committee_position"
+            >
+              <option value="">
+                None
+              </option>
+
+              {% for position in [
+                'Chairperson',
+                'Vice Chairperson',
+                'Treasurer',
+                'Vice Treasurer',
+                'Secretary',
+                'Vice Secretary',
+                'Auditor',
+                'Committee Member'
+              ] %}
+                <option
+                  value="{{ position }}"
+                  {% if selected_position == position %}selected{% endif %}
+                >
+                  {{ position }}
+                </option>
+              {% endfor %}
+            </select>
+
+            <small class="field-help">
+              Select a position only for a committee member.
+            </small>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="member-form-actions">
+
+        <a
+          class="btn"
+          href="{{ url_for('members') }}"
+        >
+          Cancel
+        </a>
+
+        <button
+          type="submit"
+          class="primary"
+        >
+          {% if member %}
+            Save Changes
+          {% else %}
+            Register Member
+          {% endif %}
         </button>
 
-        <a class="btn" href="{{ url_for('members') }}">
-            Cancel
-        </a>
-    </div>
-  </form>
-</section>
+      </div>
+
+    </form>
+
+  </div>
+</div>
+
+<script>
+  function toggleCommitteePosition() {
+    const memberType = document.getElementById('member_type');
+    const positionField = document.getElementById(
+      'committeePositionField'
+    );
+    const positionSelect = document.getElementById(
+      'committee_position'
+    );
+
+    if (!memberType || !positionField || !positionSelect) {
+      return;
+    }
+
+    const isCommitteeMember =
+      memberType.value === 'Committee Member';
+
+    positionField.style.opacity = isCommitteeMember
+      ? '1'
+      : '0.55';
+
+    positionSelect.disabled = !isCommitteeMember;
+
+    if (!isCommitteeMember) {
+      positionSelect.value = '';
+    }
+  }
+
+  document.addEventListener(
+    'DOMContentLoaded',
+    toggleCommitteePosition
+  );
+</script>
+
 {% endblock %}
