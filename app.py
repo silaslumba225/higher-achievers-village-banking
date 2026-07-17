@@ -670,13 +670,29 @@ class Member(db.Model):
 
 class Contribution(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    member_id = db.Column(db.Integer, db.ForeignKey('member.id'), nullable=False)
+    member_id = db.Column(
+        db.Integer,
+        db.ForeignKey('member.id'),
+        nullable=False
+    )
     month = db.Column(db.String(7), nullable=False)
     amount = db.Column(db.Numeric(12, 2), nullable=False)
     method = db.Column(db.String(30), nullable=False)
     reference = db.Column(db.String(80))
     paid_on = db.Column(db.Date, default=date.today)
-    member = db.relationship('Member', backref='contributions')
+
+    source_type = db.Column(
+        db.String(30),
+        default='Normal',
+        nullable=False
+    )
+
+    source_id = db.Column(db.Integer)
+
+    member = db.relationship(
+        'Member',
+        backref='contributions'
+    )
 
 class Loan(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -703,6 +719,13 @@ class Loan(db.Model):
 
     disbursement_method = db.Column(db.String(50))
     disbursement_reference = db.Column(db.String(100))
+    source_type = db.Column(
+    db.String(30),
+    default='Normal',
+    nullable=False
+)
+
+    source_id = db.Column(db.Integer)
 
     @property
     def interest_amount(self):
@@ -766,7 +789,13 @@ class WelfareContribution(db.Model):
     reference = db.Column(db.String(80))
     paid_on = db.Column(db.Date, default=date.today)
     member = db.relationship('Member', backref='welfare_contributions')
+    source_type = db.Column(
+    db.String(30),
+    default='Normal',
+    nullable=False
+)
 
+    source_id = db.Column(db.Integer)
 
 class WelfareClaim(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -806,6 +835,13 @@ class FinePenalty(db.Model):
     waived_by = db.Column(db.String(120))
     waived_on = db.Column(db.Date)
     member = db.relationship('Member', backref='fines')
+    source_type = db.Column(
+    db.String(30),
+    default='Normal',
+    nullable=False
+)
+
+    source_id = db.Column(db.Integer)
 
     @property
     def total_paid(self):
@@ -914,7 +950,13 @@ class LoanInterest(db.Model):
 
     loan = db.relationship('Loan', backref='loan_interest_entries')
     member = db.relationship('Member', backref='loan_interest_entries')
+    source_type = db.Column(
+    db.String(30),
+    default='Month End',
+    nullable=False
+)
 
+    source_id = db.Column(db.Integer)
 
 class MonthEndProcess(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -1294,7 +1336,243 @@ class ShareOutCycle(db.Model):
             name='uq_shareout_cycle_period'
         ),
     )
+class OpeningBalanceBatch(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
 
+    batch_no = db.Column(
+        db.String(30),
+        unique=True,
+        nullable=False
+    )
+
+    effective_date = db.Column(
+        db.Date,
+        nullable=False
+    )
+
+    description = db.Column(db.String(250))
+
+    status = db.Column(
+        db.String(20),
+        default='Draft',
+        nullable=False
+    )
+    # Draft, Validated, Approved, Posted, Locked, Reversed
+
+    total_members = db.Column(
+        db.Integer,
+        default=0,
+        nullable=False
+    )
+
+    total_savings = db.Column(
+        db.Numeric(14, 2),
+        default=0,
+        nullable=False
+    )
+
+    total_loan_principal = db.Column(
+        db.Numeric(14, 2),
+        default=0,
+        nullable=False
+    )
+
+    total_loan_interest = db.Column(
+        db.Numeric(14, 2),
+        default=0,
+        nullable=False
+    )
+
+    total_fines = db.Column(
+        db.Numeric(14, 2),
+        default=0,
+        nullable=False
+    )
+
+    total_welfare = db.Column(
+        db.Numeric(14, 2),
+        default=0,
+        nullable=False
+    )
+
+    imported_by = db.Column(db.String(120))
+    approved_by = db.Column(db.String(120))
+    posted_by = db.Column(db.String(120))
+    reversed_by = db.Column(db.String(120))
+
+    imported_on = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        nullable=False
+    )
+
+    approved_on = db.Column(db.DateTime)
+    posted_on = db.Column(db.DateTime)
+    locked_on = db.Column(db.DateTime)
+    reversed_on = db.Column(db.DateTime)
+
+    reversal_reason = db.Column(db.String(250))
+
+
+class OpeningBalance(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    batch_id = db.Column(
+        db.Integer,
+        db.ForeignKey('opening_balance_batch.id'),
+        nullable=False
+    )
+
+    member_id = db.Column(
+        db.Integer,
+        db.ForeignKey('member.id'),
+        nullable=False
+    )
+
+    savings_balance = db.Column(
+        db.Numeric(14, 2),
+        default=0,
+        nullable=False
+    )
+
+    loan_principal = db.Column(
+        db.Numeric(14, 2),
+        default=0,
+        nullable=False
+    )
+
+    loan_interest = db.Column(
+        db.Numeric(14, 2),
+        default=0,
+        nullable=False
+    )
+
+    fine_balance = db.Column(
+        db.Numeric(14, 2),
+        default=0,
+        nullable=False
+    )
+
+    welfare_balance = db.Column(
+        db.Numeric(14, 2),
+        default=0,
+        nullable=False
+    )
+
+    loan_due_date = db.Column(db.Date)
+    loan_interest_rate = db.Column(db.Numeric(5, 2))
+
+    remarks = db.Column(db.String(250))
+
+    validation_status = db.Column(
+        db.String(20),
+        default='Valid',
+        nullable=False
+    )
+
+    validation_message = db.Column(db.String(250))
+
+    is_posted = db.Column(
+        db.Boolean,
+        default=False,
+        nullable=False
+    )
+
+    posted_contribution_id = db.Column(db.Integer)
+    posted_loan_id = db.Column(db.Integer)
+    posted_loan_interest_id = db.Column(db.Integer)
+    posted_fine_id = db.Column(db.Integer)
+    posted_welfare_id = db.Column(db.Integer)
+
+    member = db.relationship(
+        'Member',
+        backref='opening_balances'
+    )
+
+    batch = db.relationship(
+        'OpeningBalanceBatch',
+        backref=db.backref(
+            'balances',
+            lazy=True,
+            cascade='all, delete-orphan'
+        )
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            'batch_id',
+            'member_id',
+            name='uq_opening_balance_batch_member'
+        ),
+    )
+
+def generate_opening_balance_batch_no():
+    year = date.today().year
+
+    last_batch = OpeningBalanceBatch.query.filter(
+        OpeningBalanceBatch.batch_no.like(f'OB-{year}-%')
+    ).order_by(
+        OpeningBalanceBatch.id.desc()
+    ).first()
+
+    next_number = 1
+
+    if last_batch and last_batch.batch_no:
+        try:
+            next_number = int(
+                last_batch.batch_no.split('-')[-1]
+            ) + 1
+        except (ValueError, IndexError):
+            next_number = last_batch.id + 1
+
+    return f'OB-{year}-{next_number:03d}'
+
+def ensure_opening_balance_columns():
+    inspector = db.inspect(db.engine)
+    table_names = inspector.get_table_names()
+
+    column_definitions = {
+        'contribution': {
+            'source_type': "VARCHAR(30) DEFAULT 'Normal'",
+            'source_id': 'INTEGER'
+        },
+        'loan': {
+            'source_type': "VARCHAR(30) DEFAULT 'Normal'",
+            'source_id': 'INTEGER'
+        },
+        'fine_penalty': {
+            'source_type': "VARCHAR(30) DEFAULT 'Normal'",
+            'source_id': 'INTEGER'
+        },
+        'welfare_contribution': {
+            'source_type': "VARCHAR(30) DEFAULT 'Normal'",
+            'source_id': 'INTEGER'
+        },
+        'loan_interest': {
+            'source_type': "VARCHAR(30) DEFAULT 'Month End'",
+            'source_id': 'INTEGER'
+        }
+    }
+
+    for table_name, required_columns in column_definitions.items():
+        if table_name not in table_names:
+            continue
+
+        existing_columns = {
+            column['name']
+            for column in inspector.get_columns(table_name)
+        }
+
+        for column_name, column_sql in required_columns.items():
+            if column_name not in existing_columns:
+                db.session.execute(
+                    db.text(
+                        f'ALTER TABLE {table_name} '
+                        f'ADD COLUMN {column_name} {column_sql}'
+                    )
+                )
+
+    db.session.commit()
    
 def ensure_settings_columns():
     columns = {
@@ -12044,8 +12322,11 @@ def initialize_database():
         ensure_settings_columns()
         ensure_member_columns()
         ensure_loan_columns()
+        ensure_opening_balance_columns()
+        
         ensure_schema()
         ensure_admin()
+        
 
 # Initialize tables when the application is imported by Gunicorn on Render.
 initialize_database()
