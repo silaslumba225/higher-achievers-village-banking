@@ -1,0 +1,536 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Opening Balances Preview{% endblock %}
+{% block subtitle %}
+Review imported balances and validation results before approval.
+{% endblock %}
+
+{% block content %}
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+
+<style>
+  .ob-preview-hero {
+    background: linear-gradient(
+      135deg,
+      var(--primary-color, #155eef),
+      var(--secondary-color, #0f3fa8)
+    );
+    color: #fff;
+    border-radius: 24px;
+    padding: 28px;
+    margin-bottom: 24px;
+    box-shadow: 0 12px 28px rgba(16, 24, 40, .15);
+  }
+
+  .ob-panel {
+    background: var(--card-color, #fff);
+    border: 1px solid #e5e7eb;
+    border-radius: 22px;
+    padding: 22px;
+    box-shadow: 0 10px 24px rgba(16, 24, 40, .07);
+    margin-bottom: 24px;
+  }
+
+  .summary-card {
+    border: 0;
+    border-radius: 20px;
+    color: #fff;
+    box-shadow: 0 10px 24px rgba(16, 24, 40, .10);
+    height: 100%;
+  }
+
+  .summary-card small {
+    display: block;
+    text-transform: uppercase;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .04em;
+    opacity: .9;
+  }
+
+  .summary-card strong {
+    display: block;
+    font-size: 26px;
+    margin-top: 7px;
+  }
+
+  .grad-blue {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  }
+
+  .grad-green {
+    background: linear-gradient(135deg, #16a34a, #15803d);
+  }
+
+  .grad-purple {
+    background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  }
+
+  .grad-orange {
+    background: linear-gradient(135deg, #f97316, #c2410c);
+  }
+
+  .grad-red {
+    background: linear-gradient(135deg, #ef4444, #b91c1c);
+  }
+
+  .grad-teal {
+    background: linear-gradient(135deg, #0d9488, #0f766e);
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .status-valid {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .status-invalid {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .status-draft {
+    background: #e0e7ff;
+    color: #3730a3;
+  }
+
+  .validation-banner {
+    border-radius: 18px;
+    padding: 18px;
+    margin-bottom: 24px;
+  }
+
+  .validation-success {
+    background: #ecfdf3;
+    border: 1px solid #abefc6;
+    color: #067647;
+  }
+
+  .validation-error {
+    background: #fef3f2;
+    border: 1px solid #fecdca;
+    color: #b42318;
+  }
+
+  .table thead th {
+    background: #f8fafc;
+    color: #475467;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    white-space: nowrap;
+  }
+
+  .table td {
+    vertical-align: middle;
+  }
+
+  .amount-cell {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .member-cell strong {
+    display: block;
+  }
+
+  .member-cell small {
+    color: #667085;
+  }
+
+  .error-message {
+    color: #b42318;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .sticky-actions {
+    position: sticky;
+    bottom: 12px;
+    z-index: 10;
+    background: rgba(255, 255, 255, .96);
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    padding: 14px;
+    box-shadow: 0 10px 30px rgba(16, 24, 40, .14);
+    backdrop-filter: blur(8px);
+  }
+
+  @media (max-width: 767px) {
+    .ob-preview-hero {
+      padding: 22px;
+    }
+
+    .sticky-actions {
+      position: static;
+    }
+  }
+</style>
+
+<div class="ob-preview-hero">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+
+    <div>
+      <h2 class="mb-2">
+        <i class="fa-solid fa-magnifying-glass-chart me-2"></i>
+        Opening Balances Preview
+      </h2>
+
+      <p class="mb-1">
+        Batch:
+        <strong>{{ batch.batch_no }}</strong>
+      </p>
+
+      <p class="mb-0">
+        Effective Date:
+        <strong>
+          {{
+            batch.effective_date.strftime('%d %B %Y')
+            if batch.effective_date
+            else '-'
+          }}
+        </strong>
+      </p>
+    </div>
+
+    <div class="text-end">
+      <span class="status-pill status-draft">
+        <i class="fa-solid fa-layer-group"></i>
+        {{ batch.status }}
+      </span>
+
+      <div class="mt-3">
+        <a
+          class="btn btn-light"
+          href="{{ url_for('opening_balances') }}"
+        >
+          <i class="fa-solid fa-arrow-left me-1"></i>
+          Control Centre
+        </a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% if validation_errors == 0 %}
+  <div class="validation-banner validation-success">
+    <div class="d-flex align-items-start gap-3">
+      <i class="fa-solid fa-circle-check fa-2x"></i>
+
+      <div>
+        <strong>Validation completed successfully</strong>
+        <p class="mb-0">
+          All imported records are valid and ready for approval.
+        </p>
+      </div>
+    </div>
+  </div>
+{% else %}
+  <div class="validation-banner validation-error">
+    <div class="d-flex align-items-start gap-3">
+      <i class="fa-solid fa-triangle-exclamation fa-2x"></i>
+
+      <div>
+        <strong>
+          {{ validation_errors }}
+          validation error{% if validation_errors != 1 %}s{% endif %}
+          found
+        </strong>
+
+        <p class="mb-0">
+          Correct the affected records and validate the batch again before approval.
+        </p>
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+<div class="row g-4 mb-4">
+
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="card summary-card grad-blue">
+      <div class="card-body">
+        <small>Members</small>
+        <strong>{{ batch.total_members }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="card summary-card grad-green">
+      <div class="card-body">
+        <small>Savings</small>
+        <strong>{{ batch.total_savings|kwacha }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="card summary-card grad-purple">
+      <div class="card-body">
+        <small>Loan Principal</small>
+        <strong>{{ batch.total_loan_principal|kwacha }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="card summary-card grad-orange">
+      <div class="card-body">
+        <small>Loan Interest</small>
+        <strong>{{ batch.total_loan_interest|kwacha }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="card summary-card grad-red">
+      <div class="card-body">
+        <small>Fines</small>
+        <strong>{{ batch.total_fines|kwacha }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="card summary-card grad-teal">
+      <div class="card-body">
+        <small>Welfare</small>
+        <strong>{{ batch.total_welfare|kwacha }}</strong>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="ob-panel">
+
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+
+    <div>
+      <h4 class="mb-1">
+        <i class="fa-solid fa-list-check text-primary me-2"></i>
+        Imported Member Balances
+      </h4>
+
+      <p class="text-muted mb-0">
+        Review every imported member before approving the batch.
+      </p>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2">
+
+      {% if batch.status in ['Draft', 'Validated'] %}
+        <form
+          method="POST"
+          action="{{ url_for('opening_balance_validate', batch_id=batch.id) }}"
+        >
+          <button type="submit" class="btn btn-outline-primary">
+            <i class="fa-solid fa-circle-check me-1"></i>
+            Validate Again
+          </button>
+        </form>
+      {% endif %}
+
+      <a
+        class="btn btn-outline-secondary"
+        href="{{ url_for('opening_balance_batch', batch_id=batch.id) }}"
+      >
+        <i class="fa-solid fa-folder-open me-1"></i>
+        Batch Details
+      </a>
+
+    </div>
+
+  </div>
+
+  <div class="table-responsive">
+
+    <table class="table table-hover align-middle mb-0">
+
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Member</th>
+          <th class="text-end">Savings</th>
+          <th class="text-end">Loan Principal</th>
+          <th class="text-end">Loan Interest</th>
+          <th class="text-end">Fines</th>
+          <th class="text-end">Welfare</th>
+          <th>Due Date</th>
+          <th>Validation</th>
+        </tr>
+      </thead>
+
+      <tbody>
+
+        {% for row in balances %}
+
+          <tr class="{% if row.validation_status != 'Valid' %}table-danger{% endif %}">
+
+            <td>{{ loop.index }}</td>
+
+            <td class="member-cell">
+              <strong>
+                {{ row.member.full_name if row.member else 'Unknown Member' }}
+              </strong>
+
+              <small>
+                {{ row.member.member_no if row.member else '-' }}
+              </small>
+            </td>
+
+            <td class="amount-cell">
+              {{ row.savings_balance|kwacha }}
+            </td>
+
+            <td class="amount-cell">
+              {{ row.loan_principal|kwacha }}
+            </td>
+
+            <td class="amount-cell">
+              {{ row.loan_interest|kwacha }}
+            </td>
+
+            <td class="amount-cell">
+              {{ row.fine_balance|kwacha }}
+            </td>
+
+            <td class="amount-cell">
+              {{ row.welfare_balance|kwacha }}
+            </td>
+
+            <td>
+              {{
+                row.loan_due_date.strftime('%d %b %Y')
+                if row.loan_due_date
+                else '-'
+              }}
+            </td>
+
+            <td>
+              {% if row.validation_status == 'Valid' %}
+                <span class="status-pill status-valid">
+                  <i class="fa-solid fa-check"></i>
+                  Valid
+                </span>
+              {% else %}
+                <span class="status-pill status-invalid">
+                  <i class="fa-solid fa-xmark"></i>
+                  Invalid
+                </span>
+
+                {% if row.validation_message %}
+                  <div class="error-message mt-2">
+                    {{ row.validation_message }}
+                  </div>
+                {% endif %}
+              {% endif %}
+            </td>
+
+          </tr>
+
+        {% else %}
+
+          <tr>
+            <td colspan="9" class="text-center text-muted py-5">
+              No imported balances were found for this batch.
+            </td>
+          </tr>
+
+        {% endfor %}
+
+      </tbody>
+
+      <tfoot>
+        <tr class="table-light fw-bold">
+          <td colspan="2">Totals</td>
+          <td class="amount-cell">{{ batch.total_savings|kwacha }}</td>
+          <td class="amount-cell">{{ batch.total_loan_principal|kwacha }}</td>
+          <td class="amount-cell">{{ batch.total_loan_interest|kwacha }}</td>
+          <td class="amount-cell">{{ batch.total_fines|kwacha }}</td>
+          <td class="amount-cell">{{ batch.total_welfare|kwacha }}</td>
+          <td colspan="2"></td>
+        </tr>
+      </tfoot>
+
+    </table>
+
+  </div>
+
+</div>
+
+<div class="sticky-actions">
+
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+
+    <div>
+      {% if validation_errors == 0 %}
+        <strong class="text-success">
+          <i class="fa-solid fa-circle-check me-1"></i>
+          This batch is ready for approval.
+        </strong>
+      {% else %}
+        <strong class="text-danger">
+          <i class="fa-solid fa-triangle-exclamation me-1"></i>
+          Approval is blocked until all errors are resolved.
+        </strong>
+      {% endif %}
+    </div>
+
+    <div class="d-flex flex-wrap gap-2">
+
+      <a
+        class="btn btn-outline-secondary"
+        href="{{ url_for('opening_balances') }}"
+      >
+        Cancel
+      </a>
+
+      {% if validation_errors == 0 and batch.status in ['Draft', 'Validated'] %}
+        <form
+          method="POST"
+          action="{{ url_for('opening_balance_approve', batch_id=batch.id) }}"
+          onsubmit="return confirm('Approve this opening balance batch?');"
+        >
+          <button type="submit" class="btn btn-success">
+            <i class="fa-solid fa-user-check me-1"></i>
+            Approve Batch
+          </button>
+        </form>
+      {% endif %}
+
+      {% if batch.status == 'Approved' %}
+        <form
+          method="POST"
+          action="{{ url_for('opening_balance_post', batch_id=batch.id) }}"
+          onsubmit="return confirm(
+            'Post these opening balances? This will create financial records.'
+          );"
+        >
+          <button type="submit" class="btn btn-primary">
+            <i class="fa-solid fa-share-from-square me-1"></i>
+            Post Opening Balances
+          </button>
+        </form>
+      {% endif %}
+
+    </div>
+
+  </div>
+
+</div>
+
+{% endblock %}

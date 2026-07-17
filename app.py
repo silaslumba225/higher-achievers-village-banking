@@ -1,7 +1,7 @@
 from datetime import date, datetime, timedelta
 from openpyxl import load_workbook
 import os
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash, Response, session, send_file
 import os
@@ -47,6 +47,10 @@ from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from openpyxl import Workbook
+from openpyxl import load_workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'change-this-secret-key')
@@ -1505,6 +1509,159 @@ class OpeningBalance(db.Model):
             name='uq_opening_balance_batch_member'
         ),
     )
+
+def opening_balance_decimal(value):
+    """Safely convert imported values to Decimal."""
+    if value is None:
+        return Decimal("0.00")
+
+    text = str(value).strip().replace(",", "")
+
+    if text == "":
+        return Decimal("0.00")
+
+    try:
+        amount = Decimal(text)
+
+        if amount < 0:
+            raise ValueError("Negative balances are not allowed.")
+
+        return amount.quantize(Decimal("0.01"))
+
+    except (InvalidOperation, ValueError):
+        raise ValueError(f"Invalid amount: {value}")
+
+
+def normalise_opening_balance_heading(value):
+    """Convert spreadsheet headings into predictable names."""
+    if value is None:
+        return ""
+
+    return (
+        str(value)
+        .strip()
+        .lower()
+        .replace(" ", "_")
+        .replace("-", "_")
+    )
+
+
+def read_opening_balance_file(file_storage):
+    """
+    Read an uploaded XLSX or CSV opening-balance file.
+    """
+
+    filename = secure_filename(file_storage.filename or "")
+    extension = os.path.splitext(filename)[1].lower()
+
+    if extension not in {".xlsx", ".csv"}:
+        raise ValueError(
+            "Only Excel (.xlsx) and CSV (.csv) files are allowed."
+        )
+
+    rows = []
+
+    # ---------------------------------------------------------
+    # Excel file
+    # ---------------------------------------------------------
+    if extension == ".xlsx":
+
+        file_storage.stream.seek(0)
+
+        workbook = load_workbook(
+            file_storage.stream,
+            read_only=True,
+            data_only=True
+        )
+
+        worksheet = workbook.active
+
+        all_rows = list(
+            worksheet.iter_rows(values_only=True)
+        )
+
+        if not all_rows:
+            raise ValueError(
+                "The uploaded Excel file is empty."
+            )
+
+        heading_row_index = None
+        headings = None
+
+        # Search the first 15 rows for the actual heading row.
+        for index, values in enumerate(all_rows[:15]):
+
+            normalised_values = [
+                normalise_opening_balance_heading(value)
+                for value in values
+            ]
+
+            if "member_no" in normalised_values:
+                heading_row_index = index
+                headings = normalised_values
+                break
+
+        if heading_row_index is None:
+            raise ValueError(
+                "Could not find the opening balance headings. "
+                "Please use the downloaded Excel template."
+            )
+
+        for row_number, values in enumerate(
+            all_rows[heading_row_index + 1:],
+            start=heading_row_index + 2
+        ):
+            row = dict(zip(headings, values))
+
+            if any(
+                value is not None
+                and str(value).strip() != ""
+                for value in values
+            ):
+                row["_row_number"] = row_number
+                rows.append(row)
+
+        workbook.close()
+
+    # ---------------------------------------------------------
+    # CSV file
+    # ---------------------------------------------------------
+    elif extension == ".csv":
+
+        file_storage.stream.seek(0)
+
+        content = file_storage.stream.read().decode(
+            "utf-8-sig"
+        ).splitlines()
+
+        reader = csv.DictReader(content)
+
+        if not reader.fieldnames:
+            raise ValueError(
+                "The uploaded CSV file has no headings."
+            )
+
+        for row_number, raw_row in enumerate(reader, start=2):
+
+            row = {
+                normalise_opening_balance_heading(key): value
+                for key, value in raw_row.items()
+            }
+
+            if any(
+                value is not None
+                and str(value).strip() != ""
+                for value in row.values()
+            ):
+                row["_row_number"] = row_number
+                rows.append(row)
+
+    if not rows:
+        raise ValueError(
+            "The uploaded file contains no balance records."
+        )
+
+    return rows 
 
 def generate_opening_balance_batch_no():
     year = date.today().year
@@ -7910,6 +8067,804 @@ def reports():
         arrears_pagination=arrears_pagination,
         open_loans=open_loans
     )
+
+@app.route('/opening-balances')
+@login_required
+@role_required('accounting')
+def opening_balances():
+
+    batches = OpeningBalanceBatch.query.order_by(
+        OpeningBalanceBatch.imported_on.desc(),
+        OpeningBalanceBatch.id.desc()
+    ).all()
+
+    total_batches = OpeningBalanceBatch.query.count()
+
+    posted_batches = OpeningBalanceBatch.query.filter(
+        OpeningBalanceBatch.status.in_([
+            'Posted',
+            'Locked'
+        ])
+    ).count()
+
+    draft_batches = OpeningBalanceBatch.query.filter(
+        OpeningBalanceBatch.status.in_([
+            'Draft',
+            'Validated',
+            'Approved'
+        ])
+    ).count()
+
+    reversed_batches = OpeningBalanceBatch.query.filter_by(
+        status='Reversed'
+    ).count()
+
+    total_members_imported = db.session.query(
+        db.func.coalesce(
+            db.func.sum(OpeningBalanceBatch.total_members),
+            0
+        )
+    ).filter(
+        OpeningBalanceBatch.status.in_([
+            'Posted',
+            'Locked'
+        ])
+    ).scalar()
+
+    return render_template(
+        "opening_balances/control_centre.html",
+        batches=batches,
+        total_batches=total_batches,
+        posted_batches=posted_batches,
+        draft_batches=draft_batches,
+        reversed_batches=reversed_batches,
+        total_members_imported=total_members_imported
+    )
+
+
+
+@app.route("/opening-balances/import", methods=["GET", "POST"])
+@role_required("accounting")
+def opening_balance_import():
+
+    if request.method == "POST":
+
+        uploaded_file = request.files.get("opening_balance_file")
+        effective_date_text = request.form.get(
+            "effective_date",
+            ""
+        ).strip()
+        description = request.form.get(
+            "description",
+            ""
+        ).strip()
+
+        if not uploaded_file or not uploaded_file.filename:
+            flash(
+                "Please select an Excel or CSV file.",
+                "danger"
+            )
+            return redirect(
+                url_for("opening_balance_import")
+            )
+
+        try:
+            effective_date = datetime.strptime(
+                effective_date_text,
+                "%Y-%m-%d"
+            ).date()
+        except ValueError:
+            flash(
+                "Please enter a valid effective date.",
+                "danger"
+            )
+            return redirect(
+                url_for("opening_balance_import")
+            )
+
+        try:
+            imported_rows = read_opening_balance_file(
+                uploaded_file
+            )
+
+            required_columns = {
+                "member_no",
+                "savings_balance",
+                "loan_principal",
+                "loan_interest",
+                "fine_balance",
+                "welfare_balance"
+            }
+
+            imported_columns = {
+                key
+                for row in imported_rows
+                for key in row.keys()
+            }
+
+            missing_columns = (
+                required_columns - imported_columns
+            )
+
+            if missing_columns:
+                raise ValueError(
+                    "Missing required columns: "
+                    + ", ".join(sorted(missing_columns))
+                )
+            
+            batch = OpeningBalanceBatch(
+                    batch_no=generate_opening_balance_batch_no(),
+                    effective_date=effective_date,
+                    description=description,
+                    status="Draft",
+                    total_savings=Decimal("0.00"),
+                    total_loan_principal=Decimal("0.00"),
+                    total_loan_interest=Decimal("0.00"),
+                    total_fines=Decimal("0.00"),
+                    total_welfare=Decimal("0.00"),
+                    imported_by=(
+                        (session.get('user') or {}).get('full_name')
+                        or (session.get('user') or {}).get('username')
+                        or 'System'
+                    )
+                )
+
+            db.session.add(batch)
+            db.session.flush()
+
+            seen_member_numbers = set()
+            imported_members = 0
+
+            total_savings = Decimal("0.00")
+            total_loan_principal = Decimal("0.00")
+            total_loan_interest = Decimal("0.00")
+            total_fines = Decimal("0.00")
+            total_welfare = Decimal("0.00")
+
+            validation_errors = []
+
+            for row in imported_rows:
+
+                row_number = row.get("_row_number")
+                member_no = str(
+                    row.get("member_no") or ""
+                ).strip()
+
+                if not member_no:
+                    validation_errors.append(
+                        f"Row {row_number}: Member number is missing."
+                    )
+                    continue
+
+                if member_no in seen_member_numbers:
+                    validation_errors.append(
+                        f"Row {row_number}: Duplicate member "
+                        f"number {member_no}."
+                    )
+                    continue
+
+                seen_member_numbers.add(member_no)
+
+                member = Member.query.filter_by(
+                    member_no=member_no
+                ).first()
+
+                if not member:
+                    validation_errors.append(
+                        f"Row {row_number}: Member {member_no} "
+                        f"does not exist."
+                    )
+                    continue
+
+                try:
+                    savings_balance = (
+                        opening_balance_decimal(
+                            row.get("savings_balance")
+                        )
+                    )
+
+                    loan_principal = (
+                        opening_balance_decimal(
+                            row.get("loan_principal")
+                        )
+                    )
+
+                    loan_interest = (
+                        opening_balance_decimal(
+                            row.get("loan_interest")
+                        )
+                    )
+
+                    fine_balance = (
+                        opening_balance_decimal(
+                            row.get("fine_balance")
+                        )
+                    )
+
+                    welfare_balance = (
+                        opening_balance_decimal(
+                            row.get("welfare_balance")
+                        )
+                    )
+
+                except ValueError as error:
+                    validation_errors.append(
+                        f"Row {row_number}: {error}"
+                    )
+                    continue
+
+                loan_due_date = None
+                loan_due_date_value = row.get(
+                    "loan_due_date"
+                )
+
+                if loan_due_date_value:
+                    if isinstance(
+                        loan_due_date_value,
+                        datetime
+                    ):
+                        loan_due_date = (
+                            loan_due_date_value.date()
+                        )
+
+                    elif isinstance(
+                        loan_due_date_value,
+                        date
+                    ):
+                        loan_due_date = loan_due_date_value
+
+                    else:
+                        try:
+                            loan_due_date = datetime.strptime(
+                                str(
+                                    loan_due_date_value
+                                ).strip(),
+                                "%Y-%m-%d"
+                            ).date()
+                        except ValueError:
+                            validation_errors.append(
+                                f"Row {row_number}: Invalid loan "
+                                f"due date. Use YYYY-MM-DD."
+                            )
+                            continue
+
+                opening_balance = OpeningBalance(
+                    batch_id=batch.id,
+                    member_id=member.id,
+                    savings_balance=savings_balance,
+                    loan_principal=loan_principal,
+                    loan_interest=loan_interest,
+                    fine_balance=fine_balance,
+                    welfare_balance=welfare_balance,
+                    loan_due_date=loan_due_date,
+                    remarks=str(
+                        row.get("remarks") or ""
+                    ).strip(),
+                    validation_status="Valid",
+                    validation_message="Imported successfully",
+                    is_posted=False
+                )
+
+                db.session.add(opening_balance)
+
+                imported_members += 1
+                total_savings += savings_balance
+                total_loan_principal += loan_principal
+                total_loan_interest += loan_interest
+                total_fines += fine_balance
+                total_welfare += welfare_balance
+
+            if imported_members == 0:
+                error_details = "\n".join(validation_errors[:10])
+
+                raise ValueError(
+                "No valid member balances were imported.\n"
+                    + (
+                        error_details
+                        if error_details
+                        else "No specific validation error was recorded."
+                    )
+                )
+
+            batch.total_members = imported_members
+            batch.total_savings = total_savings
+            batch.total_loan_principal = (
+                total_loan_principal
+            )
+            batch.total_loan_interest = (
+                total_loan_interest
+            )
+            batch.total_fines = total_fines
+            batch.total_welfare = total_welfare
+
+            if validation_errors:
+                batch.status = "Draft"
+                batch.description = (
+                    f"{batch.description} — "
+                    f"{len(validation_errors)} row(s) rejected"
+                )
+            else:
+                batch.status = "Validated"
+
+            db.session.commit()
+
+            log_audit(
+                "IMPORT_OPENING_BALANCES",
+                (
+                    f"Imported opening balance batch "
+                    f"{batch.batch_no} for "
+                    f"{imported_members} member(s)"
+                )
+            )
+
+            if validation_errors:
+                flash(
+                    (
+                        f"Batch {batch.batch_no} imported with "
+                        f"{len(validation_errors)} rejected row(s)."
+                    ),
+                    "warning"
+                )
+            else:
+                flash(
+                    (
+                        f"Batch {batch.batch_no} imported "
+                        f"successfully."
+                    ),
+                    "success"
+                )
+
+            return redirect(
+                url_for(
+                    "opening_balance_preview",
+                    batch_id=batch.id
+                )
+            )
+
+        except Exception as error:
+            db.session.rollback()
+
+            flash(
+                f"Opening balance import failed: {error}",
+                "danger"
+            )
+
+            return redirect(
+                url_for("opening_balance_import")
+            )
+
+    return render_template(
+        "opening_balances/import.html"
+    )
+
+@app.route("/opening-balances/template")
+@role_required("accounting")
+def opening_balance_download_template():
+
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = "Opening Balances"
+
+    # ---------------------------------------------------------
+    # Workbook colours and styling
+    # ---------------------------------------------------------
+    dark_blue = "1F4E78"
+    light_blue = "D9EAF7"
+    light_yellow = "FFF2CC"
+    light_green = "E2F0D9"
+    white = "FFFFFF"
+    grey = "666666"
+
+    thin_border = Border(
+        left=Side(style="thin", color="B7B7B7"),
+        right=Side(style="thin", color="B7B7B7"),
+        top=Side(style="thin", color="B7B7B7"),
+        bottom=Side(style="thin", color="B7B7B7")
+    )
+
+    # ---------------------------------------------------------
+    # Title
+    # ---------------------------------------------------------
+    worksheet.merge_cells("A1:H1")
+    worksheet["A1"] = "OPENING BALANCES IMPORT TEMPLATE"
+
+    worksheet["A1"].font = Font(
+        bold=True,
+        size=16,
+        color=white
+    )
+
+    worksheet["A1"].fill = PatternFill(
+        fill_type="solid",
+        fgColor=dark_blue
+    )
+
+    worksheet["A1"].alignment = Alignment(
+        horizontal="center",
+        vertical="center"
+    )
+
+    worksheet.row_dimensions[1].height = 28
+
+    # ---------------------------------------------------------
+    # Instructions
+    # ---------------------------------------------------------
+    worksheet.merge_cells("A2:H2")
+    worksheet["A2"] = (
+        "Enter one member per row. Do not change the column headings."
+    )
+
+    worksheet["A2"].font = Font(
+        italic=True,
+        color=grey
+    )
+
+    worksheet["A2"].fill = PatternFill(
+        fill_type="solid",
+        fgColor=light_blue
+    )
+
+    worksheet["A2"].alignment = Alignment(
+        horizontal="center",
+        vertical="center"
+    )
+
+    worksheet.merge_cells("A3:H3")
+    worksheet["A3"] = (
+        "Member numbers must already exist in SL Village Banking Pro. "
+        "Amounts must not be negative."
+    )
+
+    worksheet["A3"].font = Font(
+        italic=True,
+        color=grey
+    )
+
+    worksheet["A3"].fill = PatternFill(
+        fill_type="solid",
+        fgColor=light_blue
+    )
+
+    worksheet["A3"].alignment = Alignment(
+        horizontal="center",
+        vertical="center"
+    )
+
+    # ---------------------------------------------------------
+    # Required headings
+    # ---------------------------------------------------------
+    headings = [
+        "member_no",
+        "savings_balance",
+        "loan_principal",
+        "loan_interest",
+        "fine_balance",
+        "welfare_balance",
+        "loan_due_date",
+        "remarks"
+    ]
+
+    heading_row = 5
+
+    for column_number, heading in enumerate(
+        headings,
+        start=1
+    ):
+        cell = worksheet.cell(
+            row=heading_row,
+            column=column_number,
+            value=heading
+        )
+
+        cell.font = Font(
+            bold=True,
+            color=white
+        )
+
+        cell.fill = PatternFill(
+            fill_type="solid",
+            fgColor=dark_blue
+        )
+
+        cell.alignment = Alignment(
+            horizontal="center",
+            vertical="center",
+            wrap_text=True
+        )
+
+        cell.border = thin_border
+
+    worksheet.row_dimensions[heading_row].height = 32
+
+    # ---------------------------------------------------------
+    # Example row
+    # ---------------------------------------------------------
+    example_values = [
+        "M001",
+        5000.00,
+        1500.00,
+        225.00,
+        0.00,
+        200.00,
+        "2026-12-31",
+        "Example only - delete before upload"
+    ]
+
+    example_row = 6
+
+    for column_number, value in enumerate(
+        example_values,
+        start=1
+    ):
+        cell = worksheet.cell(
+            row=example_row,
+            column=column_number,
+            value=value
+        )
+
+        cell.fill = PatternFill(
+            fill_type="solid",
+            fgColor=light_yellow
+        )
+
+        cell.border = thin_border
+
+    # ---------------------------------------------------------
+    # Blank input rows
+    # ---------------------------------------------------------
+    for row_number in range(7, 207):
+
+        for column_number in range(1, 9):
+            cell = worksheet.cell(
+                row=row_number,
+                column=column_number
+            )
+
+            cell.border = thin_border
+
+            if column_number in [2, 3, 4, 5, 6]:
+                cell.number_format = '#,##0.00'
+
+            if column_number == 7:
+                cell.number_format = "yyyy-mm-dd"
+
+        if row_number % 2 == 1:
+            for column_number in range(1, 9):
+                worksheet.cell(
+                    row=row_number,
+                    column=column_number
+                ).fill = PatternFill(
+                    fill_type="solid",
+                    fgColor=light_green
+                )
+
+    # ---------------------------------------------------------
+    # Column widths
+    # ---------------------------------------------------------
+    column_widths = {
+        "A": 18,
+        "B": 20,
+        "C": 20,
+        "D": 18,
+        "E": 18,
+        "F": 18,
+        "G": 18,
+        "H": 38
+    }
+
+    for column_letter, width in column_widths.items():
+        worksheet.column_dimensions[
+            column_letter
+        ].width = width
+
+    # Keep headings visible
+    worksheet.freeze_panes = "A6"
+
+    # Add filters
+    worksheet.auto_filter.ref = "A5:H206"
+
+    # Protect title and headings from accidental changes
+    worksheet.protection.sheet = False
+
+    # ---------------------------------------------------------
+    # Instructions worksheet
+    # ---------------------------------------------------------
+    instructions = workbook.create_sheet(
+        "Instructions"
+    )
+
+    instructions["A1"] = "OPENING BALANCES IMPORT INSTRUCTIONS"
+    instructions["A1"].font = Font(
+        bold=True,
+        size=15,
+        color=white
+    )
+    instructions["A1"].fill = PatternFill(
+        fill_type="solid",
+        fgColor=dark_blue
+    )
+    instructions["A1"].alignment = Alignment(
+        horizontal="center"
+    )
+
+    instructions.merge_cells("A1:D1")
+
+    instruction_rows = [
+        [
+            "Column",
+            "Required",
+            "Description",
+            "Example"
+        ],
+        [
+            "member_no",
+            "Yes",
+            "Existing system member number",
+            "M001"
+        ],
+        [
+            "savings_balance",
+            "Yes",
+            "Member savings balance at the effective date",
+            "5000.00"
+        ],
+        [
+            "loan_principal",
+            "Yes",
+            "Outstanding loan principal",
+            "1500.00"
+        ],
+        [
+            "loan_interest",
+            "Yes",
+            "Outstanding accrued loan interest",
+            "225.00"
+        ],
+        [
+            "fine_balance",
+            "Yes",
+            "Outstanding fines",
+            "0.00"
+        ],
+        [
+            "welfare_balance",
+            "Yes",
+            "Member welfare balance",
+            "200.00"
+        ],
+        [
+            "loan_due_date",
+            "No",
+            "Use YYYY-MM-DD",
+            "2026-12-31"
+        ],
+        [
+            "remarks",
+            "No",
+            "Additional explanation",
+            "Existing loan"
+        ]
+    ]
+
+    for row_number, row_values in enumerate(
+        instruction_rows,
+        start=3
+    ):
+        for column_number, value in enumerate(
+            row_values,
+            start=1
+        ):
+            cell = instructions.cell(
+                row=row_number,
+                column=column_number,
+                value=value
+            )
+
+            cell.border = thin_border
+            cell.alignment = Alignment(
+                vertical="top",
+                wrap_text=True
+            )
+
+            if row_number == 3:
+                cell.font = Font(
+                    bold=True,
+                    color=white
+                )
+                cell.fill = PatternFill(
+                    fill_type="solid",
+                    fgColor=dark_blue
+                )
+
+    instructions.column_dimensions["A"].width = 24
+    instructions.column_dimensions["B"].width = 14
+    instructions.column_dimensions["C"].width = 52
+    instructions.column_dimensions["D"].width = 24
+
+    instructions.freeze_panes = "A4"
+
+    # ---------------------------------------------------------
+    # Return workbook as download
+    # ---------------------------------------------------------
+    output = BytesIO()
+    workbook.save(output)
+    output.seek(0)
+
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name=(
+            f"opening_balances_template_"
+            f"{date.today().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        ),
+        mimetype=(
+            "application/vnd.openxmlformats-"
+            "officedocument.spreadsheetml.sheet"
+        )
+    )
+
+@app.route("/opening-balances/<int:batch_id>/preview")
+@role_required("accounting")
+def opening_balance_preview(batch_id):
+
+    batch = OpeningBalanceBatch.query.get_or_404(batch_id)
+
+    balances = (
+        OpeningBalance.query
+        .filter_by(batch_id=batch.id)
+        .join(Member)
+        .order_by(Member.member_no)
+        .all()
+    )
+
+    validation_errors = (
+        OpeningBalance.query
+        .filter(
+            OpeningBalance.batch_id == batch.id,
+            OpeningBalance.validation_status != "Valid"
+        )
+        .count()
+    )
+
+    return render_template(
+        "opening_balances/preview.html",
+        batch=batch,
+        balances=balances,
+        validation_errors=validation_errors
+    )
+
+@app.route(
+    "/opening-balances/import",
+    methods=["GET", "POST"]
+)
+
+
+
+@app.route("/opening-balances/<int:batch_id>/summary")
+@role_required("accounting")
+def opening_balance_summary_pdf(batch_id):
+
+    batch = OpeningBalanceBatch.query.get_or_404(batch_id)
+
+    balances = (
+        OpeningBalance.query
+        .filter_by(batch_id=batch.id)
+        .join(Member)
+        .order_by(Member.member_no)
+        .all()
+    )
+
+    settings = SystemSetting.query.first()
+
+    return render_template(
+        "opening_balances/summary_pdf.html",
+        batch=batch,
+        balances=balances,
+        settings=settings,
+        client_name=CLIENT_NAME,
+        generated_on=datetime.now()
+    )
+
 @app.route('/accounting/ledger-inquiry')
 @login_required
 @role_required('accounting')
@@ -12323,7 +13278,7 @@ def initialize_database():
         ensure_member_columns()
         ensure_loan_columns()
         ensure_opening_balance_columns()
-        
+
         ensure_schema()
         ensure_admin()
         

@@ -1,0 +1,942 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Opening Balance Batch{% endblock %}
+{% block subtitle %}
+Review batch details, approvals, posting status and controls.
+{% endblock %}
+
+{% block content %}
+
+<link
+  href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+  rel="stylesheet"
+>
+
+<link
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+  rel="stylesheet"
+>
+
+<style>
+  .ob-batch-hero {
+    background: linear-gradient(
+      135deg,
+      var(--primary-color, #155eef),
+      var(--secondary-color, #0f3fa8)
+    );
+    color: #fff;
+    border-radius: 24px;
+    padding: 28px;
+    margin-bottom: 24px;
+    box-shadow: 0 12px 28px rgba(16, 24, 40, .15);
+  }
+
+  .ob-panel {
+    background: var(--card-color, #fff);
+    border: 1px solid #e5e7eb;
+    border-radius: 22px;
+    padding: 22px;
+    box-shadow: 0 10px 24px rgba(16, 24, 40, .07);
+    margin-bottom: 24px;
+  }
+
+  .summary-card {
+    border: 0;
+    border-radius: 20px;
+    color: #fff;
+    box-shadow: 0 10px 24px rgba(16, 24, 40, .10);
+    height: 100%;
+  }
+
+  .summary-card small {
+    display: block;
+    text-transform: uppercase;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .04em;
+    opacity: .9;
+  }
+
+  .summary-card strong {
+    display: block;
+    font-size: 26px;
+    margin-top: 7px;
+  }
+
+  .grad-blue {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  }
+
+  .grad-green {
+    background: linear-gradient(135deg, #16a34a, #15803d);
+  }
+
+  .grad-purple {
+    background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  }
+
+  .grad-orange {
+    background: linear-gradient(135deg, #f97316, #c2410c);
+  }
+
+  .grad-red {
+    background: linear-gradient(135deg, #ef4444, #b91c1c);
+  }
+
+  .grad-teal {
+    background: linear-gradient(135deg, #0d9488, #0f766e);
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .status-draft {
+    background: #e0e7ff;
+    color: #3730a3;
+  }
+
+  .status-validated {
+    background: #dbeafe;
+    color: #1d4ed8;
+  }
+
+  .status-approved {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .status-posted {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .status-locked {
+    background: #ede9fe;
+    color: #5b21b6;
+  }
+
+  .status-reversed {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .detail-table th {
+    width: 38%;
+    color: #667085;
+    font-weight: 700;
+  }
+
+  .detail-table td {
+    color: #101828;
+  }
+
+  .workflow-step {
+    display: flex;
+    gap: 14px;
+    padding: 16px 0;
+    border-bottom: 1px solid #eef2f7;
+  }
+
+  .workflow-step:last-child {
+    border-bottom: 0;
+  }
+
+  .workflow-icon {
+    min-width: 42px;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: #fff;
+  }
+
+  .workflow-complete {
+    background: #16a34a;
+  }
+
+  .workflow-current {
+    background: #2563eb;
+  }
+
+  .workflow-pending {
+    background: #98a2b3;
+  }
+
+  .workflow-reversed {
+    background: #dc2626;
+  }
+
+  .action-card {
+    display: block;
+    text-decoration: none;
+    color: #101828;
+    background: var(--background-color, #f8fafc);
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    padding: 18px 14px;
+    text-align: center;
+    font-weight: 800;
+    transition: .2s;
+    height: 100%;
+  }
+
+  .action-card:hover {
+    color: var(--primary-color, #155eef);
+    background: var(--card-color, #fff);
+    border-color: var(--primary-color, #155eef);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px rgba(16, 24, 40, .10);
+  }
+
+  .action-card i {
+    display: block;
+    font-size: 26px;
+    margin-bottom: 8px;
+    color: var(--primary-color, #155eef);
+  }
+
+  .danger-zone {
+    border: 1px solid #fecdca;
+    background: #fef3f2;
+    border-radius: 20px;
+    padding: 22px;
+  }
+
+  .warning-box {
+    border-radius: 18px;
+    padding: 18px;
+    background: #fffaeb;
+    border: 1px solid #fedf89;
+    color: #93370d;
+  }
+
+  @media (max-width: 767px) {
+    .ob-batch-hero {
+      padding: 22px;
+    }
+
+    .detail-table th {
+      width: 48%;
+    }
+  }
+</style>
+
+<div class="ob-batch-hero">
+
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+
+    <div>
+      <h2 class="mb-2">
+        <i class="fa-solid fa-box-archive me-2"></i>
+        Opening Balance Batch
+      </h2>
+
+      <p class="mb-1">
+        Batch Number:
+        <strong>{{ batch.batch_no }}</strong>
+      </p>
+
+      <p class="mb-0">
+        {{ batch.description or 'Opening balance migration batch' }}
+      </p>
+    </div>
+
+    <div class="text-end">
+
+      {% set status_class = 'status-draft' %}
+
+      {% if batch.status == 'Validated' %}
+        {% set status_class = 'status-validated' %}
+      {% elif batch.status == 'Approved' %}
+        {% set status_class = 'status-approved' %}
+      {% elif batch.status == 'Posted' %}
+        {% set status_class = 'status-posted' %}
+      {% elif batch.status == 'Locked' %}
+        {% set status_class = 'status-locked' %}
+      {% elif batch.status == 'Reversed' %}
+        {% set status_class = 'status-reversed' %}
+      {% endif %}
+
+      <span class="status-pill {{ status_class }}">
+        <i class="fa-solid fa-circle-info"></i>
+        {{ batch.status }}
+      </span>
+
+      <div class="mt-3">
+        <a
+          class="btn btn-light"
+          href="{{ url_for('opening_balances') }}"
+        >
+          <i class="fa-solid fa-arrow-left me-1"></i>
+          Control Centre
+        </a>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+{% if batch.status == 'Reversed' %}
+  <div class="warning-box mb-4">
+    <div class="d-flex align-items-start gap-3">
+
+      <i class="fa-solid fa-rotate-left fa-2x"></i>
+
+      <div>
+        <strong>This batch has been reversed.</strong>
+
+        <p class="mb-1">
+          The financial records created by this batch should no longer form part
+          of the active opening balances.
+        </p>
+
+        {% if batch.reversal_reason %}
+          <p class="mb-0">
+            <strong>Reason:</strong>
+            {{ batch.reversal_reason }}
+          </p>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+{% endif %}
+
+<div class="row g-4 mb-4">
+
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="card summary-card grad-blue">
+      <div class="card-body">
+        <small>Members</small>
+        <strong>{{ batch.total_members }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="card summary-card grad-green">
+      <div class="card-body">
+        <small>Savings</small>
+        <strong>{{ batch.total_savings|kwacha }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="card summary-card grad-purple">
+      <div class="card-body">
+        <small>Loan Principal</small>
+        <strong>{{ batch.total_loan_principal|kwacha }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="card summary-card grad-orange">
+      <div class="card-body">
+        <small>Loan Interest</small>
+        <strong>{{ batch.total_loan_interest|kwacha }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="card summary-card grad-red">
+      <div class="card-body">
+        <small>Fines</small>
+        <strong>{{ batch.total_fines|kwacha }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="card summary-card grad-teal">
+      <div class="card-body">
+        <small>Welfare</small>
+        <strong>{{ batch.total_welfare|kwacha }}</strong>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="row g-4 mb-4">
+
+  <div class="col-xl-5">
+
+    <div class="ob-panel h-100">
+
+      <h4 class="mb-3">
+        <i class="fa-solid fa-circle-info text-primary me-2"></i>
+        Batch Details
+      </h4>
+
+      <div class="table-responsive">
+
+        <table class="table table-borderless detail-table mb-0">
+
+          <tbody>
+
+            <tr>
+              <th>Batch Number</th>
+              <td>{{ batch.batch_no }}</td>
+            </tr>
+
+            <tr>
+              <th>Effective Date</th>
+              <td>
+                {{
+                  batch.effective_date.strftime('%d %B %Y')
+                  if batch.effective_date
+                  else '-'
+                }}
+              </td>
+            </tr>
+
+            <tr>
+              <th>Description</th>
+              <td>{{ batch.description or '-' }}</td>
+            </tr>
+
+            <tr>
+              <th>Status</th>
+              <td>{{ batch.status }}</td>
+            </tr>
+
+            <tr>
+              <th>Imported By</th>
+              <td>{{ batch.imported_by or '-' }}</td>
+            </tr>
+
+            <tr>
+              <th>Imported On</th>
+              <td>
+                {{
+                  batch.imported_on.strftime('%d %b %Y %H:%M')
+                  if batch.imported_on
+                  else '-'
+                }}
+              </td>
+            </tr>
+
+            <tr>
+              <th>Approved By</th>
+              <td>{{ batch.approved_by or '-' }}</td>
+            </tr>
+
+            <tr>
+              <th>Approved On</th>
+              <td>
+                {{
+                  batch.approved_on.strftime('%d %b %Y %H:%M')
+                  if batch.approved_on
+                  else '-'
+                }}
+              </td>
+            </tr>
+
+            <tr>
+              <th>Posted By</th>
+              <td>{{ batch.posted_by or '-' }}</td>
+            </tr>
+
+            <tr>
+              <th>Posted On</th>
+              <td>
+                {{
+                  batch.posted_on.strftime('%d %b %Y %H:%M')
+                  if batch.posted_on
+                  else '-'
+                }}
+              </td>
+            </tr>
+
+            <tr>
+              <th>Locked On</th>
+              <td>
+                {{
+                  batch.locked_on.strftime('%d %b %Y %H:%M')
+                  if batch.locked_on
+                  else '-'
+                }}
+              </td>
+            </tr>
+
+            {% if batch.status == 'Reversed' %}
+
+              <tr>
+                <th>Reversed By</th>
+                <td>{{ batch.reversed_by or '-' }}</td>
+              </tr>
+
+              <tr>
+                <th>Reversed On</th>
+                <td>
+                  {{
+                    batch.reversed_on.strftime('%d %b %Y %H:%M')
+                    if batch.reversed_on
+                    else '-'
+                  }}
+                </td>
+              </tr>
+
+              <tr>
+                <th>Reversal Reason</th>
+                <td>{{ batch.reversal_reason or '-' }}</td>
+              </tr>
+
+            {% endif %}
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <div class="col-xl-7">
+
+    <div class="ob-panel h-100">
+
+      <h4 class="mb-3">
+        <i class="fa-solid fa-route text-primary me-2"></i>
+        Batch Workflow
+      </h4>
+
+      <div class="workflow-step">
+
+        <div class="workflow-icon workflow-complete">
+          <i class="fa-solid fa-upload"></i>
+        </div>
+
+        <div>
+          <strong>Imported</strong>
+          <p class="text-muted mb-0">
+            File uploaded and batch created by
+            {{ batch.imported_by or 'the user' }}.
+          </p>
+        </div>
+
+      </div>
+
+      <div class="workflow-step">
+
+        <div class="workflow-icon
+          {% if batch.status in ['Validated', 'Approved', 'Posted', 'Locked'] %}
+            workflow-complete
+          {% elif batch.status == 'Reversed' %}
+            workflow-reversed
+          {% elif batch.status == 'Draft' %}
+            workflow-current
+          {% else %}
+            workflow-pending
+          {% endif %}
+        ">
+          <i class="fa-solid fa-list-check"></i>
+        </div>
+
+        <div>
+          <strong>Validated</strong>
+          <p class="text-muted mb-0">
+            Imported rows are checked for member matches, valid dates and amounts.
+          </p>
+        </div>
+
+      </div>
+
+      <div class="workflow-step">
+
+        <div class="workflow-icon
+          {% if batch.status in ['Approved', 'Posted', 'Locked'] %}
+            workflow-complete
+          {% elif batch.status == 'Reversed' %}
+            workflow-reversed
+          {% elif batch.status == 'Validated' %}
+            workflow-current
+          {% else %}
+            workflow-pending
+          {% endif %}
+        ">
+          <i class="fa-solid fa-user-check"></i>
+        </div>
+
+        <div>
+          <strong>Approved</strong>
+          <p class="text-muted mb-0">
+            The batch totals have been reviewed and approved for posting.
+          </p>
+        </div>
+
+      </div>
+
+      <div class="workflow-step">
+
+        <div class="workflow-icon
+          {% if batch.status in ['Posted', 'Locked'] %}
+            workflow-complete
+          {% elif batch.status == 'Reversed' %}
+            workflow-reversed
+          {% elif batch.status == 'Approved' %}
+            workflow-current
+          {% else %}
+            workflow-pending
+          {% endif %}
+        ">
+          <i class="fa-solid fa-share-from-square"></i>
+        </div>
+
+        <div>
+          <strong>Posted</strong>
+          <p class="text-muted mb-0">
+            Member balances and accounting entries are created in the system.
+          </p>
+        </div>
+
+      </div>
+
+      <div class="workflow-step">
+
+        <div class="workflow-icon
+          {% if batch.status == 'Locked' %}
+            workflow-complete
+          {% elif batch.status == 'Reversed' %}
+            workflow-reversed
+          {% elif batch.status == 'Posted' %}
+            workflow-current
+          {% else %}
+            workflow-pending
+          {% endif %}
+        ">
+          <i class="fa-solid fa-lock"></i>
+        </div>
+
+        <div>
+          <strong>Locked</strong>
+          <p class="text-muted mb-0">
+            The batch is protected from further changes after final review.
+          </p>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<div class="ob-panel">
+
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+
+    <div>
+      <h4 class="mb-1">
+        <i class="fa-solid fa-bolt text-primary me-2"></i>
+        Batch Actions
+      </h4>
+
+      <p class="text-muted mb-0">
+        Available actions depend on the current batch status.
+      </p>
+    </div>
+
+  </div>
+
+  <div class="row g-3">
+
+    <div class="col-xl-3 col-md-6">
+
+      <a
+        class="action-card"
+        href="{{ url_for(
+          'opening_balance_preview',
+          batch_id=batch.id
+        ) }}"
+      >
+        <i class="fa-solid fa-eye"></i>
+        Preview Balances
+      </a>
+
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+
+      <a
+        class="action-card"
+        href="{{ url_for(
+          'opening_balance_summary_pdf',
+          batch_id=batch.id
+        ) }}"
+        target="_blank"
+      >
+        <i class="fa-solid fa-file-pdf"></i>
+        Print Summary
+      </a>
+
+    </div>
+
+    {% if batch.status in ['Draft', 'Validated'] %}
+
+      <div class="col-xl-3 col-md-6">
+
+        <form
+          method="POST"
+          action="{{ url_for(
+            'opening_balance_validate',
+            batch_id=batch.id
+          ) }}"
+          class="h-100"
+        >
+
+          <button
+            type="submit"
+            class="action-card w-100"
+          >
+            <i class="fa-solid fa-circle-check"></i>
+            Validate Batch
+          </button>
+
+        </form>
+
+      </div>
+
+    {% endif %}
+
+    {% if batch.status == 'Validated' %}
+
+      <div class="col-xl-3 col-md-6">
+
+        <form
+          method="POST"
+          action="{{ url_for(
+            'opening_balance_approve',
+            batch_id=batch.id
+          ) }}"
+          class="h-100"
+          onsubmit="return confirm(
+            'Approve this opening balance batch?'
+          );"
+        >
+
+          <button
+            type="submit"
+            class="action-card w-100"
+          >
+            <i class="fa-solid fa-user-check"></i>
+            Approve Batch
+          </button>
+
+        </form>
+
+      </div>
+
+    {% endif %}
+
+    {% if batch.status == 'Approved' %}
+
+      <div class="col-xl-3 col-md-6">
+
+        <form
+          method="POST"
+          action="{{ url_for(
+            'opening_balance_post',
+            batch_id=batch.id
+          ) }}"
+          class="h-100"
+          onsubmit="return confirm(
+            'Post these opening balances? This will create financial records.'
+          );"
+        >
+
+          <button
+            type="submit"
+            class="action-card w-100"
+          >
+            <i class="fa-solid fa-share-from-square"></i>
+            Post Balances
+          </button>
+
+        </form>
+
+      </div>
+
+    {% endif %}
+
+    {% if batch.status == 'Posted' %}
+
+      <div class="col-xl-3 col-md-6">
+
+        <form
+          method="POST"
+          action="{{ url_for(
+            'opening_balance_lock',
+            batch_id=batch.id
+          ) }}"
+          class="h-100"
+          onsubmit="return confirm(
+            'Lock this opening balance batch?'
+          );"
+        >
+
+          <button
+            type="submit"
+            class="action-card w-100"
+          >
+            <i class="fa-solid fa-lock"></i>
+            Lock Batch
+          </button>
+
+        </form>
+
+      </div>
+
+    {% endif %}
+
+  </div>
+
+</div>
+
+{% if batch.status in ['Posted', 'Locked'] %}
+
+  <div class="danger-zone">
+
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+
+      <div>
+        <h4 class="text-danger mb-2">
+          <i class="fa-solid fa-triangle-exclamation me-2"></i>
+          Reversal Control
+        </h4>
+
+        <p class="mb-0">
+          Reversing this batch should only be done when the imported opening
+          balances are materially incorrect. A reason is required.
+        </p>
+      </div>
+
+      <button
+        type="button"
+        class="btn btn-outline-danger"
+        data-bs-toggle="modal"
+        data-bs-target="#reverseBatchModal"
+      >
+        <i class="fa-solid fa-rotate-left me-1"></i>
+        Reverse Batch
+      </button>
+
+    </div>
+
+  </div>
+
+  <div
+    class="modal fade"
+    id="reverseBatchModal"
+    tabindex="-1"
+    aria-labelledby="reverseBatchModalLabel"
+    aria-hidden="true"
+  >
+
+    <div class="modal-dialog modal-dialog-centered">
+
+      <div class="modal-content">
+
+        <form
+          method="POST"
+          action="{{ url_for(
+            'opening_balance_reverse',
+            batch_id=batch.id
+          ) }}"
+        >
+
+          <div class="modal-header">
+
+            <h5 class="modal-title" id="reverseBatchModalLabel">
+              Reverse Opening Balance Batch
+            </h5>
+
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+
+          </div>
+
+          <div class="modal-body">
+
+            <div class="alert alert-danger">
+
+              <strong>Warning:</strong>
+
+              This action will reverse financial records created from
+              batch {{ batch.batch_no }}.
+
+            </div>
+
+            <div class="mb-3">
+
+              <label class="form-label">
+                Reversal Reason
+                <span class="text-danger">*</span>
+              </label>
+
+              <textarea
+                name="reversal_reason"
+                class="form-control"
+                rows="4"
+                required
+                placeholder="Explain why this batch must be reversed."
+              ></textarea>
+
+            </div>
+
+          </div>
+
+          <div class="modal-footer">
+
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              class="btn btn-danger"
+              onclick="return confirm(
+                'Are you certain you want to reverse this batch?'
+              );"
+            >
+              <i class="fa-solid fa-rotate-left me-1"></i>
+              Confirm Reversal
+            </button>
+
+          </div>
+
+        </form>
+
+      </div>
+
+    </div>
+
+  </div>
+
+{% endif %}
+
+{% endblock %}

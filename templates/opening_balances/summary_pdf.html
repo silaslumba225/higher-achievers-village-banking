@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>
+    Opening Balance Summary - {{ batch.batch_no }}
+  </title>
+
+  <style>
+
+    @page {
+      size: A4 landscape;
+      margin: 12mm;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 12px;
+      color: #101828;
+      background: #ffffff;
+    }
+
+    .report-container {
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .report-header {
+      display: table;
+      width: 100%;
+      border-bottom: 3px solid #155eef;
+      padding-bottom: 14px;
+      margin-bottom: 18px;
+    }
+
+    .header-logo,
+    .header-details {
+      display: table-cell;
+      vertical-align: middle;
+    }
+
+    .header-logo {
+      width: 130px;
+    }
+
+    .header-logo img {
+      max-width: 105px;
+      max-height: 85px;
+      object-fit: contain;
+    }
+
+    .header-details {
+      text-align: center;
+    }
+
+    .organisation-name {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 800;
+      color: #155eef;
+      text-transform: uppercase;
+    }
+
+    .organisation-details {
+      margin-top: 6px;
+      line-height: 1.5;
+      color: #475467;
+    }
+
+    .report-title {
+      margin-top: 12px;
+      font-size: 19px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #101828;
+    }
+
+    .report-subtitle {
+      margin-top: 4px;
+      color: #667085;
+    }
+
+    .batch-status {
+      display: inline-block;
+      padding: 5px 12px;
+      margin-top: 8px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      background: #e0e7ff;
+      color: #3730a3;
+    }
+
+    .status-validated {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    .status-approved {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .status-posted {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .status-locked {
+      background: #ede9fe;
+      color: #5b21b6;
+    }
+
+    .status-reversed {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .section-title {
+      margin: 20px 0 10px;
+      padding: 8px 12px;
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      background: #f2f4f7;
+      border-left: 5px solid #155eef;
+    }
+
+    .batch-details {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 16px;
+    }
+
+    .batch-details td {
+      width: 25%;
+      padding: 7px 9px;
+      border: 1px solid #d0d5dd;
+      vertical-align: top;
+    }
+
+    .detail-label {
+      display: block;
+      margin-bottom: 3px;
+      color: #667085;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .detail-value {
+      font-weight: 700;
+      color: #101828;
+    }
+
+    .summary-grid {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 8px;
+      margin: 0 -8px 14px;
+    }
+
+    .summary-grid td {
+      width: 16.66%;
+      padding: 14px 10px;
+      border-radius: 8px;
+      color: #ffffff;
+      text-align: center;
+    }
+
+    .summary-label {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      opacity: .95;
+    }
+
+    .summary-value {
+      display: block;
+      font-size: 16px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .summary-blue {
+      background: #2563eb;
+    }
+
+    .summary-green {
+      background: #15803d;
+    }
+
+    .summary-purple {
+      background: #6d28d9;
+    }
+
+    .summary-orange {
+      background: #c2410c;
+    }
+
+    .summary-red {
+      background: #b91c1c;
+    }
+
+    .summary-teal {
+      background: #0f766e;
+    }
+
+    .balances-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 10px;
+    }
+
+    .balances-table th {
+      padding: 8px 6px;
+      border: 1px solid #98a2b3;
+      background: #155eef;
+      color: #ffffff;
+      text-align: left;
+      text-transform: uppercase;
+      font-size: 9px;
+      letter-spacing: .02em;
+    }
+
+    .balances-table td {
+      padding: 7px 6px;
+      border: 1px solid #d0d5dd;
+      vertical-align: top;
+    }
+
+    .balances-table tbody tr:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    .balances-table tfoot td {
+      background: #eaecf0;
+      font-weight: 800;
+    }
+
+    .number-column {
+      width: 35px;
+      text-align: center;
+    }
+
+    .member-number-column {
+      width: 75px;
+      white-space: nowrap;
+    }
+
+    .amount-column {
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .date-column {
+      white-space: nowrap;
+    }
+
+    .status-valid {
+      color: #166534;
+      font-weight: 700;
+    }
+
+    .status-invalid {
+      color: #b42318;
+      font-weight: 700;
+    }
+
+    .reversal-box {
+      margin-top: 18px;
+      padding: 12px;
+      border: 1px solid #fda29b;
+      background: #fef3f2;
+      color: #b42318;
+    }
+
+    .approval-section {
+      width: 100%;
+      margin-top: 28px;
+      border-collapse: separate;
+      border-spacing: 20px 0;
+    }
+
+    .approval-section td {
+      width: 33.33%;
+      padding-top: 35px;
+      border-top: 1px solid #344054;
+      text-align: center;
+    }
+
+    .approval-role {
+      display: block;
+      margin-top: 5px;
+      color: #667085;
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+
+    .report-footer {
+      margin-top: 22px;
+      padding-top: 10px;
+      border-top: 1px solid #d0d5dd;
+      color: #667085;
+      font-size: 9px;
+    }
+
+    .footer-left {
+      float: left;
+    }
+
+    .footer-right {
+      float: right;
+      text-align: right;
+    }
+
+    .clearfix::after {
+      display: table;
+      clear: both;
+      content: "";
+    }
+
+    .no-print {
+      margin-bottom: 16px;
+      text-align: right;
+    }
+
+    .print-button,
+    .back-button {
+      display: inline-block;
+      padding: 9px 14px;
+      border: none;
+      border-radius: 6px;
+      color: #ffffff;
+      text-decoration: none;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .print-button {
+      background: #155eef;
+    }
+
+    .back-button {
+      background: #667085;
+    }
+
+    @media print {
+
+      .no-print {
+        display: none !important;
+      }
+
+      body {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .balances-table tr {
+        page-break-inside: avoid;
+      }
+
+      .section-title {
+        page-break-after: avoid;
+      }
+
+      .approval-section {
+        page-break-inside: avoid;
+      }
+
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+  <div class="report-container">
+
+    <div class="no-print">
+
+      <a
+        href="{{ url_for('opening_balance_batch', batch_id=batch.id) }}"
+        class="back-button"
+      >
+        Back to Batch
+      </a>
+
+      <button
+        type="button"
+        class="print-button"
+        onclick="window.print()"
+      >
+        Print / Save as PDF
+      </button>
+
+    </div>
+
+    <div class="report-header">
+
+      <div class="header-logo">
+
+        {% if settings and settings.logo %}
+
+          <img
+            src="{{ url_for(
+              'static',
+              filename='uploads/' ~ settings.logo
+            ) }}"
+            alt="Organisation Logo"
+          >
+
+        {% endif %}
+
+      </div>
+
+      <div class="header-details">
+
+        <h1 class="organisation-name">
+          {{
+            settings.organisation_name
+            if settings and settings.organisation_name
+            else client_name
+          }}
+        </h1>
+
+        <div class="organisation-details">
+
+          {% if settings and settings.organization_address %}
+            {{ settings.organization_address }}<br>
+          {% elif settings and settings.physical_address %}
+            {{ settings.physical_address }}<br>
+          {% endif %}
+
+          {% if settings and settings.organization_phone %}
+            Tel: {{ settings.organization_phone }}
+          {% elif settings and settings.phone %}
+            Tel: {{ settings.phone }}
+          {% endif %}
+
+          {% if settings and settings.organization_email %}
+            &nbsp; | &nbsp;
+            Email: {{ settings.organization_email }}
+          {% elif settings and settings.email %}
+            &nbsp; | &nbsp;
+            Email: {{ settings.email }}
+          {% endif %}
+
+          {% if settings and settings.registration_number %}
+            <br>
+            Registration No: {{ settings.registration_number }}
+          {% endif %}
+
+        </div>
+
+        <div class="report-title">
+          Opening Balances Import Summary
+        </div>
+
+        <div class="report-subtitle">
+          Batch {{ batch.batch_no }}
+        </div>
+
+        {% set status_class = '' %}
+
+        {% if batch.status == 'Validated' %}
+          {% set status_class = 'status-validated' %}
+        {% elif batch.status == 'Approved' %}
+          {% set status_class = 'status-approved' %}
+        {% elif batch.status == 'Posted' %}
+          {% set status_class = 'status-posted' %}
+        {% elif batch.status == 'Locked' %}
+          {% set status_class = 'status-locked' %}
+        {% elif batch.status == 'Reversed' %}
+          {% set status_class = 'status-reversed' %}
+        {% endif %}
+
+        <span class="batch-status {{ status_class }}">
+          {{ batch.status }}
+        </span>
+
+      </div>
+
+    </div>
+
+    <div class="section-title">
+      Batch Information
+    </div>
+
+    <table class="batch-details">
+
+      <tr>
+
+        <td>
+          <span class="detail-label">Batch Number</span>
+          <span class="detail-value">
+            {{ batch.batch_no }}
+          </span>
+        </td>
+
+        <td>
+          <span class="detail-label">Effective Date</span>
+          <span class="detail-value">
+            {{
+              batch.effective_date.strftime('%d %B %Y')
+              if batch.effective_date
+              else '-'
+            }}
+          </span>
+        </td>
+
+        <td>
+          <span class="detail-label">Status</span>
+          <span class="detail-value">
+            {{ batch.status }}
+          </span>
+        </td>
+
+        <td>
+          <span class="detail-label">Members Imported</span>
+          <span class="detail-value">
+            {{ batch.total_members or 0 }}
+          </span>
+        </td>
+
+      </tr>
+
+      <tr>
+
+        <td>
+          <span class="detail-label">Imported By</span>
+          <span class="detail-value">
+            {{ batch.imported_by or '-' }}
+          </span>
+        </td>
+
+        <td>
+          <span class="detail-label">Imported On</span>
+          <span class="detail-value">
+            {{
+              batch.imported_on.strftime('%d %b %Y %H:%M')
+              if batch.imported_on
+              else '-'
+            }}
+          </span>
+        </td>
+
+        <td>
+          <span class="detail-label">Approved By</span>
+          <span class="detail-value">
+            {{ batch.approved_by or '-' }}
+          </span>
+        </td>
+
+        <td>
+          <span class="detail-label">Approved On</span>
+          <span class="detail-value">
+            {{
+              batch.approved_on.strftime('%d %b %Y %H:%M')
+              if batch.approved_on
+              else '-'
+            }}
+          </span>
+        </td>
+
+      </tr>
+
+      <tr>
+
+        <td>
+          <span class="detail-label">Posted By</span>
+          <span class="detail-value">
+            {{ batch.posted_by or '-' }}
+          </span>
+        </td>
+
+        <td>
+          <span class="detail-label">Posted On</span>
+          <span class="detail-value">
+            {{
+              batch.posted_on.strftime('%d %b %Y %H:%M')
+              if batch.posted_on
+              else '-'
+            }}
+          </span>
+        </td>
+
+        <td colspan="2">
+          <span class="detail-label">Description</span>
+          <span class="detail-value">
+            {{ batch.description or 'Opening balance migration' }}
+          </span>
+        </td>
+
+      </tr>
+
+    </table>
+
+    <div class="section-title">
+      Financial Summary
+    </div>
+
+    <table class="summary-grid">
+
+      <tr>
+
+        <td class="summary-blue">
+          <span class="summary-label">Members</span>
+          <span class="summary-value">
+            {{ batch.total_members or 0 }}
+          </span>
+        </td>
+
+        <td class="summary-green">
+          <span class="summary-label">Savings</span>
+          <span class="summary-value">
+            {{ batch.total_savings|kwacha }}
+          </span>
+        </td>
+
+        <td class="summary-purple">
+          <span class="summary-label">Loan Principal</span>
+          <span class="summary-value">
+            {{ batch.total_loan_principal|kwacha }}
+          </span>
+        </td>
+
+        <td class="summary-orange">
+          <span class="summary-label">Loan Interest</span>
+          <span class="summary-value">
+            {{ batch.total_loan_interest|kwacha }}
+          </span>
+        </td>
+
+        <td class="summary-red">
+          <span class="summary-label">Fines</span>
+          <span class="summary-value">
+            {{ batch.total_fines|kwacha }}
+          </span>
+        </td>
+
+        <td class="summary-teal">
+          <span class="summary-label">Welfare</span>
+          <span class="summary-value">
+            {{ batch.total_welfare|kwacha }}
+          </span>
+        </td>
+
+      </tr>
+
+    </table>
+
+    {% if batch.status == 'Reversed' %}
+
+      <div class="reversal-box">
+
+        <strong>Batch Reversed</strong>
+
+        <br>
+
+        Reversed by:
+        {{ batch.reversed_by or '-' }}
+
+        {% if batch.reversed_on %}
+          on {{ batch.reversed_on.strftime('%d %B %Y at %H:%M') }}
+        {% endif %}
+
+        <br>
+
+        Reason:
+        {{ batch.reversal_reason or 'No reason recorded.' }}
+
+      </div>
+
+    {% endif %}
+
+    <div class="section-title">
+      Member Opening Balances
+    </div>
+
+    <table class="balances-table">
+
+      <thead>
+
+        <tr>
+
+          <th class="number-column">#</th>
+
+          <th class="member-number-column">
+            Member No
+          </th>
+
+          <th>
+            Member Name
+          </th>
+
+          <th class="amount-column">
+            Savings
+          </th>
+
+          <th class="amount-column">
+            Loan Principal
+          </th>
+
+          <th class="amount-column">
+            Loan Interest
+          </th>
+
+          <th class="amount-column">
+            Fines
+          </th>
+
+          <th class="amount-column">
+            Welfare
+          </th>
+
+          <th class="date-column">
+            Loan Due Date
+          </th>
+
+          <th>
+            Validation
+          </th>
+
+        </tr>
+
+      </thead>
+
+      <tbody>
+
+        {% for row in balances %}
+
+          <tr>
+
+            <td class="number-column">
+              {{ loop.index }}
+            </td>
+
+            <td class="member-number-column">
+              {{
+                row.member.member_no
+                if row.member
+                else '-'
+              }}
+            </td>
+
+            <td>
+              {{
+                row.member.full_name
+                if row.member
+                else 'Unknown Member'
+              }}
+            </td>
+
+            <td class="amount-column">
+              {{ row.savings_balance|kwacha }}
+            </td>
+
+            <td class="amount-column">
+              {{ row.loan_principal|kwacha }}
+            </td>
+
+            <td class="amount-column">
+              {{ row.loan_interest|kwacha }}
+            </td>
+
+            <td class="amount-column">
+              {{ row.fine_balance|kwacha }}
+            </td>
+
+            <td class="amount-column">
+              {{ row.welfare_balance|kwacha }}
+            </td>
+
+            <td class="date-column">
+              {{
+                row.loan_due_date.strftime('%d %b %Y')
+                if row.loan_due_date
+                else '-'
+              }}
+            </td>
+
+            <td>
+
+              {% if row.validation_status == 'Valid' %}
+
+                <span class="status-valid">
+                  Valid
+                </span>
+
+              {% else %}
+
+                <span class="status-invalid">
+                  {{ row.validation_status or 'Invalid' }}
+                </span>
+
+                {% if row.validation_message %}
+                  <br>
+                  {{ row.validation_message }}
+                {% endif %}
+
+              {% endif %}
+
+            </td>
+
+          </tr>
+
+        {% else %}
+
+          <tr>
+
+            <td
+              colspan="10"
+              style="text-align:center; padding:20px;"
+            >
+              No opening balance records were found.
+            </td>
+
+          </tr>
+
+        {% endfor %}
+
+      </tbody>
+
+      <tfoot>
+
+        <tr>
+
+          <td colspan="3">
+            Batch Totals
+          </td>
+
+          <td class="amount-column">
+            {{ batch.total_savings|kwacha }}
+          </td>
+
+          <td class="amount-column">
+            {{ batch.total_loan_principal|kwacha }}
+          </td>
+
+          <td class="amount-column">
+            {{ batch.total_loan_interest|kwacha }}
+          </td>
+
+          <td class="amount-column">
+            {{ batch.total_fines|kwacha }}
+          </td>
+
+          <td class="amount-column">
+            {{ batch.total_welfare|kwacha }}
+          </td>
+
+          <td colspan="2"></td>
+
+        </tr>
+
+      </tfoot>
+
+    </table>
+
+    <div class="section-title">
+      Committee Confirmation
+    </div>
+
+    <p>
+      We confirm that the opening balances shown in this report have been
+      reviewed against the organisation's existing records and are approved
+      for migration into the system.
+    </p>
+
+    <table class="approval-section">
+
+      <tr>
+
+        <td>
+          Chairperson
+          <span class="approval-role">
+            Name, signature and date
+          </span>
+        </td>
+
+        <td>
+          Treasurer
+          <span class="approval-role">
+            Name, signature and date
+          </span>
+        </td>
+
+        <td>
+          Secretary
+          <span class="approval-role">
+            Name, signature and date
+          </span>
+        </td>
+
+      </tr>
+
+    </table>
+
+    <div class="report-footer clearfix">
+
+      <div class="footer-left">
+
+        Generated by
+        {{
+          settings.developer_name
+          if settings and settings.developer_name
+          else 'SL Consulting Ltd'
+        }}
+
+      </div>
+
+      <div class="footer-right">
+
+        Generated on
+        {{ generated_on.strftime('%d %B %Y at %H:%M') }}
+
+        <br>
+
+        Batch reference:
+        {{ batch.batch_no }}
+
+      </div>
+
+    </div>
+
+  </div>
+
+</body>
+
+</html>
