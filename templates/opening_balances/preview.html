@@ -333,15 +333,12 @@ Review imported balances and validation results before approval.
     <div class="d-flex flex-wrap gap-2">
 
       {% if batch.status in ['Draft', 'Validated'] %}
-        <form
-          method="POST"
-          action="{{ url_for('opening_balance_validate', batch_id=batch.id) }}"
-        >
-          <button type="submit" class="btn btn-outline-primary">
-            <i class="fa-solid fa-circle-check me-1"></i>
-            Validate Again
-          </button>
-        </form>
+        <button type="button"
+        class="btn btn-outline-secondary"
+        disabled>
+        <i class="fa-solid fa-circle-check me-1"></i>
+        Validate Again (Coming Soon)
+    </button>
       {% endif %}
 
       <a

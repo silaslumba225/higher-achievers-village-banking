@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from openpyxl import load_workbook
 import os
 from decimal import Decimal, InvalidOperation
@@ -730,6 +730,11 @@ class Loan(db.Model):
 )
 
     source_id = db.Column(db.Integer)
+    opening_interest = db.Column(
+    db.Numeric(12,2),
+    default=0,
+    nullable=False
+    )
 
     @property
     def interest_amount(self):
@@ -1410,12 +1415,21 @@ class OpeningBalanceBatch(db.Model):
         nullable=False
     )
 
+    approved_by = db.Column(db.String(120))
     approved_on = db.Column(db.DateTime)
+    posted_by = db.Column(db.String(120))
     posted_on = db.Column(db.DateTime)
     locked_on = db.Column(db.DateTime)
     reversed_on = db.Column(db.DateTime)
+    posting_reference = db.Column(db.String(80))
 
     reversal_reason = db.Column(db.String(250))
+    
+    is_locked = db.Column(
+    db.Boolean,
+    default=False,
+    nullable=False
+)
 
 
 class OpeningBalance(db.Model):
@@ -1481,7 +1495,10 @@ class OpeningBalance(db.Model):
         default=False,
         nullable=False
     )
-
+    posted_on = db.Column(db.DateTime)
+    posted_by = db.Column(db.String(120))
+    created_loan_id = db.Column(db.Integer)
+    created_fine_id = db.Column(db.Integer)
     posted_contribution_id = db.Column(db.Integer)
     posted_loan_id = db.Column(db.Integer)
     posted_loan_interest_id = db.Column(db.Integer)
@@ -1729,6 +1746,80 @@ def ensure_opening_balance_columns():
                     )
                 )
 
+        # ---------------------------------------------------------
+    # OpeningBalanceBatch table
+    # ---------------------------------------------------------
+
+    if 'opening_balance_batch' in table_names:
+
+        existing_columns = {
+            column['name']
+            for column in inspector.get_columns('opening_balance_batch')
+        }
+
+        new_columns = {
+            'approved_by': 'VARCHAR(120)',
+            'posted_by': 'VARCHAR(120)',
+            'locked_by': 'VARCHAR(120)',
+            'posting_reference': 'VARCHAR(80)',
+            'is_locked': 'BOOLEAN DEFAULT FALSE'
+        }
+
+        for column_name, column_sql in new_columns.items():
+            if column_name not in existing_columns:
+                db.session.execute(
+                    db.text(
+                        f'ALTER TABLE opening_balance_batch '
+                        f'ADD COLUMN {column_name} {column_sql}'
+                    )
+                )
+        # ---------------------------------------------------------
+    # OpeningBalance table
+    # ---------------------------------------------------------
+
+    if 'opening_balance' in table_names:
+
+        existing_columns = {
+            column['name']
+            for column in inspector.get_columns('opening_balance')
+        }
+
+        new_columns = {
+            'is_posted': 'BOOLEAN DEFAULT FALSE',
+            'posted_on': 'TIMESTAMP',
+            'posted_by': 'VARCHAR(120)',
+            'created_loan_id': 'INTEGER',
+            'created_fine_id': 'INTEGER'
+        }
+
+        for column_name, column_sql in new_columns.items():
+            if column_name not in existing_columns:
+                db.session.execute(
+                    db.text(
+                        f'ALTER TABLE opening_balance '
+                        f'ADD COLUMN {column_name} {column_sql}'
+                    )
+                )
+        # ---------------------------------------------------------
+    # Loan table
+    # ---------------------------------------------------------
+
+    if 'loan' in table_names:
+
+        existing_columns = {
+            column['name']
+            for column in inspector.get_columns('loan')
+        }
+
+        if 'opening_interest' not in existing_columns:
+            db.session.execute(
+                db.text(
+                    'ALTER TABLE loan '
+                    'ADD COLUMN opening_interest NUMERIC(12,2) DEFAULT 0'
+                )
+            )
+
+        
     db.session.commit()
    
 def ensure_settings_columns():
@@ -8838,6 +8929,703 @@ def opening_balance_preview(batch_id):
     methods=["GET", "POST"]
 )
 
+@app.route("/opening-balances/<int:batch_id>/validate", methods=["POST"])
+@role_required("accounting")
+def opening_balance_validate(batch_id):
+
+    batch = OpeningBalanceBatch.query.get_or_404(batch_id)
+
+    balances = OpeningBalance.query.filter_by(batch_id=batch.id).all()
+
+    errors = 0
+
+    for balance in balances:
+
+        message = []
+
+        if balance.savings_balance is None:
+            message.append("Savings balance missing.")
+
+        if balance.loan_principal is None:
+            message.append("Loan principal missing.")
+
+        if balance.loan_interest is None:
+            message.append("Loan interest missing.")
+
+        if balance.fine_balance is None:
+            message.append("Fine balance missing.")
+
+        if balance.welfare_balance is None:
+            message.append("Welfare balance missing.")
+
+        if message:
+            balance.validation_status = "Invalid"
+            balance.validation_message = " ".join(message)
+            errors += 1
+        else:
+            balance.validation_status = "Valid"
+            balance.validation_message = ""
+
+    if errors == 0:
+        batch.status = "Validated"
+        flash("Batch validated successfully.", "success")
+    else:
+        batch.status = "Draft"
+        flash(f"{errors} validation error(s) found.", "warning")
+
+    db.session.commit()
+
+    log_audit(
+        "VALIDATE_OPENING_BALANCES",
+        f"Validated opening balance batch {batch.batch_no}"
+    )
+
+    return redirect(
+        url_for(
+            "opening_balance_preview",
+            batch_id=batch.id
+        )
+    )
+
+@app.route("/opening-balances/<int:batch_id>")
+@role_required("accounting")
+def opening_balance_batch(batch_id):
+
+    batch = OpeningBalanceBatch.query.get_or_404(batch_id)
+
+    balances = (
+        OpeningBalance.query
+        .filter_by(batch_id=batch.id)
+        .join(Member)
+        .order_by(Member.member_no)
+        .all()
+    )
+
+    validation_errors = (
+        OpeningBalance.query
+        .filter(
+            OpeningBalance.batch_id == batch.id,
+            OpeningBalance.validation_status != "Valid"
+        )
+        .count()
+    )
+
+    total_records = len(balances)
+
+    valid_records = (
+        OpeningBalance.query
+        .filter_by(
+            batch_id=batch.id,
+            validation_status="Valid"
+        )
+        .count()
+    )
+
+    posted_records = (
+        OpeningBalance.query
+        .filter_by(
+            batch_id=batch.id,
+            is_posted=True
+        )
+        .count()
+    )
+
+    return render_template(
+        "opening_balances/batch.html",
+        batch=batch,
+        balances=balances,
+        validation_errors=validation_errors,
+        total_records=total_records,
+        valid_records=valid_records,
+        posted_records=posted_records
+    )
+
+@app.route(
+    "/opening-balances/<int:batch_id>/approve",
+    methods=["POST"]
+)
+@role_required("accounting")
+def opening_balance_approve(batch_id):
+
+    batch = OpeningBalanceBatch.query.get_or_404(batch_id)
+
+    if batch.status == "Posted":
+        flash(
+            "This opening balance batch has already been posted.",
+            "warning"
+        )
+        return redirect(
+            url_for(
+                "opening_balance_batch",
+                batch_id=batch.id
+            )
+        )
+
+    validation_errors = (
+        OpeningBalance.query
+        .filter(
+            OpeningBalance.batch_id == batch.id,
+            OpeningBalance.validation_status != "Valid"
+        )
+        .count()
+    )
+
+    if validation_errors > 0:
+        flash(
+            (
+                f"Batch cannot be approved because "
+                f"{validation_errors} validation error(s) remain."
+            ),
+            "danger"
+        )
+        return redirect(
+            url_for(
+                "opening_balance_batch",
+                batch_id=batch.id
+            )
+        )
+
+    balance_count = (
+        OpeningBalance.query
+        .filter_by(batch_id=batch.id)
+        .count()
+    )
+
+    if balance_count == 0:
+        flash(
+            "Batch cannot be approved because it contains no balances.",
+            "danger"
+        )
+        return redirect(
+            url_for(
+                "opening_balance_batch",
+                batch_id=batch.id
+            )
+        )
+
+    batch.status = "Approved"
+
+    db.session.commit()
+
+    log_audit(
+        "APPROVE_OPENING_BALANCES",
+        (
+            f"Approved opening balance batch "
+            f"{batch.batch_no} containing "
+            f"{balance_count} member balance(s)"
+        )
+    )
+
+    flash(
+        f"Opening balance batch {batch.batch_no} approved successfully.",
+        "success"
+    )
+
+    return redirect(
+        url_for(
+            "opening_balance_batch",
+            batch_id=batch.id
+        )
+    )
+
+@app.route(
+    "/opening-balances/<int:batch_id>/lock",
+    methods=["POST"]
+)
+@role_required("accounting")
+def opening_balance_lock(batch_id):
+
+    batch = OpeningBalanceBatch.query.get_or_404(batch_id)
+
+    if batch.status != "Posted":
+        flash(
+            "Only posted opening balance batches can be locked.",
+            "danger"
+        )
+        return redirect(
+            url_for(
+                "opening_balance_batch",
+                batch_id=batch.id
+            )
+        )
+
+    if batch.is_locked:
+        flash(
+            "This opening balance batch is already locked.",
+            "warning"
+        )
+        return redirect(
+            url_for(
+                "opening_balance_batch",
+                batch_id=batch.id
+            )
+        )
+
+    user = session.get("user") or {}
+
+    locked_by = (
+        user.get("full_name")
+        or user.get("username")
+        or "System"
+    )
+
+    batch.is_locked = True
+    batch.locked_on = datetime.now(timezone.utc)
+    batch.locked_by = locked_by
+
+    db.session.commit()
+
+    log_audit(
+        "LOCK_OPENING_BALANCE_BATCH",
+        (
+            f"Locked opening balance batch "
+            f"{batch.batch_no}"
+        )
+    )
+
+    flash(
+        (
+            f"Opening balance batch "
+            f"{batch.batch_no} locked successfully."
+        ),
+        "success"
+    )
+
+    return redirect(
+        url_for(
+            "opening_balance_batch",
+            batch_id=batch.id
+        )
+    )
+
+@app.route(
+    "/opening-balances/<int:batch_id>/post",
+    methods=["POST"]
+)
+@role_required("accounting")
+def opening_balance_post(batch_id):
+
+    batch = OpeningBalanceBatch.query.get_or_404(batch_id)
+
+    if batch.status == "Posted":
+        flash(
+            "This opening balance batch has already been posted.",
+            "warning"
+        )
+        return redirect(
+            url_for(
+                "opening_balance_batch",
+                batch_id=batch.id
+            )
+        )
+
+    if batch.status != "Approved":
+        flash(
+            "Only approved opening balance batches can be posted.",
+            "danger"
+        )
+        return redirect(
+            url_for(
+                "opening_balance_batch",
+                batch_id=batch.id
+            )
+        )
+
+    balances = (
+        OpeningBalance.query
+        .filter_by(batch_id=batch.id)
+        .all()
+    )
+
+    if not balances:
+        flash(
+            "No balances were found in this batch.",
+            "warning"
+        )
+        return redirect(
+            url_for(
+                "opening_balance_batch",
+                batch_id=batch.id
+            )
+        )
+
+    invalid_records = [
+        balance
+        for balance in balances
+        if balance.validation_status != "Valid"
+    ]
+
+    if invalid_records:
+        flash(
+            f"{len(invalid_records)} record(s) are still invalid.",
+            "danger"
+        )
+        return redirect(
+            url_for(
+                "opening_balance_batch",
+                batch_id=batch.id
+            )
+        )
+
+    already_posted = [
+        balance
+        for balance in balances
+        if balance.is_posted
+    ]
+
+    if already_posted:
+        flash(
+            (
+                f"{len(already_posted)} record(s) in this batch "
+                f"have already been posted."
+            ),
+            "danger"
+        )
+        return redirect(
+            url_for(
+                "opening_balance_batch",
+                batch_id=batch.id
+            )
+        )
+
+    user = session.get("user") or {}
+
+    posted_by = (
+        user.get("full_name")
+        or user.get("username")
+        or "System"
+    )
+
+    posting_time = datetime.now(timezone.utc)
+
+    posting_reference = (
+        batch.posting_reference
+        or f"OB-{batch.batch_no}"
+    )
+
+    try:
+        total_savings = Decimal("0.00")
+        total_loans = Decimal("0.00")
+        total_interest = Decimal("0.00")
+        total_fines = Decimal("0.00")
+        total_welfare = Decimal("0.00")
+
+        created_loans = 0
+        created_fines = 0
+
+        for balance in balances:
+            savings = money(balance.savings_balance or 0)
+            loan_principal = money(balance.loan_principal or 0)
+            loan_interest = money(balance.loan_interest or 0)
+            fine_balance = money(balance.fine_balance or 0)
+            welfare = money(balance.welfare_balance or 0)
+
+            total_savings += savings
+            total_loans += loan_principal
+            total_interest += loan_interest
+            total_fines += fine_balance
+            total_welfare += welfare
+
+            # -------------------------------------------------
+            # Create migrated opening loan
+            # -------------------------------------------------
+            if loan_principal > 0 or loan_interest > 0:
+
+                duplicate_loan = Loan.query.filter_by(
+                    source_type="OpeningBalance",
+                    source_id=balance.id
+                ).first()
+
+                if duplicate_loan:
+                    raise Exception(
+                        (
+                            f"An opening loan already exists for "
+                            f"opening balance record {balance.id}."
+                        )
+                    )
+
+                loan = Loan(
+                    member_id=balance.member_id,
+                    principal=loan_principal,
+                    opening_interest=loan_interest,
+                    interest_rate=Decimal("0.00"),
+                    issued_on=batch.effective_date,
+                    due_on=batch.effective_date,
+                    purpose="Opening loan balance brought forward",
+                    status="Disbursed",
+                    approved_by="Opening Balance Migration",
+                    reviewed_by="Opening Balance Migration",
+                    disbursed_by="Opening Balance Migration",
+                    reviewed_on=batch.effective_date,
+                    approved_on=batch.effective_date,
+                    disbursed_on=batch.effective_date,
+                    disbursement_method="Opening Balance",
+                    disbursement_reference=posting_reference,
+                    source_type="OpeningBalance",
+                    source_id=balance.id
+                )
+
+                db.session.add(loan)
+                db.session.flush()
+
+                loan.loan_no = f"OBLN{loan.id:06d}"
+
+                balance.created_loan_id = loan.id
+                created_loans += 1
+
+            # -------------------------------------------------
+            # Create migrated opening fine
+            # -------------------------------------------------
+            if fine_balance > 0:
+
+                duplicate_fine = FinePenalty.query.filter_by(
+                    source_type="OpeningBalance",
+                    source_id=balance.id
+                ).first()
+
+                if duplicate_fine:
+                    raise Exception(
+                        (
+                            f"An opening fine already exists for "
+                            f"opening balance record {balance.id}."
+                        )
+                    )
+
+                fine = FinePenalty(
+                    member_id=balance.member_id,
+                    category="Opening Balance",
+                    amount=fine_balance,
+                    reason="Outstanding fine brought forward",
+                    fine_date=batch.effective_date,
+                    status="Unpaid",
+                    recorded_by=posted_by,
+                    source_type="OpeningBalance",
+                    source_id=balance.id
+                )
+
+                db.session.add(fine)
+                db.session.flush()
+
+                balance.created_fine_id = fine.id
+                created_fines += 1
+
+            balance.is_posted = True
+            balance.posted_on = posting_time
+            balance.posted_by = posted_by
+
+        # -----------------------------------------------------
+        # Build the opening journal
+        # -----------------------------------------------------
+        required_account_codes = [
+            "1100",
+            "1110",
+            "1120",
+            "2000",
+            "2010",
+            "3900"
+        ]
+
+        accounts = {
+            account.code: account
+            for account in Account.query.filter(
+                Account.code.in_(required_account_codes)
+            ).all()
+        }
+
+        missing_accounts = [
+            code
+            for code in required_account_codes
+            if code not in accounts
+        ]
+
+        if missing_accounts:
+            raise Exception(
+                (
+                    "Chart of Accounts missing: "
+                    + ", ".join(missing_accounts)
+                )
+            )
+
+        journal_lines = []
+
+        if total_loans > 0:
+            journal_lines.append({
+                "account": accounts["1100"],
+                "debit": money(total_loans),
+                "memo": "Opening loan principal"
+            })
+
+        if total_interest > 0:
+            journal_lines.append({
+                "account": accounts["1110"],
+                "debit": money(total_interest),
+                "memo": "Opening loan interest receivable"
+            })
+
+        if total_fines > 0:
+            journal_lines.append({
+                "account": accounts["1120"],
+                "debit": money(total_fines),
+                "memo": "Opening fines receivable"
+            })
+
+        if total_savings > 0:
+            journal_lines.append({
+                "account": accounts["2000"],
+                "credit": money(total_savings),
+                "memo": "Opening member savings"
+            })
+
+        if total_welfare > 0:
+            journal_lines.append({
+                "account": accounts["2010"],
+                "credit": money(total_welfare),
+                "memo": "Opening welfare fund"
+            })
+
+        debit_total = money(
+            total_loans
+            + total_interest
+            + total_fines
+        )
+
+        credit_total = money(
+            total_savings
+            + total_welfare
+        )
+
+        balancing_amount = money(
+            credit_total - debit_total
+        )
+
+        if balancing_amount > 0:
+            journal_lines.append({
+                "account": accounts["3900"],
+                "debit": balancing_amount,
+                "memo": "Opening balance equity"
+            })
+
+        elif balancing_amount < 0:
+            journal_lines.append({
+                "account": accounts["3900"],
+                "credit": money(abs(balancing_amount)),
+                "memo": "Opening balance equity"
+            })
+
+        journal = post_journal(
+            entry_date=batch.effective_date,
+            description=(
+                f"Opening balances posted from batch "
+                f"{batch.batch_no}"
+            ),
+            reference=posting_reference,
+            source_type="OpeningBalanceBatch",
+            source_id=batch.id,
+            lines=journal_lines
+        )
+
+        if journal is None:
+            raise Exception(
+                "A journal already exists for this opening balance batch."
+            )
+
+        # -----------------------------------------------------
+        # Finalize batch
+        # -----------------------------------------------------
+        batch.status = "Posted"
+        batch.posted_by = posted_by
+        batch.posted_on = posting_time
+        batch.posting_reference = posting_reference
+        
+
+        db.session.commit()
+
+        log_audit(
+            "POST_OPENING_BALANCES",
+            (
+                f"Posted opening balance batch {batch.batch_no}; "
+                f"{len(balances)} member record(s), "
+                f"{created_loans} opening loan(s), "
+                f"{created_fines} opening fine(s), "
+                f"reference {posting_reference}"
+            )
+        )
+
+        flash(
+            (
+                f"Opening balance batch {batch.batch_no} "
+                f"posted successfully."
+            ),
+            "success"
+        )
+
+    except Exception as e:
+        db.session.rollback()
+
+        app.logger.exception(
+            "Opening balance posting failed for batch %s",
+            batch.id
+        )
+
+        flash(
+            f"Opening balance posting failed: {e}",
+            "danger"
+        )
+
+    return redirect(
+        url_for(
+            "opening_balance_batch",
+            batch_id=batch.id
+        )
+    )
+
+@app.route(
+    "/opening-balances/<int:batch_id>/reverse",
+    methods=["POST"]
+)
+@role_required("accounting")
+def opening_balance_reverse(batch_id):
+
+    batch = OpeningBalanceBatch.query.get_or_404(batch_id)
+
+    if batch.status != "Posted":
+        flash(
+            "Only posted opening balance batches can be reversed.",
+            "danger"
+        )
+        return redirect(
+            url_for(
+                "opening_balance_batch",
+                batch_id=batch.id
+            )
+        )
+
+    if batch.is_locked:
+        flash(
+            "This opening balance batch is locked and cannot be reversed.",
+            "danger"
+        )
+        return redirect(
+            url_for(
+                "opening_balance_batch",
+                batch_id=batch.id
+            )
+        )
+
+    flash(
+        (
+            "The opening balance reversal engine has not yet been "
+            "activated. No records were changed."
+        ),
+        "warning"
+    )
+
+    return redirect(
+        url_for(
+            "opening_balance_batch",
+            batch_id=batch.id
+        )
+    )
 
 
 @app.route("/opening-balances/<int:batch_id>/summary")
@@ -10069,22 +10857,73 @@ def balance_sheet():
         for b in balances
     }
 
-    cash_on_hand = money(balance_map.get('1000', Decimal('0.00')))
-    bank_account = money(balance_map.get('1010', Decimal('0.00')))
-    mobile_money = money(balance_map.get('1020', Decimal('0.00')))
-    loans_receivable = money(balance_map.get('1100', Decimal('0.00')))
+    cash_on_hand = money(
+    balance_map.get('1000', Decimal('0.00'))
+    )
 
-    member_savings = money(balance_map.get('2000', Decimal('0.00')))
-    welfare_fund = money(balance_map.get('2010', Decimal('0.00')))
-    accumulated_surplus = money(balance_map.get('3000', Decimal('0.00')))
+    bank_account = money(
+        balance_map.get('1010', Decimal('0.00'))
+    )
 
-    total_cash = money(cash_on_hand + bank_account + mobile_money)
-    total_assets = money(total_cash + loans_receivable)
+    mobile_money = money(
+        balance_map.get('1020', Decimal('0.00'))
+    )
 
-    total_liabilities = money(member_savings + welfare_fund)
+    loans_receivable = money(
+        balance_map.get('1100', Decimal('0.00'))
+    )
 
-    total_equity = money(accumulated_surplus + current_surplus)
+    loan_interest_receivable = money(
+        balance_map.get('1110', Decimal('0.00'))
+    )
 
+    fines_receivable = money(
+        balance_map.get('1120', Decimal('0.00'))
+    )
+
+    member_savings = money(
+        balance_map.get('2000', Decimal('0.00'))
+    )
+
+    welfare_fund = money(
+        balance_map.get('2010', Decimal('0.00'))
+    )
+
+    accumulated_surplus = money(
+        balance_map.get('3000', Decimal('0.00'))
+    )
+
+    opening_balance_equity = money(
+        balance_map.get('3900', Decimal('0.00'))
+    )
+
+    total_cash = money(
+        cash_on_hand
+        + bank_account
+        + mobile_money
+    )
+
+    total_receivables = money(
+        loans_receivable
+        + loan_interest_receivable
+        + fines_receivable
+    )
+
+    total_assets = money(
+        total_cash
+        + total_receivables
+    )
+
+    total_liabilities = money(
+        member_savings
+        + welfare_fund
+    )
+
+    total_equity = money(
+        accumulated_surplus
+        + opening_balance_equity
+        + current_surplus
+    )
     total_liabilities_equity = money(total_liabilities + total_equity)
 
     difference = money(total_assets - total_liabilities_equity)
@@ -10104,7 +10943,11 @@ def balance_sheet():
         current_surplus=current_surplus,
         total_equity=total_equity,
         total_liabilities_equity=total_liabilities_equity,
-        difference=difference
+        difference=difference,
+        loan_interest_receivable=loan_interest_receivable,
+        fines_receivable=fines_receivable,
+        total_receivables=total_receivables,
+        opening_balance_equity=opening_balance_equity,
     )
 
 @app.route('/accounting/cash-flow')
@@ -13270,9 +14113,58 @@ def fix_loan_numbers():
     return f'Updated {len(loans)} loans.'
  """
 
+def ensure_chart_of_accounts():
+    """
+    Creates mandatory system accounts if they do not already exist.
+    Safe to run whenever the application starts.
+    """
+
+    required_accounts = [
+        {
+            "code": "1110",
+            "name": "Loan Interest Receivable",
+            "account_type": "Asset",
+            "normal_balance": "Debit"
+        },
+        {
+            "code": "1120",
+            "name": "Fines Receivable",
+            "account_type": "Asset",
+            "normal_balance": "Debit"
+        },
+        {
+            "code": "3900",
+            "name": "Opening Balance Equity",
+            "account_type": "Equity",
+            "normal_balance": "Credit"
+        }
+    ]
+
+    for item in required_accounts:
+        account = Account.query.filter_by(
+            code=item["code"]
+        ).first()
+
+        if account:
+            continue
+
+        db.session.add(
+            Account(
+                code=item["code"],
+                name=item["name"],
+                account_type=item["account_type"],
+                normal_balance=item["normal_balance"],
+                active=True
+            )
+        )
+
+    db.session.commit()
+
+
 def initialize_database():
     with app.app_context():
         db.create_all()
+
         ensure_month_end_columns()
         ensure_settings_columns()
         ensure_member_columns()
@@ -13280,6 +14172,7 @@ def initialize_database():
         ensure_opening_balance_columns()
 
         ensure_schema()
+        ensure_chart_of_accounts()
         ensure_admin()
         
 

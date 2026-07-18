@@ -4,6 +4,7 @@
 {% block subtitle %}Assets, liabilities and member equity{% endblock %}
 
 {% block content %}
+
 <section class="panel">
   <div class="actions">
     <a class="btn" href="{{ url_for('accounting') }}">
@@ -19,26 +20,47 @@
     <tr>
       <th colspan="2">Assets</th>
     </tr>
+
     <tr>
       <td>Cash on Hand</td>
       <td>{{ cash_on_hand|kwacha }}</td>
     </tr>
+
     <tr>
       <td>Bank Account</td>
       <td>{{ bank_account|kwacha }}</td>
     </tr>
+
     <tr>
       <td>Mobile Money</td>
       <td>{{ mobile_money|kwacha }}</td>
     </tr>
+
     <tr>
       <th>Total Cash and Bank</th>
       <th>{{ total_cash|kwacha }}</th>
     </tr>
+
     <tr>
       <td>Loans Receivable</td>
       <td>{{ loans_receivable|kwacha }}</td>
     </tr>
+
+    <tr>
+      <td>Loan Interest Receivable</td>
+      <td>{{ loan_interest_receivable|kwacha }}</td>
+    </tr>
+
+    <tr>
+      <td>Fines Receivable</td>
+      <td>{{ fines_receivable|kwacha }}</td>
+    </tr>
+
+    <tr>
+      <th>Total Receivables</th>
+      <th>{{ total_receivables|kwacha }}</th>
+    </tr>
+
     <tr>
       <th>Total Assets</th>
       <th>{{ total_assets|kwacha }}</th>
@@ -47,14 +69,17 @@
     <tr>
       <th colspan="2">Liabilities</th>
     </tr>
+
     <tr>
       <td>Member Savings / Contributions</td>
       <td>{{ member_savings|kwacha }}</td>
     </tr>
+
     <tr>
       <td>Welfare Fund Payable</td>
       <td>{{ welfare_fund|kwacha }}</td>
     </tr>
+
     <tr>
       <th>Total Liabilities</th>
       <th>{{ total_liabilities|kwacha }}</th>
@@ -63,17 +88,25 @@
     <tr>
       <th colspan="2">Equity</th>
     </tr>
+
     <tr>
       <td>Accumulated Surplus</td>
       <td>{{ accumulated_surplus|kwacha }}</td>
     </tr>
+
     <tr>
-      <th>Total Equity</th>
-      <th>{{ total_equity|kwacha }}</th>
+      <td>Opening Balance Equity</td>
+      <td>{{ opening_balance_equity|kwacha }}</td>
     </tr>
+
     <tr>
       <td>Current Year Surplus</td>
       <td>{{ current_surplus|kwacha }}</td>
+    </tr>
+
+    <tr>
+      <th>Total Equity</th>
+      <th>{{ total_equity|kwacha }}</th>
     </tr>
 
     <tr>
@@ -83,7 +116,9 @@
 
     <tr>
       <th>Difference</th>
-      <th>{{ difference|kwacha }}</th>
+      <th class="{% if difference == 0 %}text-success{% else %}text-danger{% endif %}">
+        {{ difference|kwacha }}
+      </th>
     </tr>
   </table>
 </section>
