@@ -9,7 +9,7 @@ from pathlib import Path
 from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy import func, inspect
+from sqlalchemy import func, inspect, text
 import csv
 import io
 import os
@@ -110,7 +110,7 @@ LATE_CONTRIBUTION_FINE_AMOUNT = Decimal('10.00')
 CLIENT_NAME = 'Higher Achievers'
 PRODUCER_NAME = 'SL Consulting Limited'
 BACKUP_RETENTION = 30
-
+ACCUMULATED_SURPLUS_ACCOUNT_CODE = "3000"
 
 FINE_CATEGORIES = [
     'Late Meeting Attendance',
@@ -899,6 +899,80 @@ class Account(db.Model):
     normal_balance = db.Column(db.String(10), default='Debit')
     active = db.Column(db.Boolean, default=True)
 
+class FinancialYear(db.Model):
+    __tablename__ = 'financial_years'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    year = db.Column(
+        db.Integer,
+        unique=True,
+        nullable=False,
+        index=True
+    )
+
+    start_date = db.Column(
+        db.Date,
+        nullable=False
+    )
+
+    end_date = db.Column(
+        db.Date,
+        nullable=False
+    )
+
+    status = db.Column(
+        db.String(20),
+        nullable=False,
+        default='Open'
+    )
+
+    opened_on = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc)
+    )
+
+    opened_by = db.Column(
+        db.String(120)
+    )
+
+    closed_on = db.Column(
+        db.DateTime
+    )
+
+    closed_by = db.Column(
+        db.String(120)
+    )
+
+    closing_reference = db.Column(
+        db.String(50)
+    )
+
+    is_locked = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=False
+    )
+
+    created_on = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc)
+    )
+
+    updated_on = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc)
+    )
+
+    def __repr__(self):
+        return (
+            f"<FinancialYear "
+            f"{self.year} - {self.status}>"
+        )
 
 class JournalEntry(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -1172,16 +1246,6 @@ class CashBookEntry(db.Model):
 
     created_by = db.Column(db.String(120))
     created_at = db.Column(db.Date, default=date.today)
-
-class FinancialYear(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-
-    start_date = db.Column(db.Date, nullable=False)
-    end_date = db.Column(db.Date, nullable=False)
-
-    status = db.Column(db.String(20), default='Open')  # Open / Closed
-    closed_on = db.Column(db.DateTime)
-    closed_by = db.Column(db.String(120))
 
 class BankStatementLine(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -1527,6 +1591,511 @@ class OpeningBalance(db.Model):
         ),
     )
 
+def build_financial_year_closing_preview(financial_year):
+    """
+    Prepare the year-end closing summary without posting anything.
+    """
+
+    validation = run_financial_year_preclose_checks(financial_year)
+    balances = ledger_balances(
+    financial_year.start_date,
+    financial_year.end_date
+)
+
+    income_accounts = []
+    expense_accounts = []
+
+    total_income = Decimal("0.00")
+    total_expenses = Decimal("0.00")
+
+    for item in balances:
+        account = item["account"]
+        balance = money(item.get("balance", Decimal("0.00")))
+
+        if account.account_type == "Income" and balance != Decimal("0.00"):
+            total_income += balance
+
+            income_accounts.append({
+                "code": account.code,
+                "name": account.name,
+                "balance": balance
+            })
+
+        elif account.account_type == "Expense" and balance != Decimal("0.00"):
+            total_expenses += balance
+
+            expense_accounts.append({
+                "code": account.code,
+                "name": account.name,
+                "balance": balance
+            })
+
+    current_surplus = money(
+        total_income - total_expenses
+    )
+
+    return {
+        "validation": validation,
+        "income_accounts": income_accounts,
+        "expense_accounts": expense_accounts,
+        "total_income": money(total_income),
+        "total_expenses": money(total_expenses),
+        "current_surplus": current_surplus,
+        "is_ready": validation["is_ready"]
+    }
+
+def financial_year_balances(financial_year):
+    return ledger_balances(
+        financial_year.start_date,
+        financial_year.end_date
+    )
+
+def current_financial_year():
+    """
+    Return the currently open financial year.
+
+    If more than one year is open because of bad data,
+    return the most recent one.
+    """
+    years = FinancialYear.query.all()
+
+    print("All financial years:", years)
+
+    return (
+        FinancialYear.query
+        .filter_by(status='Open')
+        .order_by(FinancialYear.year.desc())
+        .first()
+    )
+def run_financial_year_preclose_checks(financial_year):
+    """
+    Run year-end validation checks for the supplied financial year.
+
+    Returns:
+        {
+            "checks": [...],
+            "passed_count": 0,
+            "failed_count": 0,
+            "warning_count": 0,
+            "is_ready": False
+        }
+    """
+
+    checks = []
+
+    if not financial_year:
+        checks.append({
+            "code": "FINANCIAL_YEAR",
+            "name": "Financial Year",
+            "status": "Failed",
+            "message": "No open financial year was found.",
+            "critical": True
+        })
+
+        return {
+            "checks": checks,
+            "passed_count": 0,
+            "failed_count": 1,
+            "warning_count": 0,
+            "is_ready": False
+        }
+
+    # ---------------------------------------------------------
+    # Check 1: Financial year status
+    # ---------------------------------------------------------
+
+    if financial_year.status == "Open" and not financial_year.is_locked:
+        checks.append({
+            "code": "YEAR_STATUS",
+            "name": "Financial Year Status",
+            "status": "Passed",
+            "message": (
+                f"Financial year {financial_year.year} is open "
+                "and available for year-end processing."
+            ),
+            "critical": True
+        })
+    else:
+        checks.append({
+            "code": "YEAR_STATUS",
+            "name": "Financial Year Status",
+            "status": "Failed",
+            "message": (
+                f"Financial year {financial_year.year} is not open "
+                "or is already locked."
+            ),
+            "critical": True
+        })
+
+    # ---------------------------------------------------------
+    # Check 2: Trial Balance
+    # ---------------------------------------------------------
+
+    balances = ledger_balances(
+    financial_year.start_date,
+    financial_year.end_date
+)
+
+    total_debits = Decimal("0.00")
+    total_credits = Decimal("0.00")
+
+    for item in balances:
+        balance = money(item.get("balance", Decimal("0.00")))
+        account = item["account"]
+
+        if account.normal_balance == "Debit":
+            if balance >= 0:
+                total_debits += balance
+            else:
+                total_credits += abs(balance)
+
+        elif account.normal_balance == "Credit":
+            if balance >= 0:
+                total_credits += balance
+            else:
+                total_debits += abs(balance)
+
+    trial_balance_difference = money(
+        total_debits - total_credits
+    )
+
+    if trial_balance_difference == Decimal("0.00"):
+        checks.append({
+            "code": "TRIAL_BALANCE",
+            "name": "Trial Balance",
+            "status": "Passed",
+            "message": "The Trial Balance is balanced.",
+            "critical": True
+        })
+    else:
+        checks.append({
+            "code": "TRIAL_BALANCE",
+            "name": "Trial Balance",
+            "status": "Failed",
+            "message": (
+                "The Trial Balance has a difference of "
+                f"{kwacha(trial_balance_difference)}."
+            ),
+            "critical": True
+        })
+
+    # ---------------------------------------------------------
+    # Check 3: Balance Sheet
+    # ---------------------------------------------------------
+
+    balance_map = {
+        item["account"].code: money(item["balance"])
+        for item in balances
+    }
+
+    cash_on_hand = money(
+        balance_map.get("1000", Decimal("0.00"))
+    )
+
+    bank_account = money(
+        balance_map.get("1010", Decimal("0.00"))
+    )
+
+    mobile_money = money(
+        balance_map.get("1020", Decimal("0.00"))
+    )
+
+    loans_receivable = money(
+        balance_map.get("1100", Decimal("0.00"))
+    )
+
+    loan_interest_receivable = money(
+        balance_map.get("1110", Decimal("0.00"))
+    )
+
+    fines_receivable = money(
+        balance_map.get("1120", Decimal("0.00"))
+    )
+
+    member_savings = money(
+        balance_map.get("2000", Decimal("0.00"))
+    )
+
+    welfare_fund = money(
+        balance_map.get("2010", Decimal("0.00"))
+    )
+
+    accumulated_surplus = money(
+        balance_map.get("3000", Decimal("0.00"))
+    )
+
+    opening_balance_equity = money(
+        balance_map.get("3900", Decimal("0.00"))
+    )
+
+    income = Decimal("0.00")
+    expenses = Decimal("0.00")
+
+    for item in balances:
+        account = item["account"]
+
+        if account.account_type == "Income":
+            income += money(item["balance"])
+
+        elif account.account_type == "Expense":
+            expenses += money(item["balance"])
+
+    current_surplus = money(income - expenses)
+
+    total_assets = money(
+        cash_on_hand
+        + bank_account
+        + mobile_money
+        + loans_receivable
+        + loan_interest_receivable
+        + fines_receivable
+    )
+
+    total_liabilities = money(
+        member_savings
+        + welfare_fund
+    )
+
+    total_equity = money(
+        accumulated_surplus
+        + opening_balance_equity
+        + current_surplus
+    )
+
+    balance_sheet_difference = money(
+        total_assets
+        - total_liabilities
+        - total_equity
+    )
+
+    if balance_sheet_difference == Decimal("0.00"):
+        checks.append({
+            "code": "BALANCE_SHEET",
+            "name": "Balance Sheet",
+            "status": "Passed",
+            "message": "The Balance Sheet is balanced.",
+            "critical": True
+        })
+    else:
+        checks.append({
+            "code": "BALANCE_SHEET",
+            "name": "Balance Sheet",
+            "status": "Failed",
+            "message": (
+                "The Balance Sheet has a difference of "
+                f"{kwacha(balance_sheet_difference)}."
+            ),
+            "critical": True
+        })
+
+    # ---------------------------------------------------------
+    # Check 4: Opening Balance batches
+    # ---------------------------------------------------------
+
+    pending_opening_batches = (
+        OpeningBalanceBatch.query
+        .filter(
+            OpeningBalanceBatch.status.notin_(
+                ["Posted", "Locked", "Reversed"]
+            )
+        )
+        .count()
+    )
+
+    if pending_opening_batches == 0:
+        checks.append({
+            "code": "OPENING_BALANCES",
+            "name": "Opening Balances",
+            "status": "Passed",
+            "message": "There are no incomplete opening-balance batches.",
+            "critical": True
+        })
+    else:
+        checks.append({
+            "code": "OPENING_BALANCES",
+            "name": "Opening Balances",
+            "status": "Failed",
+            "message": (
+                f"{pending_opening_batches} opening-balance batch(es) "
+                "have not been fully posted or resolved."
+            ),
+            "critical": True
+        })
+
+    # ---------------------------------------------------------
+    # Check 5: Financial-year dates
+    # ---------------------------------------------------------
+
+    if financial_year.start_date <= financial_year.end_date:
+        checks.append({
+            "code": "YEAR_DATES",
+            "name": "Financial Year Dates",
+            "status": "Passed",
+            "message": (
+                f"The period runs from "
+                f"{financial_year.start_date.strftime('%d %b %Y')} "
+                f"to {financial_year.end_date.strftime('%d %b %Y')}."
+            ),
+            "critical": True
+        })
+    else:
+        checks.append({
+            "code": "YEAR_DATES",
+            "name": "Financial Year Dates",
+            "status": "Failed",
+            "message": "The financial-year date range is invalid.",
+            "critical": True
+        })
+
+    passed_count = sum(
+        1 for check in checks
+        if check["status"] == "Passed"
+    )
+
+    failed_count = sum(
+        1 for check in checks
+        if check["status"] == "Failed"
+    )
+
+    warning_count = sum(
+        1 for check in checks
+        if check["status"] == "Warning"
+    )
+
+    critical_failures = any(
+        check["status"] == "Failed"
+        and check.get("critical", False)
+        for check in checks
+    )
+
+    return {
+        "checks": checks,
+        "passed_count": passed_count,
+        "failed_count": failed_count,
+        "warning_count": warning_count,
+        "is_ready": not critical_failures
+    }
+
+def financial_year_for_date(transaction_date):
+    """
+    Return the financial year containing the supplied date.
+    """
+    if not transaction_date:
+        return None
+
+    return (
+        FinancialYear.query
+        .filter(
+            FinancialYear.start_date <= transaction_date,
+            FinancialYear.end_date >= transaction_date
+        )
+        .first()
+    )
+
+def is_financial_year_locked(transaction_date):
+    """
+    Return True when the financial year containing the date is locked.
+    """
+    financial_year = financial_year_for_date(transaction_date)
+
+    if not financial_year:
+        return False
+
+    return bool(
+        financial_year.is_locked
+        or financial_year.status == 'Closed'
+    )
+
+def ensure_financial_year_columns():
+    """
+    Create and maintain the FinancialYear table.
+    Safe to run every time the application starts.
+    """
+
+    inspector = db.inspect(db.engine)
+
+    # Create table if it does not exist
+    if 'financial_years' not in inspector.get_table_names():
+        FinancialYear.__table__.create(db.engine)
+        inspector = db.inspect(db.engine)
+
+    existing_columns = {
+        c['name']
+        for c in inspector.get_columns('financial_years')
+    }
+
+    with db.engine.begin() as conn:
+
+        if 'opened_by' not in existing_columns:
+            conn.execute(text(
+                "ALTER TABLE financial_years "
+                "ADD COLUMN opened_by VARCHAR(120)"
+            ))
+
+        if 'closed_on' not in existing_columns:
+            conn.execute(text(
+                "ALTER TABLE financial_years "
+                "ADD COLUMN closed_on TIMESTAMP"
+            ))
+
+        if 'closed_by' not in existing_columns:
+            conn.execute(text(
+                "ALTER TABLE financial_years "
+                "ADD COLUMN closed_by VARCHAR(120)"
+            ))
+
+        if 'closing_reference' not in existing_columns:
+            conn.execute(text(
+                "ALTER TABLE financial_years "
+                "ADD COLUMN closing_reference VARCHAR(50)"
+            ))
+
+        if 'is_locked' not in existing_columns:
+            conn.execute(text(
+                "ALTER TABLE financial_years "
+                "ADD COLUMN is_locked BOOLEAN DEFAULT FALSE"
+            ))
+
+        if 'created_on' not in existing_columns:
+            conn.execute(text(
+                "ALTER TABLE financial_years "
+                "ADD COLUMN created_on TIMESTAMP"
+            ))
+
+        if 'updated_on' not in existing_columns:
+            conn.execute(text(
+                "ALTER TABLE financial_years "
+                "ADD COLUMN updated_on TIMESTAMP"
+            ))
+
+    # ------------------------------------------------------------------
+    # Automatically create the current financial year if none exists
+    # ------------------------------------------------------------------
+
+    current_year = date.today().year
+
+    existing_year = FinancialYear.query.filter_by(
+        year=current_year
+    ).first()
+
+    if not existing_year:
+        now = datetime.now(timezone.utc)
+
+        financial_year = FinancialYear(
+            year=current_year,
+            start_date=date(current_year, 1, 1),
+            end_date=date(current_year, 12, 31),
+            status='Open',
+            opened_on=now,
+            opened_by='System',
+            is_locked=False,
+            created_on=now,
+            updated_on=now
+        )
+
+        db.session.add(financial_year)
+        db.session.commit()    
+
 def opening_balance_decimal(value):
     """Safely convert imported values to Decimal."""
     if value is None:
@@ -1700,6 +2269,171 @@ def generate_opening_balance_batch_no():
             next_number = last_batch.id + 1
 
     return f'OB-{year}-{next_number:03d}'
+
+def build_financial_year_closing_lines(financial_year):
+    """
+    Build the closing journal lines for the selected financial year.
+
+    Income accounts are closed against accumulated surplus.
+    Expense accounts are closed against accumulated surplus.
+    """
+
+    balances = ledger_balances(
+        financial_year.start_date,
+        financial_year.end_date
+    )
+
+    accumulated_surplus_account = Account.query.filter_by(
+        code=ACCUMULATED_SURPLUS_ACCOUNT_CODE
+    ).first()
+
+    if not accumulated_surplus_account:
+        raise ValueError(
+            f"Accumulated Surplus account "
+            f"{ACCUMULATED_SURPLUS_ACCOUNT_CODE} is missing "
+            f"from the Chart of Accounts."
+        )
+
+    lines = []
+
+    total_income = Decimal("0.00")
+    total_expenses = Decimal("0.00")
+
+    for item in balances:
+        account = item["account"]
+        balance = money(item["balance"])
+
+        if balance == Decimal("0.00"):
+            continue
+
+        if account.account_type == "Income":
+            total_income += balance
+
+            if balance > 0:
+                lines.append({
+                    "account": account,
+                    "debit": balance,
+                    "credit": Decimal("0.00"),
+                    "memo": (
+                        f"Close {account.code} - {account.name} "
+                        f"for FY{financial_year.year}"
+                    )
+                })
+            else:
+                lines.append({
+                    "account": account,
+                    "debit": Decimal("0.00"),
+                    "credit": abs(balance),
+                    "memo": (
+                        f"Close abnormal balance on "
+                        f"{account.code} - {account.name} "
+                        f"for FY{financial_year.year}"
+                    )
+                })
+
+        elif account.account_type == "Expense":
+            total_expenses += balance
+
+            if balance > 0:
+                lines.append({
+                    "account": account,
+                    "debit": Decimal("0.00"),
+                    "credit": balance,
+                    "memo": (
+                        f"Close {account.code} - {account.name} "
+                        f"for FY{financial_year.year}"
+                    )
+                })
+            else:
+                lines.append({
+                    "account": account,
+                    "debit": abs(balance),
+                    "credit": Decimal("0.00"),
+                    "memo": (
+                        f"Close abnormal balance on "
+                        f"{account.code} - {account.name} "
+                        f"for FY{financial_year.year}"
+                    )
+                })
+
+    current_surplus = money(total_income - total_expenses)
+
+    if current_surplus > Decimal("0.00"):
+        lines.append({
+            "account": accumulated_surplus_account,
+            "debit": Decimal("0.00"),
+            "credit": current_surplus,
+            "memo": (
+                f"Transfer FY{financial_year.year} surplus "
+                f"to accumulated surplus"
+            )
+        })
+
+    elif current_surplus < Decimal("0.00"):
+        lines.append({
+            "account": accumulated_surplus_account,
+            "debit": abs(current_surplus),
+            "credit": Decimal("0.00"),
+            "memo": (
+                f"Transfer FY{financial_year.year} deficit "
+                f"to accumulated surplus"
+            )
+        })
+
+    debit_total = money(sum(
+        (money(line.get("debit", 0)) for line in lines),
+        Decimal("0.00")
+    ))
+
+    credit_total = money(sum(
+        (money(line.get("credit", 0)) for line in lines),
+        Decimal("0.00")
+    ))
+
+    if debit_total != credit_total:
+        raise ValueError(
+            "The proposed financial-year closing journal is not balanced. "
+            f"Debits: {debit_total}; Credits: {credit_total}."
+        )
+
+    return {
+        "lines": lines,
+        "total_income": money(total_income),
+        "total_expenses": money(total_expenses),
+        "current_surplus": current_surplus,
+        "debit_total": debit_total,
+        "credit_total": credit_total
+    }
+
+def generate_financial_year_closing_reference(financial_year):
+    """
+    Generate a unique closing reference such as FY2026-0001.
+    """
+
+    prefix = f"FY{financial_year.year}-"
+
+    latest_entry = (
+        JournalEntry.query
+        .filter(JournalEntry.reference.like(f"{prefix}%"))
+        .order_by(JournalEntry.id.desc())
+        .first()
+    )
+
+    sequence = 1
+
+    if latest_entry and latest_entry.reference:
+        try:
+            sequence = int(latest_entry.reference.split("-")[-1]) + 1
+        except (ValueError, IndexError):
+            sequence = 1
+
+    reference = f"{prefix}{sequence:04d}"
+
+    while JournalEntry.query.filter_by(reference=reference).first():
+        sequence += 1
+        reference = f"{prefix}{sequence:04d}"
+
+    return reference
 
 def ensure_opening_balance_columns():
     inspector = db.inspect(db.engine)
@@ -2141,7 +2875,8 @@ def post_journal(
     lines=None,
     debit_account_code=None,
     credit_account_code=None,
-    amount=None
+    amount=None,
+    commit=True
 ):
     if source_type and source_id and JournalEntry.query.filter_by(
         source_type=source_type,
@@ -2195,7 +2930,11 @@ def post_journal(
             memo=line.get('memo')
         ))
 
-    db.session.commit()
+    if commit:
+        db.session.commit()
+    else:
+        db.session.flush()
+
     return entry
 
 def sync_operational_transactions_to_gl():
@@ -9132,6 +9871,43 @@ def opening_balance_approve(batch_id):
     "/opening-balances/<int:batch_id>/lock",
     methods=["POST"]
 )
+
+@app.route(
+    "/accounting/financial-year/closing-preview"
+)
+@login_required
+@role_required("accounting")
+def financial_year_closing_preview():
+    financial_year = current_financial_year()
+
+    if not financial_year:
+        flash(
+            "No open financial year was found.",
+            "danger"
+        )
+        return redirect(
+            url_for("financial_year_control_centre")
+        )
+
+    preview = build_financial_year_closing_preview(
+        financial_year
+    )
+
+    log_audit(
+        "PREVIEW_YEAR_END",
+        (
+            f"Year-end closing preview generated for "
+            f"financial year {financial_year.year}; "
+            f"current surplus {kwacha(preview['current_surplus'])}."
+        )
+    )
+
+    return render_template(
+        "financial_year/closing_preview.html",
+        financial_year=financial_year,
+        preview=preview
+    )
+
 @role_required("accounting")
 def opening_balance_lock(batch_id):
 
@@ -9202,6 +9978,220 @@ def opening_balance_lock(batch_id):
     "/opening-balances/<int:batch_id>/post",
     methods=["POST"]
 )
+
+@app.route(
+    "/accounting/financial-year/close",
+    methods=["GET", "POST"]
+)
+@login_required
+@role_required("accounting")
+def close_financial_year():
+    financial_year = current_financial_year()
+
+    if not financial_year:
+        flash("No open financial year was found.", "danger")
+        return redirect(
+            url_for("financial_year_control_centre")
+        )
+
+    preview = build_financial_year_closing_preview(
+        financial_year
+    )
+
+    required_confirmation = f"CLOSE {financial_year.year}"
+
+    if request.method == "GET":
+        return render_template(
+            "financial_year/close_confirmation.html",
+            financial_year=financial_year,
+            preview=preview,
+            required_confirmation=required_confirmation
+        )
+
+    confirmation_text = (
+        request.form.get("confirmation_text") or ""
+    ).strip()
+
+    if confirmation_text != required_confirmation:
+        flash(
+            f'Type "{required_confirmation}" exactly to confirm closure.',
+            "danger"
+        )
+
+        return render_template(
+            "financial_year/close_confirmation.html",
+            financial_year=financial_year,
+            preview=preview,
+            required_confirmation=required_confirmation
+        )
+
+    try:
+        # Re-read the year to reduce the risk of using stale information.
+        financial_year = FinancialYear.query.filter_by(
+            id=financial_year.id
+        ).first()
+
+        if not financial_year:
+            raise ValueError(
+                "The financial year could not be found."
+            )
+
+        if financial_year.status != "Open":
+            raise ValueError(
+                f"Financial Year {financial_year.year} is not open."
+            )
+
+        if financial_year.is_locked:
+            raise ValueError(
+                f"Financial Year {financial_year.year} is already locked."
+            )
+
+        # Always rerun the checks immediately before closing.
+        validation = run_financial_year_preclose_checks(
+            financial_year
+        )
+
+        if not validation["is_ready"]:
+            raise ValueError(
+                "The financial year can no longer be closed because "
+                "one or more pre-close checks have failed."
+            )
+
+        duplicate_closing = JournalEntry.query.filter_by(
+            source_type="FinancialYearClosing",
+            source_id=str(financial_year.id)
+        ).first()
+
+        if duplicate_closing:
+            raise ValueError(
+                f"Financial Year {financial_year.year} already has "
+                f"a closing journal: {duplicate_closing.reference}."
+            )
+
+        closing_data = build_financial_year_closing_lines(
+            financial_year
+        )
+
+        if not closing_data["lines"]:
+            raise ValueError(
+                "There are no income or expense balances to close."
+            )
+
+        closing_reference = (
+            generate_financial_year_closing_reference(
+                financial_year
+            )
+        )
+
+        username = (
+            (session.get("user") or {}).get("username")
+            or "System"
+        )
+
+        closing_entry = post_journal(
+            entry_date=financial_year.end_date,
+            description=(
+                f"Financial Year {financial_year.year} "
+                f"Closing Journal"
+            ),
+            reference=closing_reference,
+            source_type="FinancialYearClosing",
+            source_id=financial_year.id,
+            lines=closing_data["lines"],
+            commit=False
+        )
+
+        if not closing_entry:
+            raise ValueError(
+                "The closing journal was not created because "
+                "a matching year-end journal already exists."
+            )
+
+        financial_year.status = "Closed"
+        financial_year.is_locked = True
+        financial_year.closed_on = datetime.utcnow()
+        financial_year.closed_by = username
+        financial_year.closing_reference = closing_reference
+        financial_year.updated_on = datetime.utcnow()
+
+        next_year_number = financial_year.year + 1
+
+        next_financial_year = FinancialYear.query.filter_by(
+            year=next_year_number
+        ).first()
+
+        if next_financial_year:
+            if next_financial_year.status == "Closed":
+                raise ValueError(
+                    f"Financial Year {next_year_number} already exists "
+                    f"and is closed."
+                )
+
+            next_financial_year.status = "Open"
+            next_financial_year.is_locked = False
+
+            if not next_financial_year.opened_on:
+                next_financial_year.opened_on = datetime.utcnow()
+
+            if not next_financial_year.opened_by:
+                next_financial_year.opened_by = username
+
+            next_financial_year.updated_on = datetime.utcnow()
+
+        else:
+            next_financial_year = FinancialYear(
+                year=next_year_number,
+                start_date=date(next_year_number, 1, 1),
+                end_date=date(next_year_number, 12, 31),
+                status="Open",
+                opened_on=datetime.utcnow(),
+                opened_by=username,
+                is_locked=False,
+                created_on=datetime.utcnow(),
+                updated_on=datetime.utcnow()
+            )
+
+            db.session.add(next_financial_year)
+
+        db.session.commit()
+
+        log_audit(
+            "CLOSE_FINANCIAL_YEAR",
+            (
+                f"Financial Year {financial_year.year} closed; "
+                f"reference {closing_reference}; "
+                f"surplus/(deficit) "
+                f"{kwacha(closing_data['current_surplus'])}; "
+                f"Financial Year {next_year_number} opened."
+            )
+        )
+
+        flash(
+            (
+                f"Financial Year {financial_year.year} was closed "
+                f"successfully. Closing reference: "
+                f"{closing_reference}. Financial Year "
+                f"{next_year_number} is now open."
+            ),
+            "success"
+        )
+
+        return redirect(
+            url_for("financial_year_control_centre")
+        )
+
+    except Exception as exc:
+        db.session.rollback()
+
+        flash(
+            f"Financial year closing failed: {exc}",
+            "danger"
+        )
+
+        return redirect(
+            url_for("close_financial_year")
+        )
+
 @role_required("accounting")
 def opening_balance_post(batch_id):
 
@@ -9651,6 +10641,24 @@ def opening_balance_summary_pdf(batch_id):
         settings=settings,
         client_name=CLIENT_NAME,
         generated_on=datetime.now()
+    )
+
+@app.route('/accounting/financial-year')
+@login_required
+@role_required('accounting')
+def financial_year_control_centre():
+    financial_year = current_financial_year()
+
+    financial_years = (
+        FinancialYear.query
+        .order_by(FinancialYear.year.desc())
+        .all()
+    )
+
+    return render_template(
+        'financial_year/control_centre.html',
+        financial_year=financial_year,
+        financial_years=financial_years
     )
 
 @app.route('/accounting/ledger-inquiry')
@@ -10389,6 +11397,34 @@ def complete_bank_reconciliation():
 
     flash('Bank reconciliation marked as completed.')
     return redirect(url_for('bank_reconciliation_statement'))
+
+@app.route(
+    "/accounting/financial-year/pre-close-checks"
+)
+@login_required
+@role_required("accounting")
+def financial_year_preclose_checks():
+    financial_year = current_financial_year()
+
+    validation = run_financial_year_preclose_checks(
+        financial_year
+    )
+
+    log_audit(
+        "RUN_PRE_CLOSE_CHECKS",
+        (
+            f"Pre-close checks run for financial year "
+            f"{financial_year.year if financial_year else 'Unknown'}; "
+            f"{validation['passed_count']} passed, "
+            f"{validation['failed_count']} failed."
+        )
+    )
+
+    return render_template(
+        "financial_year/pre_close_checks.html",
+        financial_year=financial_year,
+        validation=validation
+    )
 
 @app.route('/accounting/year-end')
 @login_required
@@ -14170,7 +15206,7 @@ def initialize_database():
         ensure_member_columns()
         ensure_loan_columns()
         ensure_opening_balance_columns()
-
+        ensure_financial_year_columns()
         ensure_schema()
         ensure_chart_of_accounts()
         ensure_admin()

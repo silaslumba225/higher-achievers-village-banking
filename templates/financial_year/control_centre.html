@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Financial Year Control Centre{% endblock %}
+{% block subtitle %}Manage year-end checks, closing and financial-year controls{% endblock %}
+
+{% block content %}
+
+<section class="panel">
+  <div class="actions">
+    <a
+      class="btn"
+      href="{{ url_for('accounting_control_centre') }}"
+    >
+      ← Back to Accounting
+    </a>
+  </div>
+</section>
+
+{% if financial_year %}
+
+<section class="panel">
+  <h2>Current Financial Year</h2>
+
+  <div class="summary-grid">
+
+    <div class="summary-card">
+      <div class="summary-label">Financial Year</div>
+      <div class="summary-value">
+        {{ financial_year.year }}
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-label">Period</div>
+      <div class="summary-value">
+        {{ financial_year.start_date.strftime('%d %b %Y') }}
+        to
+        {{ financial_year.end_date.strftime('%d %b %Y') }}
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-label">Status</div>
+      <div class="summary-value">
+        {% if financial_year.status == 'Open' %}
+          <span class="badge badge-success">Open</span>
+        {% else %}
+          <span class="badge badge-secondary">
+            {{ financial_year.status }}
+          </span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-label">Locked</div>
+      <div class="summary-value">
+        {% if financial_year.is_locked %}
+          <span class="badge badge-danger">Yes</span>
+        {% else %}
+          <span class="badge badge-success">No</span>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Year-End Actions</h2>
+
+  <div class="actions">
+
+    <a
+      class="btn"
+      href="{{ url_for('financial_year_preclose_checks') }}"
+    >
+      🔍 Run Pre-Close Checks
+    </a>
+
+    <a
+      class="btn"
+      href="{{ url_for('financial_year_closing_preview') }}"
+    >
+      📊 Preview Closing Entries
+    </a>
+
+    {% if financial_year.status == 'Open' and not financial_year.is_locked %}
+
+      <a
+        class="btn btn-danger"
+        href="{{ url_for('close_financial_year') }}"
+      >
+        🔒 Close Financial Year
+      </a>
+
+    {% else %}
+
+      <button
+        type="button"
+        class="btn btn-danger"
+        disabled
+      >
+        🔒 Financial Year Closed
+      </button>
+
+    {% endif %}
+
+    <button
+      type="button"
+      class="btn"
+      disabled
+      title="This function will be added in the next stage."
+    >
+      📂 Open New Financial Year
+    </button>
+
+    <button
+      type="button"
+      class="btn"
+      disabled
+      title="The closing report will be added after the closing engine."
+    >
+      📄 Closing Report
+    </button>
+
+  </div>
+</section>
+
+{% else %}
+
+<section class="panel">
+  <div class="alert alert-warning">
+    <strong>No open financial year was found.</strong>
+    Please initialise the financial year before continuing.
+  </div>
+</section>
+
+{% endif %}
+
+<section class="panel">
+  <h2>Financial Year History</h2>
+
+  {% if financial_years %}
+
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>Year</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Status</th>
+            <th>Locked</th>
+            <th>Opened By</th>
+            <th>Closed By</th>
+            <th>Closing Reference</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for year in financial_years %}
+            <tr>
+              <td>{{ year.year }}</td>
+
+              <td>
+                {% if year.start_date %}
+                  {{ year.start_date.strftime('%d %b %Y') }}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+
+              <td>
+                {% if year.end_date %}
+                  {{ year.end_date.strftime('%d %b %Y') }}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+
+              <td>
+                {% if year.status == 'Open' %}
+                  <span class="badge badge-success">Open</span>
+                {% elif year.status == 'Closed' %}
+                  <span class="badge badge-secondary">Closed</span>
+                {% else %}
+                  <span class="badge">
+                    {{ year.status }}
+                  </span>
+                {% endif %}
+              </td>
+
+              <td>
+                {% if year.is_locked %}
+                  <span class="badge badge-danger">Yes</span>
+                {% else %}
+                  No
+                {% endif %}
+              </td>
+
+              <td>{{ year.opened_by or '—' }}</td>
+              <td>{{ year.closed_by or '—' }}</td>
+              <td>{{ year.closing_reference or '—' }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  {% else %}
+
+    <div class="alert alert-info">
+      No financial-year history is available.
+    </div>
+
+  {% endif %}
+</section>
+
+{% endblock %}

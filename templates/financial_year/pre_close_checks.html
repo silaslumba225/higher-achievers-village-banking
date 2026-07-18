@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Financial Year Pre-Close Checks{% endblock %}
+{% block subtitle %}Verify accounting integrity before closing the financial year{% endblock %}
+
+{% block content %}
+
+<section class="panel">
+  <div class="actions">
+    <a
+      class="btn"
+      href="{{ url_for('financial_year_control_centre') }}"
+    >
+      ← Back to Financial Year
+    </a>
+
+    <a
+      class="btn"
+      href="{{ url_for('financial_year_preclose_checks') }}"
+    >
+      🔄 Run Checks Again
+    </a>
+  </div>
+</section>
+
+<section class="panel">
+
+  <h2>
+    Financial Year
+    {% if financial_year %}
+      {{ financial_year.year }}
+    {% endif %}
+  </h2>
+
+  <div class="summary-grid">
+
+    <div class="summary-card">
+      <div class="summary-label">Checks Passed</div>
+      <div class="summary-value">
+        {{ validation.passed_count }}
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-label">Checks Failed</div>
+      <div class="summary-value">
+        {{ validation.failed_count }}
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-label">Warnings</div>
+      <div class="summary-value">
+        {{ validation.warning_count }}
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-label">Overall Status</div>
+      <div class="summary-value">
+
+        {% if validation.is_ready %}
+          <span class="badge badge-success">
+            Ready to Close
+          </span>
+        {% else %}
+          <span class="badge badge-danger">
+            Not Ready
+          </span>
+        {% endif %}
+
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Validation Results</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Check</th>
+        <th>Status</th>
+        <th>Result</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for check in validation.checks %}
+        <tr>
+
+          <td>
+            <strong>{{ check.name }}</strong>
+          </td>
+
+          <td>
+            {% if check.status == 'Passed' %}
+              <span class="badge badge-success">
+                Passed
+              </span>
+
+            {% elif check.status == 'Warning' %}
+              <span class="badge badge-warning">
+                Warning
+              </span>
+
+            {% else %}
+              <span class="badge badge-danger">
+                Failed
+              </span>
+            {% endif %}
+          </td>
+
+          <td>{{ check.message }}</td>
+
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="panel">
+
+  {% if validation.is_ready %}
+
+    <div class="alert alert-success">
+      <strong>All critical checks passed.</strong>
+      The financial year is ready for the next closing stage.
+    </div>
+
+  {% else %}
+
+    <div class="alert alert-danger">
+      <strong>The financial year cannot yet be closed.</strong>
+      Resolve the failed checks and run the validation again.
+    </div>
+
+  {% endif %}
+
+</section>
+
+{% endblock %}

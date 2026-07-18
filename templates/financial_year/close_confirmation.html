@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Close Financial Year{% endblock %}
+{% block subtitle %}
+Final review and authorization of the year-end closing process
+{% endblock %}
+
+{% block content %}
+
+<section class="panel">
+  <div class="actions">
+    <a
+      class="btn"
+      href="{{ url_for('financial_year_closing_preview') }}"
+    >
+      ← Back to Closing Preview
+    </a>
+
+    <a
+      class="btn"
+      href="{{ url_for('financial_year_preclose_checks') }}"
+    >
+      🔍 Review Pre-Close Checks
+    </a>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Financial Year {{ financial_year.year }}</h2>
+
+  <div class="summary-grid">
+
+    <div class="summary-card">
+      <div class="summary-label">Period</div>
+      <div class="summary-value">
+        {{ financial_year.start_date.strftime('%d %b %Y') }}
+        to
+        {{ financial_year.end_date.strftime('%d %b %Y') }}
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-label">Total Income</div>
+      <div class="summary-value">
+        {{ preview.total_income|kwacha }}
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-label">Total Expenses</div>
+      <div class="summary-value">
+        {{ preview.total_expenses|kwacha }}
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-label">
+        Surplus / (Deficit)
+      </div>
+      <div class="summary-value">
+        {{ preview.current_surplus|kwacha }}
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Final Closing Warning</h2>
+
+  {% if preview.is_ready %}
+
+    <div class="alert alert-warning">
+      <strong>
+        You are about to close Financial Year
+        {{ financial_year.year }}.
+      </strong>
+
+      <p>
+        This process will:
+      </p>
+
+      <ul>
+        <li>
+          Create the final year-end closing journal.
+        </li>
+        <li>
+          Transfer the year's surplus or deficit to
+          Accumulated Surplus.
+        </li>
+        <li>
+          Mark Financial Year {{ financial_year.year }} as closed.
+        </li>
+        <li>
+          Lock the closed financial year.
+        </li>
+        <li>
+          Automatically open Financial Year
+          {{ financial_year.year + 1 }}.
+        </li>
+      </ul>
+    </div>
+
+    <form method="POST">
+
+      <div class="form-group">
+        <label for="confirmation_text">
+          To continue, type:
+          <strong>{{ required_confirmation }}</strong>
+        </label>
+
+        <input
+          type="text"
+          id="confirmation_text"
+          name="confirmation_text"
+          class="form-control"
+          autocomplete="off"
+          required
+          placeholder="{{ required_confirmation }}"
+        >
+      </div>
+
+      <div class="actions" style="margin-top: 20px;">
+        <a
+          class="btn"
+          href="{{ url_for('financial_year_closing_preview') }}"
+        >
+          Cancel
+        </a>
+
+        <button
+          type="submit"
+          class="btn btn-danger"
+          onclick="
+            return confirm(
+              'This will permanently close Financial Year '
+              + '{{ financial_year.year }}'
+              + '. Continue?'
+            );
+          "
+        >
+          🔒 Confirm and Close Financial Year
+        </button>
+      </div>
+
+    </form>
+
+  {% else %}
+
+    <div class="alert alert-danger">
+      <strong>The year cannot be closed.</strong>
+      One or more critical pre-close checks have failed.
+    </div>
+
+    <a
+      class="btn"
+      href="{{ url_for('financial_year_preclose_checks') }}"
+    >
+      Review Failed Checks
+    </a>
+
+  {% endif %}
+</section>
+
+{% endblock %}

@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Year-End Closing Preview{% endblock %}
+{% block subtitle %}Review the financial results before closing the year{% endblock %}
+
+{% block content %}
+
+<section class="panel">
+  <div class="actions">
+    <a
+      class="btn"
+      href="{{ url_for('financial_year_control_centre') }}"
+    >
+      ← Back to Financial Year
+    </a>
+
+    <a
+      class="btn"
+      href="{{ url_for('financial_year_preclose_checks') }}"
+    >
+      🔍 View Pre-Close Checks
+    </a>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Financial Year {{ financial_year.year }}</h2>
+
+  <div class="summary-grid">
+
+    <div class="summary-card">
+      <div class="summary-label">Period</div>
+      <div class="summary-value">
+        {{ financial_year.start_date.strftime('%d %b %Y') }}
+        to
+        {{ financial_year.end_date.strftime('%d %b %Y') }}
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-label">Total Income</div>
+      <div class="summary-value">
+        {{ preview.total_income|kwacha }}
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-label">Total Expenses</div>
+      <div class="summary-value">
+        {{ preview.total_expenses|kwacha }}
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-label">
+        Current Year Surplus / (Deficit)
+      </div>
+      <div class="summary-value">
+        {{ preview.current_surplus|kwacha }}
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Closing Readiness</h2>
+
+  {% if preview.is_ready %}
+
+    <div class="alert alert-success">
+      <strong>Ready to close.</strong>
+      All critical pre-close checks have passed.
+    </div>
+
+  {% else %}
+
+    <div class="alert alert-danger">
+      <strong>Not ready to close.</strong>
+      Resolve all critical validation failures before continuing.
+    </div>
+
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h2>Income Accounts to Close</h2>
+
+  {% if preview.income_accounts %}
+
+    <table>
+      <thead>
+        <tr>
+          <th>Account</th>
+          <th>Description</th>
+          <th>Balance</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for row in preview.income_accounts %}
+          <tr>
+            <td>{{ row.code }}</td>
+            <td>{{ row.name }}</td>
+            <td>{{ row.balance|kwacha }}</td>
+          </tr>
+        {% endfor %}
+
+        <tr>
+          <th colspan="2">Total Income</th>
+          <th>{{ preview.total_income|kwacha }}</th>
+        </tr>
+      </tbody>
+    </table>
+
+  {% else %}
+
+    <div class="alert alert-info">
+      There are no income-account balances to close.
+    </div>
+
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h2>Expense Accounts to Close</h2>
+
+  {% if preview.expense_accounts %}
+
+    <table>
+      <thead>
+        <tr>
+          <th>Account</th>
+          <th>Description</th>
+          <th>Balance</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for row in preview.expense_accounts %}
+          <tr>
+            <td>{{ row.code }}</td>
+            <td>{{ row.name }}</td>
+            <td>{{ row.balance|kwacha }}</td>
+          </tr>
+        {% endfor %}
+
+        <tr>
+          <th colspan="2">Total Expenses</th>
+          <th>{{ preview.total_expenses|kwacha }}</th>
+        </tr>
+      </tbody>
+    </table>
+
+  {% else %}
+
+    <div class="alert alert-info">
+      There are no expense-account balances to close.
+    </div>
+
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h2>Proposed Closing Result</h2>
+
+  <table>
+    <tr>
+      <td>Total Income</td>
+      <td>{{ preview.total_income|kwacha }}</td>
+    </tr>
+
+    <tr>
+      <td>Total Expenses</td>
+      <td>{{ preview.total_expenses|kwacha }}</td>
+    </tr>
+
+    <tr>
+      <th>Surplus / (Deficit) transferred to Accumulated Surplus</th>
+      <th>{{ preview.current_surplus|kwacha }}</th>
+    </tr>
+  </table>
+</section>
+
+<section class="panel">
+  <h2>Confirmation</h2>
+
+  {% if preview.is_ready %}
+
+    <div class="alert alert-warning">
+      Closing the financial year will create closing journal entries,
+      lock the year and prevent further transactions in the closed period.
+    </div>
+
+    <a
+        class="btn btn-danger"
+        href="{{ url_for('close_financial_year') }}"
+        >
+        🔒 Proceed to Final Confirmation
+        </a>
+
+  {% else %}
+
+    <button
+      type="button"
+      class="btn btn-danger"
+      disabled
+    >
+      Resolve Failed Checks Before Closing
+    </button>
+
+  {% endif %}
+</section>
+
+{% endblock %}
