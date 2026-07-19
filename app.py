@@ -9942,8 +9942,8 @@ def opening_balance_lock(batch_id):
     )
 
     batch.is_locked = True
-    batch.locked_on = datetime.now(timezone.utc)
     batch.locked_by = locked_by
+    batch.locked_on = datetime.utcnow()
 
     db.session.commit()
 

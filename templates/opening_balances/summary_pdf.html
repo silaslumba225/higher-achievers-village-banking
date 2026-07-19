@@ -34,10 +34,89 @@
       background: #ffffff;
     }
 
+    .report-container{
+    position: relative;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.report-container::before{
+
+    content:"HIGHER ACHIEVERS";
+
+    position: fixed;
+
+    top:45%;
+    left:50%;
+
+    transform:translate(-50%,-50%) rotate(-30deg);
+
+    font-size:90px;
+
+    font-weight:900;
+
+    letter-spacing:8px;
+
+    color:#155eef;
+
+    opacity:0.05;
+
+    white-space:nowrap;
+
+    z-index:0;
+
+    pointer-events:none;
+
+}
+
+.report-container>*{
+    position:relative;
+    z-index:1;
+}
+
     .report-container {
+      position: relative;
       width: 100%;
       margin: 0 auto;
     }
+
+    .watermark{
+
+    position:fixed;
+
+    top:55%;
+
+    left:50%;
+
+    transform:translate(-50%,-50%) rotate(-30deg);
+
+    text-align:center;
+
+    font-size:64px;
+
+    font-weight:900;
+
+    letter-spacing:4px;
+
+    line-height:1.4;
+
+    color: #1d4ed8;
+
+    opacity:0.10;
+
+    z-index:0;
+
+    pointer-events:none;
+
+          text-transform:uppercase;
+      }
+
+      .report-container>*:not(.watermark){
+
+          position:relative;
+
+          z-index:1;
+      }
 
     .report-header {
       display: table;
@@ -121,10 +200,10 @@
       color: #166534;
     }
 
-    .status-locked {
-      background: #ede9fe;
-      color: #5b21b6;
-    }
+    .status-locked{
+    background:#991b1b;
+    color:white;
+  }
 
     .status-reversed {
       background: #fee2e2;
@@ -301,11 +380,12 @@
     }
 
     .approval-section td {
-      width: 33.33%;
-      padding-top: 35px;
-      border-top: 1px solid #344054;
-      text-align: center;
-    }
+    width: 33.33%;
+    padding: 20px;
+    vertical-align: top;
+    text-align: center;
+    line-height: 1.8;
+}
 
     .approval-role {
       display: block;
@@ -388,6 +468,13 @@
       }
 
     }
+    @page{
+
+    size:A4 landscape;
+
+    margin:12mm;
+
+}
 
   </style>
 
@@ -395,24 +482,19 @@
 
 <body>
 
-  <div class="report-container">
+<div class="report-container">
 
-    <div class="no-print">
+    <div class="watermark">
 
-      <a
-        href="{{ url_for('opening_balance_batch', batch_id=batch.id) }}"
-        class="back-button"
-      >
-        Back to Batch
-      </a>
+        {{
+            settings.organisation_name
+            if settings and settings.organisation_name
+            else "HIGHER ACHIEVERS VILLAGE BANKING"
+        }}
 
-      <button
-        type="button"
-        class="print-button"
-        onclick="window.print()"
-      >
-        Print / Save as PDF
-      </button>
+        <br>
+
+        OFFICIAL RECORD
 
     </div>
 
@@ -481,23 +563,31 @@
           Batch {{ batch.batch_no }}
         </div>
 
+        {% if batch.is_locked %}
+
+        <span class="batch-status status-locked">
+            🔒 LOCKED
+        </span>
+
+    {% else %}
+
         {% set status_class = '' %}
 
         {% if batch.status == 'Validated' %}
-          {% set status_class = 'status-validated' %}
+            {% set status_class = 'status-validated' %}
         {% elif batch.status == 'Approved' %}
-          {% set status_class = 'status-approved' %}
+            {% set status_class = 'status-approved' %}
         {% elif batch.status == 'Posted' %}
-          {% set status_class = 'status-posted' %}
-        {% elif batch.status == 'Locked' %}
-          {% set status_class = 'status-locked' %}
+            {% set status_class = 'status-posted' %}
         {% elif batch.status == 'Reversed' %}
-          {% set status_class = 'status-reversed' %}
+            {% set status_class = 'status-reversed' %}
         {% endif %}
 
         <span class="batch-status {{ status_class }}">
-          {{ batch.status }}
+            {{ batch.status }}
         </span>
+
+    {% endif %}
 
       </div>
 
@@ -613,6 +703,41 @@
         </td>
 
       </tr>
+      <tr>
+
+    <td>
+        <span class="detail-label">Locked By</span>
+        <span class="detail-value">
+            {{ batch.locked_by or '-' }}
+        </span>
+    </td>
+
+    <td>
+        <span class="detail-label">Locked On</span>
+        <span class="detail-value">
+            {% if batch.locked_on %}
+                {{ batch.locked_on.strftime('%d %b %Y %H:%M') }}
+            {% else %}
+                -
+            {% endif %}
+        </span>
+    </td>
+
+    <td colspan="2">
+        <span class="detail-label">Record Status</span>
+        <span class="detail-value">
+
+            {% if batch.is_locked %}
+                Finalised — No further amendments permitted
+            {% else %}
+                Awaiting final lock
+            {% endif %}
+
+        </span>
+    </td>
+
+</tr>
+
 
     </table>
 
@@ -890,43 +1015,120 @@
 
     <table class="approval-section">
 
-      <tr>
+    <tr>
 
         <td>
-          Chairperson
-          <span class="approval-role">
-            Name, signature and date
-          </span>
+
+            <strong>CHAIRPERSON</strong>
+
+            <br><br><br>
+
+            _______________________________
+
+            <br>
+
+            Name
+
+            <br><br>
+
+            _______________________________
+
+            <br>
+
+            Signature
+
+            <br><br>
+
+            _______________________________
+
+            <br>
+
+            Date
+
         </td>
 
         <td>
-          Treasurer
-          <span class="approval-role">
-            Name, signature and date
-          </span>
+
+            <strong>TREASURER</strong>
+
+            <br><br><br>
+
+            _______________________________
+
+            <br>
+
+            Name
+
+            <br><br>
+
+            _______________________________
+
+            <br>
+
+            Signature
+
+            <br><br>
+
+            _______________________________
+
+            <br>
+
+            Date
+
         </td>
 
         <td>
-          Secretary
-          <span class="approval-role">
-            Name, signature and date
-          </span>
+
+            <strong>SECRETARY</strong>
+
+            <br><br><br>
+
+            _______________________________
+
+            <br>
+
+            Name
+
+            <br><br>
+
+            _______________________________
+
+            <br>
+
+            Signature
+
+            <br><br>
+
+            _______________________________
+
+            <br>
+
+            Date
+
         </td>
 
-      </tr>
+    </tr>
 
-    </table>
+</table>
 
     <div class="report-footer clearfix">
 
       <div class="footer-left">
 
-        Generated by
-        {{
-          settings.developer_name
-          if settings and settings.developer_name
-          else 'SL Consulting Ltd'
-        }}
+    <strong>SL Village Banking Pro</strong><br>
+
+          Developed by
+          {{
+            settings.developer_name
+            if settings and settings.developer_name
+            else 'SL Consulting Ltd'
+          }}
+
+          <br>
+
+          <span style="font-size:9px;">
+              This report forms part of the official accounting records of the Village Bank.
+          </span>
 
       </div>
 
@@ -945,7 +1147,11 @@
     </div>
 
   </div>
+<script>
 
+window.onafterprint=function(){};
+
+</script>
 </body>
 
 </html>
