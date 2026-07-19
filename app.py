@@ -9867,10 +9867,6 @@ def opening_balance_approve(batch_id):
         )
     )
 
-@app.route(
-    "/opening-balances/<int:batch_id>/lock",
-    methods=["POST"]
-)
 
 @app.route(
     "/accounting/financial-year/closing-preview"
@@ -9908,6 +9904,10 @@ def financial_year_closing_preview():
         preview=preview
     )
 
+@app.route(
+    "/opening-balances/<int:batch_id>/lock",
+    methods=["POST"]
+)
 @role_required("accounting")
 def opening_balance_lock(batch_id):
 
