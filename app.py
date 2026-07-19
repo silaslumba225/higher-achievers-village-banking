@@ -9663,11 +9663,7 @@ def opening_balance_preview(batch_id):
         validation_errors=validation_errors
     )
 
-@app.route(
-    "/opening-balances/import",
-    methods=["GET", "POST"]
-)
-
+ 
 @app.route("/opening-balances/<int:batch_id>/validate", methods=["POST"])
 @role_required("accounting")
 def opening_balance_validate(batch_id):
