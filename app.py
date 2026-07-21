@@ -51,6 +51,8 @@ from openpyxl import Workbook
 from openpyxl import load_workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
+from reports.pdf_engine import PDFReport
+from xml.sax.saxutils import escape
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'change-this-secret-key')
@@ -5966,155 +5968,110 @@ def loan_statement_pdf(loan_id):
         Repayment.id
     ).all()
 
-    buffer = io.BytesIO()
+    setting = get_settings()
+    loan_no = loan.loan_no or f'LN{loan.id:04d}'
+    filename = secure_filename(f'loan_statement_{loan_no}.pdf')
 
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        rightMargin=16 * mm,
-        leftMargin=16 * mm,
-        topMargin=16 * mm,
-        bottomMargin=16 * mm
+    report = PDFReport(
+        setting=setting,
+        title='Loan Statement',
+        filename=filename,
+        logo_upload_folder=LOGO_UPLOAD_FOLDER,
+        default_logo_path=get_pdf_logo_path(setting),
+        author=(session.get('user') or {}).get('full_name'),
     )
 
-    styles = getSampleStyleSheet()
-    story = []
+    report.add_branding()
+    report.add_title('LOAN STATEMENT')
+    report.add_paragraph(
+        f'<b>Statement generated:</b> {datetime.now().strftime("%d %B %Y at %H:%M")}'
+    )
+    report.add_spacer(5)
 
-    title_style = ParagraphStyle(
-        'LoanStatementTitle',
-        parent=styles['Title'],
-        fontSize=16,
-        leading=20
+    report.add_section('BORROWER AND LOAN DETAILS')
+    report.add_information_table(
+        [
+            ['Member', escape(loan.member.full_name or '-'), 'Member No.', escape(loan.member.member_no or '-')],
+            ['Loan No.', escape(loan_no), 'Status', escape(loan.status or '-')],
+            ['Issued On', str(loan.issued_on or '-'), 'Due On', str(loan.due_on or '-')],
+            ['Purpose', Paragraph(escape(loan.purpose or '-'), report.small_style), 'Interest Rate', f'{(loan.interest_rate or 0) * 100:.2f}%'],
+            ['Disbursement', escape(loan.disbursement_method or '-'), 'Reference', escape(loan.disbursement_reference or '-')],
+        ],
+        col_widths=[30 * mm, 55 * mm, 30 * mm, 55 * mm],
     )
 
-    normal = styles['Normal']
-
-    story.append(Paragraph('Loan Statement', title_style))
-    story.append(Spacer(1, 8))
-
-    story.append(Paragraph(f'<b>Member:</b> {loan.member.full_name}', normal))
-    story.append(Paragraph(f'<b>Member No:</b> {loan.member.member_no}', normal))
-    story.append(Paragraph(f'<b>Loan No:</b> {loan.loan_no or f"LN{loan.id:04d}"}', normal))
-    story.append(Paragraph(f'<b>Status:</b> {loan.status}', normal))
-    story.append(Spacer(1, 8))
-
-    summary_data = [
+    report.add_section('FINANCIAL SUMMARY')
+    report.add_information_table(
         [
-            Paragraph('<b>Principal</b>', normal),
-            kwacha(loan.principal),
-            Paragraph('<b>Interest</b>', normal),
-            kwacha(loan.interest_amount)
+            ['Principal', kwacha(loan.principal), 'Interest', kwacha(loan.interest_amount)],
+            ['Total Due', kwacha(loan.total_due), 'Total Paid', kwacha(loan.total_paid)],
+            ['Outstanding Balance', kwacha(loan.balance), 'Repayments', str(len(repayments))],
         ],
-        [
-            Paragraph('<b>Total Due</b>', normal),
-            kwacha(loan.total_due),
-            Paragraph('<b>Total Paid</b>', normal),
-            kwacha(loan.total_paid)
-        ],
-        [
-            Paragraph('<b>Balance</b>', normal),
-            kwacha(loan.balance),
-            Paragraph('<b>Status</b>', normal),
-            loan.status or '-'
-        ],
-        [
-            Paragraph('<b>Issued On</b>', normal),
-            str(loan.issued_on or '-'),
-            Paragraph('<b>Due On</b>', normal),
-            str(loan.due_on or '-')
-        ],
-        [
-            Paragraph('<b>Purpose</b>', normal),
-            Paragraph(loan.purpose or '-', normal),
-            Paragraph('<b>Loan No</b>', normal),
-            loan.loan_no or f'LN{loan.id:04d}'
-        ],
-        [
-            Paragraph('<b>Disbursement<br/>Method</b>', normal),
-            loan.disbursement_method or '-',
-            Paragraph('<b>Reference</b>', normal),
-            loan.disbursement_reference or '-'
-        ],
-    ]
-
-    summary_table = Table(
-        summary_data,
-        colWidths=[38 * mm, 42 * mm, 34 * mm, 46 * mm]
+        col_widths=[38 * mm, 47 * mm, 38 * mm, 47 * mm],
     )
 
-    summary_table.setStyle(TableStyle([
-        ('GRID', (0, 0), (-1, -1), 0.25, colors.grey),
+    report.add_section('WORKFLOW DETAILS')
+    report.add_information_table(
+        [
+            ['Reviewed By', escape(loan.reviewed_by or '-'), 'Reviewed On', str(loan.reviewed_on or '-')],
+            ['Approved By', escape(loan.approved_by or '-'), 'Approved On', str(loan.approved_on or '-')],
+            ['Disbursed By', escape(loan.disbursed_by or '-'), 'Disbursed On', str(loan.disbursed_on or '-')],
+            ['Rejected On', str(loan.rejected_on or '-'), 'Reason', Paragraph(escape(loan.rejection_reason or '-'), report.small_style)],
+        ],
+        col_widths=[30 * mm, 55 * mm, 30 * mm, 55 * mm],
+    )
 
-        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f4f8')),
-        ('BACKGROUND', (2, 0), (2, -1), colors.HexColor('#f0f4f8')),
-
-        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-        ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
-
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 6),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-        ('TOPPADDING', (0, 0), (-1, -1), 5),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-        ('WORDWRAP', (0, 0), (-1, -1), True),
-    ]))
-
-    story.append(summary_table)
-    story.append(Spacer(1, 12))
-
-    workflow_data = [
-        ['Reviewed By', loan.reviewed_by or '-', 'Reviewed On', str(loan.reviewed_on or '-')],
-        ['Approved By', loan.approved_by or '-', 'Approved On', str(loan.approved_on or '-')],
-        ['Disbursed By', loan.disbursed_by or '-', 'Disbursed On', str(loan.disbursed_on or '-')],
-        ['Rejected On', str(loan.rejected_on or '-'), 'Reason', loan.rejection_reason or '-'],
-    ]
-
-    workflow_table = Table(workflow_data, colWidths=[32 * mm, 48 * mm, 32 * mm, 48 * mm])
-    workflow_table.setStyle(TableStyle([
-        ('GRID', (0, 0), (-1, -1), 0.25, colors.grey),
-        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f4f8')),
-        ('BACKGROUND', (2, 0), (2, -1), colors.HexColor('#f0f4f8')),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    ]))
-
-    story.append(Paragraph('Workflow Details', styles['Heading2']))
-    story.append(workflow_table)
-    story.append(Spacer(1, 12))
-
-    repayment_data = [['Date', 'Method', 'Reference', 'Amount']]
-
-    for r in repayments:
-        repayment_data.append([
-            str(r.paid_on or '-'),
-            r.method or '-',
-            r.reference or '-',
-            kwacha(r.amount),
+    report.add_section('LOAN GUARANTORS')
+    guarantor_rows = [['Member No.', 'Guarantor', 'Guaranteed Amount', 'Notes']]
+    for guarantor in loan.guarantors:
+        guarantor_rows.append([
+            escape(guarantor.guarantor.member_no or '-'),
+            Paragraph(escape(guarantor.guarantor.full_name or '-'), report.small_style),
+            kwacha(guarantor.guaranteed_amount),
+            Paragraph(escape(guarantor.notes or '-'), report.small_style),
         ])
-
-    if len(repayment_data) == 1:
-        repayment_data.append(['-', '-', 'No repayments recorded', '-'])
-
-    repayment_table = Table(repayment_data, colWidths=[32 * mm, 38 * mm, 58 * mm, 32 * mm])
-    repayment_table.setStyle(TableStyle([
-        ('GRID', (0, 0), (-1, -1), 0.25, colors.grey),
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1f4f68')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    ]))
-
-    story.append(Paragraph('Repayment History', styles['Heading2']))
-    story.append(repayment_table)
-
-    doc.build(story)
-
-    buffer.seek(0)
-
-    return send_file(
-        buffer,
-        as_attachment=True,
-        download_name=f'loan_statement_{loan.id}.pdf',
-        mimetype='application/pdf'
+    if len(guarantor_rows) == 1:
+        guarantor_rows.append(['-', 'No guarantors recorded', '-', '-'])
+    report.add_data_table(
+        guarantor_rows,
+        col_widths=[30 * mm, 50 * mm, 40 * mm, 50 * mm],
+        numeric_columns=(2,),
     )
+
+    report.add_section('REPAYMENT HISTORY')
+    repayment_rows = [['Date', 'Method', 'Reference', 'Amount', 'Balance']]
+    running_balance = loan.total_due
+    for repayment in repayments:
+        running_balance = money(running_balance - repayment.amount)
+        repayment_rows.append([
+            str(repayment.paid_on or '-'),
+            escape(repayment.method or '-'),
+            Paragraph(escape(repayment.reference or '-'), report.small_style),
+            kwacha(repayment.amount),
+            kwacha(running_balance),
+        ])
+    if len(repayment_rows) == 1:
+        repayment_rows.append(['-', '-', 'No repayments recorded', '-', kwacha(loan.total_due)])
+    report.add_data_table(
+        repayment_rows,
+        col_widths=[28 * mm, 34 * mm, 46 * mm, 31 * mm, 31 * mm],
+        numeric_columns=(3, 4),
+    )
+
+    report.add_spacer(16)
+    report.add_signatures(
+        ['Prepared By', 'Treasurer', 'Chairperson'],
+        include_dates=True,
+    )
+
+    log_audit(
+        'GENERATE_LOAN_STATEMENT',
+        'Loan',
+        loan.id,
+        f'Loan statement PDF generated for {loan_no} - {loan.member.full_name}',
+    )
+
+    return report.response(inline=False)
 
 @app.route('/loans/<int:loan_id>')
 @login_required
