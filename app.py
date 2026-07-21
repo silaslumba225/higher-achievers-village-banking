@@ -907,6 +907,9 @@ class Loan(db.Model):
 
     @property
     def interest_amount(self):
+        if self.source_type == 'OpeningBalance':
+            return money(self.opening_interest or 0)
+
         return money(self.principal * self.interest_rate)
 
     @property
@@ -5994,7 +5997,16 @@ def loan_statement_pdf(loan_id):
             ['Member', escape(loan.member.full_name or '-'), 'Member No.', escape(loan.member.member_no or '-')],
             ['Loan No.', escape(loan_no), 'Status', escape(loan.status or '-')],
             ['Issued On', str(loan.issued_on or '-'), 'Due On', str(loan.due_on or '-')],
-            ['Purpose', Paragraph(escape(loan.purpose or '-'), report.small_style), 'Interest Rate', f'{(loan.interest_rate or 0) * 100:.2f}%'],
+            [
+                'Purpose',
+                Paragraph(escape(loan.purpose or '-'), report.small_style),
+                'Interest Rate',
+                (
+                    'Not recorded - imported amount'
+                    if loan.source_type == 'OpeningBalance'
+                    else f'{(loan.interest_rate or 0) * 100:.2f}%'
+                ),
+            ],
             ['Disbursement', escape(loan.disbursement_method or '-'), 'Reference', escape(loan.disbursement_reference or '-')],
         ],
         col_widths=[30 * mm, 55 * mm, 30 * mm, 55 * mm],
