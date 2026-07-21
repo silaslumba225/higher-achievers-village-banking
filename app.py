@@ -5975,6 +5975,34 @@ def loan_statement_pdf(loan_id):
     loan_no = loan.loan_no or f'LN{loan.id:04d}'
     filename = secure_filename(f'loan_statement_{loan_no}.pdf')
 
+    interest_rate_display = (
+        f'{Decimal(loan.interest_rate or 0) * Decimal("100"):.2f}%'
+    )
+
+    if loan.source_type == 'OpeningBalance':
+        opening_balance = None
+
+        if loan.source_id:
+            opening_balance = db.session.get(
+                OpeningBalance,
+                loan.source_id,
+            )
+
+        if not opening_balance:
+            opening_balance = OpeningBalance.query.filter_by(
+                created_loan_id=loan.id,
+            ).first()
+
+        if (
+            opening_balance
+            and opening_balance.loan_interest_rate is not None
+        ):
+            interest_rate_display = (
+                f'{Decimal(opening_balance.loan_interest_rate):.2f}%'
+            )
+        else:
+            interest_rate_display = 'Not recorded - imported amount'
+
     report = PDFReport(
         setting=setting,
         title='Loan Statement',
@@ -6001,11 +6029,7 @@ def loan_statement_pdf(loan_id):
                 'Purpose',
                 Paragraph(escape(loan.purpose or '-'), report.small_style),
                 'Interest Rate',
-                (
-                    'Not recorded - imported amount'
-                    if loan.source_type == 'OpeningBalance'
-                    else f'{(loan.interest_rate or 0) * 100:.2f}%'
-                ),
+                interest_rate_display,
             ],
             ['Disbursement', escape(loan.disbursement_method or '-'), 'Reference', escape(loan.disbursement_reference or '-')],
         ],
@@ -9893,6 +9917,21 @@ def opening_balance_import():
                     )
                     continue
 
+                existing_posted_balance = OpeningBalance.query.filter_by(
+                    member_id=member.id,
+                    is_posted=True,
+                ).first()
+
+                if existing_posted_balance:
+                    validation_errors.append(
+                        (
+                            f"Row {row_number}: Member {member_no} already "
+                            f"has a posted opening balance in batch "
+                            f"{existing_posted_balance.batch.batch_no}."
+                        )
+                    )
+                    continue
+
                 try:
                     savings_balance = (
                         opening_balance_decimal(
@@ -11107,6 +11146,22 @@ def opening_balance_post(batch_id):
         created_fines = 0
 
         for balance in balances:
+            existing_posted_balance = OpeningBalance.query.filter(
+                OpeningBalance.member_id == balance.member_id,
+                OpeningBalance.is_posted.is_(True),
+                OpeningBalance.id != balance.id,
+            ).first()
+
+            if existing_posted_balance:
+                raise Exception(
+                    (
+                        f"Member {balance.member.member_no} already has "
+                        f"a posted opening balance in batch "
+                        f"{existing_posted_balance.batch.batch_no}. "
+                        f"A second opening balance cannot be posted."
+                    )
+                )
+
             savings = money(balance.savings_balance or 0)
             loan_principal = money(balance.loan_principal or 0)
             loan_interest = money(balance.loan_interest or 0)
@@ -11134,6 +11189,21 @@ def opening_balance_post(batch_id):
                         (
                             f"An opening loan already exists for "
                             f"opening balance record {balance.id}."
+                        )
+                    )
+
+                duplicate_member_loan = Loan.query.filter_by(
+                    member_id=balance.member_id,
+                    source_type="OpeningBalance"
+                ).first()
+
+                if duplicate_member_loan:
+                    raise Exception(
+                        (
+                            f"Member {balance.member.member_no} already "
+                            f"has opening loan "
+                            f"{duplicate_member_loan.loan_no or duplicate_member_loan.id}. "
+                            f"A second opening loan cannot be posted."
                         )
                     )
 
@@ -11405,13 +11475,200 @@ def opening_balance_reverse(batch_id):
             )
         )
 
-    flash(
-        (
-            "The opening balance reversal engine has not yet been "
-            "activated. No records were changed."
-        ),
-        "warning"
+    reversal_reason = (
+        request.form.get("reversal_reason") or ""
+    ).strip()
+
+    if not reversal_reason:
+        flash(
+            "A reversal reason is required.",
+            "danger"
+        )
+        return redirect(
+            url_for(
+                "opening_balance_batch",
+                batch_id=batch.id
+            )
+        )
+
+    balances = OpeningBalance.query.filter_by(
+        batch_id=batch.id
+    ).all()
+
+    loans_to_remove = []
+    fines_to_remove = []
+
+    for balance in balances:
+        opening_loan = Loan.query.filter_by(
+            source_type="OpeningBalance",
+            source_id=balance.id,
+        ).first()
+
+        if opening_loan:
+            if Repayment.query.filter_by(
+                loan_id=opening_loan.id
+            ).first():
+                flash(
+                    (
+                        f"Batch {batch.batch_no} cannot be reversed "
+                        f"because loan {opening_loan.loan_no or opening_loan.id} "
+                        f"has repayments."
+                    ),
+                    "danger"
+                )
+                return redirect(
+                    url_for(
+                        "opening_balance_batch",
+                        batch_id=batch.id
+                    )
+                )
+
+            loans_to_remove.append(opening_loan)
+
+        opening_fine = FinePenalty.query.filter_by(
+            source_type="OpeningBalance",
+            source_id=balance.id,
+        ).first()
+
+        if opening_fine:
+            if FinePayment.query.filter_by(
+                fine_id=opening_fine.id
+            ).first():
+                flash(
+                    (
+                        f"Batch {batch.batch_no} cannot be reversed "
+                        f"because an opening fine has payments."
+                    ),
+                    "danger"
+                )
+                return redirect(
+                    url_for(
+                        "opening_balance_batch",
+                        batch_id=batch.id
+                    )
+                )
+
+            fines_to_remove.append(opening_fine)
+
+    original_journal = JournalEntry.query.filter_by(
+        source_type="OpeningBalanceBatch",
+        source_id=str(batch.id),
+    ).first()
+
+    if not original_journal:
+        flash(
+            (
+                f"Batch {batch.batch_no} cannot be reversed because "
+                f"its original accounting journal was not found."
+            ),
+            "danger"
+        )
+        return redirect(
+            url_for(
+                "opening_balance_batch",
+                batch_id=batch.id
+            )
+        )
+
+    if JournalEntry.query.filter_by(
+        source_type="OpeningBalanceBatchReversal",
+        source_id=str(batch.id),
+    ).first():
+        flash(
+            "This opening balance batch has already been reversed.",
+            "warning"
+        )
+        return redirect(
+            url_for(
+                "opening_balance_batch",
+                batch_id=batch.id
+            )
+        )
+
+    user = session.get("user") or {}
+    reversed_by = (
+        user.get("full_name")
+        or user.get("username")
+        or "System"
     )
+
+    try:
+        reversal_lines = [
+            {
+                "account": line.account,
+                "debit": money(line.credit),
+                "credit": money(line.debit),
+                "memo": f"Reversal: {line.memo or batch.batch_no}",
+            }
+            for line in original_journal.lines
+        ]
+
+        reversal_journal = post_journal(
+            entry_date=date.today(),
+            description=(
+                f"Reversal of opening balances from batch "
+                f"{batch.batch_no}: {reversal_reason}"
+            ),
+            reference=f"REV-{batch.posting_reference or batch.batch_no}",
+            source_type="OpeningBalanceBatchReversal",
+            source_id=batch.id,
+            lines=reversal_lines,
+            commit=False,
+        )
+
+        if reversal_journal is None:
+            raise Exception(
+                "A reversal journal already exists for this batch."
+            )
+
+        for loan in loans_to_remove:
+            db.session.delete(loan)
+
+        for fine in fines_to_remove:
+            db.session.delete(fine)
+
+        for balance in balances:
+            balance.is_posted = False
+            balance.posted_on = None
+            balance.posted_by = None
+            balance.created_loan_id = None
+            balance.created_fine_id = None
+
+        batch.status = "Reversed"
+        batch.reversed_by = reversed_by
+        batch.reversed_on = datetime.now(timezone.utc)
+        batch.reversal_reason = reversal_reason
+
+        db.session.commit()
+
+        log_audit(
+            "REVERSE_OPENING_BALANCES",
+            (
+                f"Reversed opening balance batch {batch.batch_no}; "
+                f"reason: {reversal_reason}"
+            )
+        )
+
+        flash(
+            (
+                f"Opening balance batch {batch.batch_no} was "
+                f"reversed successfully."
+            ),
+            "success"
+        )
+
+    except Exception as error:
+        db.session.rollback()
+
+        app.logger.exception(
+            "Opening balance reversal failed for batch %s",
+            batch.id
+        )
+
+        flash(
+            f"Opening balance reversal failed: {error}",
+            "danger"
+        )
 
     return redirect(
         url_for(
@@ -16795,6 +17052,42 @@ def ensure_loan_columns():
         except Exception:
             db.session.rollback()
 
+def backfill_opening_loan_interest():
+    """Restore imported interest omitted from previously created opening loans."""
+    opening_loans = Loan.query.filter(
+        Loan.source_type == 'OpeningBalance',
+        db.func.coalesce(Loan.opening_interest, 0) == 0,
+    ).all()
+
+    updated = 0
+
+    for loan in opening_loans:
+        opening_balance = None
+
+        if loan.source_id:
+            opening_balance = db.session.get(
+                OpeningBalance,
+                loan.source_id,
+            )
+
+        if not opening_balance:
+            opening_balance = OpeningBalance.query.filter_by(
+                created_loan_id=loan.id,
+            ).first()
+
+        imported_interest = money(
+            opening_balance.loan_interest
+            if opening_balance
+            else 0
+        )
+
+        if imported_interest > 0:
+            loan.opening_interest = imported_interest
+            updated += 1
+
+    if updated:
+        db.session.commit()
+
 def ensure_member_columns():
     columns = {
         'member_type': 'VARCHAR(50)',
@@ -16886,6 +17179,7 @@ def initialize_database():
         ensure_loan_columns()
         ensure_bank_account_columns()
         ensure_opening_balance_columns()
+        backfill_opening_loan_interest()
         ensure_financial_year_columns()
         ensure_schema()
         ensure_chart_of_accounts()
