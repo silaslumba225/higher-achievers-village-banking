@@ -13,8 +13,42 @@
   </div>
 </section>
 
+ <form method="get" class="no-print mb-3">
+    <label for="year" class="form-label">
+        <strong>Select Financial Year</strong>
+    </label>
+
+    <select
+        id="year"
+        name="year"
+        class="form-select"
+        style="max-width: 260px;"
+        onchange="this.form.submit()"
+    >
+        {% for year_item in financial_years %}
+        <option
+            value="{{ year_item.year }}"
+            {% if financial_year and year_item.year == financial_year.year %}
+                selected
+            {% endif %}
+        >
+            FY{{ year_item.year }} — {{ year_item.status }}
+        </option>
+        {% endfor %}
+    </select>
+</form> 
+
 <section class="panel">
-  <h2>Balance Sheet</h2>
+  <h2>{{ report_title }}</h2>
+
+<p class="report-period">
+    {{ report_period }}
+</p>
+{% if financial_year %}
+<p class="text-muted">
+    Financial Year: FY{{ financial_year.year }}
+</p>
+{% endif %}
 
   <table>
     <tr>

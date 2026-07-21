@@ -1,0 +1,421 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Bank Account Details{% endblock %}
+{% block subtitle %}Review the complete details of the selected bank account{% endblock %}
+
+{% block content %}
+
+<style>
+    .details-centre {
+        max-width: 1250px;
+        margin: 0 auto;
+    }
+
+    .details-hero {
+        background: linear-gradient(135deg, #145766, #238798);
+        color: white;
+        border-radius: 18px;
+        padding: 23px 28px;
+        margin-bottom: 20px;
+        box-shadow: 0 12px 28px rgba(20, 87, 102, 0.18);
+    }
+
+    .details-hero-inner {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .details-hero h2 {
+        margin: 0 0 6px;
+        font-size: 1.7rem;
+        font-weight: 800;
+    }
+
+    .details-hero p {
+        margin: 0;
+        opacity: 0.92;
+    }
+
+    .hero-button {
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        padding: 10px 15px;
+        border-radius: 10px;
+        background: white;
+        color: #17324d;
+        font-weight: 800;
+        text-decoration: none;
+    }
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+
+    .summary-card {
+        background: white;
+        border: 1px solid #e4e9ed;
+        border-radius: 14px;
+        padding: 18px;
+        box-shadow: 0 6px 18px rgba(20, 44, 62, 0.05);
+    }
+
+    .summary-label {
+        margin-bottom: 6px;
+        color: #76848f;
+        font-size: 0.78rem;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .summary-value {
+        color: #17324d;
+        font-size: 1.05rem;
+        font-weight: 800;
+    }
+
+    .details-card {
+        background: white;
+        border: 1px solid #e4e9ed;
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 8px 24px rgba(20, 44, 62, 0.06);
+    }
+
+    .details-section {
+        padding: 22px 24px;
+        border-bottom: 1px solid #edf0f2;
+    }
+
+    .details-section:last-child {
+        border-bottom: none;
+    }
+
+    .section-heading {
+        margin-bottom: 18px;
+        color: #17324d;
+        font-size: 1.05rem;
+        font-weight: 800;
+    }
+
+    .details-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px 24px;
+    }
+
+    .detail-item {
+        padding: 12px 14px;
+        background: #f8fafb;
+        border: 1px solid #e7ecef;
+        border-radius: 10px;
+    }
+
+    .detail-label {
+        margin-bottom: 4px;
+        color: #74828d;
+        font-size: 0.76rem;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .detail-value {
+        color: #20384c;
+        font-weight: 700;
+        word-break: break-word;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 10px;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 800;
+    }
+
+    .status-active {
+        background: #e7f6ec;
+        color: #24743d;
+    }
+
+    .status-inactive {
+        background: #fbeaea;
+        color: #a63737;
+    }
+
+    .status-primary {
+        background: #fff3cd;
+        color: #805f00;
+    }
+
+    .details-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        padding: 18px 24px;
+        background: #f8fafb;
+        border-top: 1px solid #e6ebef;
+    }
+
+    .action-button {
+        min-height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        padding: 9px 16px;
+        border-radius: 9px;
+        font-size: 0.88rem;
+        font-weight: 800;
+        text-decoration: none;
+        border: 1px solid transparent;
+    }
+
+    .action-button.back {
+        background: white;
+        color: #42586a;
+        border-color: #d4dde3;
+    }
+
+    .action-button.edit {
+        background: #176c7a;
+        color: white;
+        border-color: #176c7a;
+    }
+
+    @media (max-width: 850px) {
+        .summary-grid,
+        .details-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .details-hero-inner {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .hero-button {
+            justify-content: center;
+        }
+
+        .details-actions {
+            flex-direction: column-reverse;
+        }
+    }
+</style>
+
+<div class="details-centre">
+
+    <section class="details-hero">
+        <div class="details-hero-inner">
+            <div>
+                <h2>🏦 Bank Account Details</h2>
+                <p>
+                    Review the full details of
+                    {{ account.account_name }}.
+                </p>
+            </div>
+
+            <a href="{{ url_for('bank_accounts') }}"
+               class="hero-button">
+                ← Bank Account Centre
+            </a>
+        </div>
+    </section>
+
+    <div class="summary-grid">
+
+        <div class="summary-card">
+            <div class="summary-label">Bank</div>
+            <div class="summary-value">
+                {{ account.bank_name }}
+            </div>
+        </div>
+
+        <div class="summary-card">
+            <div class="summary-label">Account Number</div>
+            <div class="summary-value">
+                {{ account.account_number }}
+            </div>
+        </div>
+
+        <div class="summary-card">
+            <div class="summary-label">Current Balance</div>
+            <div class="summary-value">
+                {{ account.current_balance|kwacha }}
+            </div>
+        </div>
+
+        <div class="summary-card">
+            <div class="summary-label">Status</div>
+            <div class="summary-value">
+                {% if account.is_active %}
+                    <span class="status-badge status-active">Active</span>
+                {% else %}
+                    <span class="status-badge status-inactive">Inactive</span>
+                {% endif %}
+
+                {% if account.is_primary %}
+                    <span class="status-badge status-primary">Primary</span>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
+    <div class="details-card">
+
+        <section class="details-section">
+            <div class="section-heading">🏦 Bank Information</div>
+
+            <div class="details-grid">
+                <div class="detail-item">
+                    <div class="detail-label">Bank Name</div>
+                    <div class="detail-value">
+                        {{ account.bank_name or '—' }}
+                    </div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">Branch Name</div>
+                    <div class="detail-value">
+                        {{ account.branch_name or '—' }}
+                    </div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">Branch Address</div>
+                    <div class="detail-value">
+                        {{ account.branch_address or '—' }}
+                    </div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">Bank Code</div>
+                    <div class="detail-value">
+                        {{ account.bank_code or '—' }}
+                    </div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">Sort Code</div>
+                    <div class="detail-value">
+                        {{ account.sort_code or '—' }}
+                    </div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">SWIFT/BIC Code</div>
+                    <div class="detail-value">
+                        {{ account.swift_code or '—' }}
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="details-section">
+            <div class="section-heading">💳 Account Information</div>
+
+            <div class="details-grid">
+                <div class="detail-item">
+                    <div class="detail-label">Account Name</div>
+                    <div class="detail-value">
+                        {{ account.account_name or '—' }}
+                    </div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">Account Number</div>
+                    <div class="detail-value">
+                        {{ account.account_number or '—' }}
+                    </div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">Account Type</div>
+                    <div class="detail-value">
+                        {{ account.account_type or '—' }}
+                    </div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">Currency</div>
+                    <div class="detail-value">
+                        {{ account.currency or '—' }}
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="details-section">
+            <div class="section-heading">💰 Financial Information</div>
+
+            <div class="details-grid">
+                <div class="detail-item">
+                    <div class="detail-label">Opening Date</div>
+                    <div class="detail-value">
+                        {{ account.opening_date.strftime('%d %B %Y')
+                           if account.opening_date else '—' }}
+                    </div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">Opening Balance</div>
+                    <div class="detail-value">
+                        {{ account.opening_balance|kwacha }}
+                    </div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">Current Balance</div>
+                    <div class="detail-value">
+                        {{ account.current_balance|kwacha }}
+                    </div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">Display Order</div>
+                    <div class="detail-value">
+                        {{ account.display_order or 1 }}
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="details-section">
+            <div class="section-heading">📝 Additional Information</div>
+
+            <div class="detail-item">
+                <div class="detail-label">Description or Notes</div>
+                <div class="detail-value">
+                    {{ account.description or 'No additional notes recorded.' }}
+                </div>
+            </div>
+        </section>
+
+        <div class="details-actions">
+            <a href="{{ url_for('bank_accounts') }}"
+               class="action-button back">
+                ← Back
+            </a>
+
+            <a href="{{ url_for(
+                    'edit_bank_account',
+                        account_id=account.id
+                    ) }}"
+            class="action-button edit">
+                ✏️ Edit Bank Account
+            </a>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

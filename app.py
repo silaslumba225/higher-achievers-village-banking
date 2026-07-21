@@ -111,6 +111,9 @@ CLIENT_NAME = 'Higher Achievers'
 PRODUCER_NAME = 'SL Consulting Limited'
 BACKUP_RETENTION = 30
 ACCUMULATED_SURPLUS_ACCOUNT_CODE = "3000"
+PRODUCT_NAME = 'SL Village Banking Pro'
+PRODUCT_VERSION = '1.0.0'
+PRODUCT_VENDOR = 'SL Consulting Limited'
 
 FINE_CATEGORIES = [
     'Late Meeting Attendance',
@@ -607,6 +610,96 @@ def ensure_month_end_columns():
         except Exception:
             db.session.rollback()
 
+def financial_report_period_label(
+    start_date,
+    end_date,
+    report_type="period"
+):
+    if not end_date:
+        return ""
+
+    end_label = end_date.strftime("%d %B %Y")
+
+    if report_type == "position":
+        return f"As at {end_label}"
+
+    if not start_date:
+        return f"For the period ended {end_label}"
+
+    full_year = (
+        start_date.year == end_date.year
+        and start_date.month == 1
+        and start_date.day == 1
+        and end_date.month == 12
+        and end_date.day == 31
+    )
+
+    if full_year:
+        return f"For the year ended {end_label}"
+
+    months = (
+        (end_date.year - start_date.year) * 12
+        + end_date.month
+        - start_date.month
+        + 1
+    )
+
+    if months == 1:
+        return f"For the month ended {end_label}"
+
+    return f"For the {months}-month period ended {end_label}"
+
+def transaction_report_period_label(start_date, end_date):
+    if not start_date or not end_date:
+        return ""
+
+    return (
+        f"For the period "
+        f"{start_date.strftime('%d %B %Y')} "
+        f"to {end_date.strftime('%d %B %Y')}"
+    )
+
+def financial_report_title(report_code):
+
+    titles = {
+
+        "balance_sheet":
+            "STATEMENT OF FINANCIAL POSITION",
+
+        "income_statement":
+            "STATEMENT OF INCOME AND EXPENDITURE",
+
+        "cash_flow":
+            "STATEMENT OF CASH FLOWS",
+
+        "trial_balance":
+            "TRIAL BALANCE",
+
+        "cash_book":
+            "CASH BOOK",
+
+        "general_ledger":
+            "GENERAL LEDGER"
+
+    }
+
+    return titles.get(report_code, report_code)
+
+def system_setup_required():
+    settings = SystemSetting.query.first()
+
+    if not settings:
+        return True
+
+    if not settings.setup_completed:
+        return True
+
+    if not FinancialYear.query.first():
+        return True
+
+    return False
+
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
@@ -639,6 +732,79 @@ class BackupRecord(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     notes = db.Column(db.Text)
 
+class BankAccount(db.Model):
+    __tablename__ = "bank_account"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    bank_name = db.Column(
+        db.String(120),
+        nullable=False
+    )
+    opening_date = db.Column(
+        db.Date,
+        default=date.today
+        )
+
+    branch_name = db.Column(db.String(120))
+    bank_code = db.Column(db.String(30))
+    swift_code = db.Column(db.String(30))
+    sort_code = db.Column(db.String(30))
+
+    account_name = db.Column(
+        db.String(160),
+        nullable=False
+    )
+
+    account_number = db.Column(
+        db.String(80),
+        nullable=False,
+        unique=False
+    )
+
+    branch_address = db.Column(db.String(200))
+
+    account_type = db.Column(
+        db.String(50),
+        default="Current Account"
+    )
+
+    currency = db.Column(
+        db.String(10),
+        default="ZMW"
+    )
+
+    opening_balance = db.Column(
+        db.Numeric(14,2),
+        default=0
+    )
+
+    current_balance = db.Column(
+        db.Numeric(14,2),
+        default=0
+    )
+
+    description = db.Column(db.Text)
+
+    display_order = db.Column(
+        db.Integer,
+        default=1
+    )
+
+    is_primary = db.Column(
+        db.Boolean,
+        default=False
+    )
+
+    is_active = db.Column(
+        db.Boolean,
+        default=True
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow
+    )
 
 class NotificationLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -660,13 +826,17 @@ class NotificationLog(db.Model):
     )
     member = db.relationship('Member', backref='notification_logs')
 
+
+
 class Member(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     member_no = db.Column(db.String(20), unique=True, nullable=False)
     full_name = db.Column(db.String(120), nullable=False)
     phone = db.Column(db.String(30))
     national_id = db.Column(db.String(50))
-    group_name = db.Column(db.String(80))
+    group_name = db.Column(
+    db.String(80)
+    )
     status = db.Column(db.String(20), default='Active')
     created_at = db.Column(db.Date, default=date.today)
     member_type = db.Column(db.String(50), default='Ordinary Member')
@@ -717,9 +887,6 @@ class Loan(db.Model):
     rejection_reason = db.Column(db.String(250))
     member = db.relationship('Member', backref='loans')
     loan_no = db.Column(db.String(30), unique=True)
-
-    disbursed_by = db.Column(db.String(120))
-    disbursed_on = db.Column(db.Date)
 
     disbursement_method = db.Column(db.String(50))
     disbursement_reference = db.Column(db.String(100))
@@ -859,7 +1026,7 @@ class FinePenalty(db.Model):
     @property
     def balance(self):
         return money(self.amount - self.total_paid)
-    
+
 class FinePayment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     fine_id = db.Column(db.Integer, db.ForeignKey('fine_penalty.id'), nullable=False)
@@ -1078,11 +1245,38 @@ class SystemSetting(db.Model):
     organization_email = db.Column(db.String(120))
     registration_number = db.Column(db.String(100))
 
+    # Village Banking Group leadership
+    chairperson_name = db.Column(db.String(120))
+    secretary_name = db.Column(db.String(120))
+    treasurer_name = db.Column(db.String(120))
+
+    # Village Banking Group meeting details
+    meeting_day = db.Column(db.String(30))
+    meeting_time = db.Column(db.String(30))
+    meeting_venue = db.Column(db.String(200))
+
+    # Village Banking Group establishment and location
+    date_established = db.Column(db.Date)
+    province = db.Column(db.String(100))
+    district = db.Column(db.String(100))
+
     sms_provider = db.Column(db.String(50), default='Manual')
     sms_api_key = db.Column(db.String(500))
     sms_sender_id = db.Column(db.String(100))
     whatsapp_enabled = db.Column(db.Boolean, default=False)
     sms_username = db.Column(db.String(100))
+    chairperson_name = db.Column(db.String(120))
+    secretary_name = db.Column(db.String(120))
+    treasurer_name = db.Column(db.String(120))
+
+    meeting_day = db.Column(db.String(30))
+    meeting_time = db.Column(db.String(30))
+    meeting_venue = db.Column(db.String(200))
+
+    date_established = db.Column(db.Date)
+
+    province = db.Column(db.String(100))
+    district = db.Column(db.String(100))
 
         # Branding and product identity
     short_name = db.Column(db.String(80), default='Village Banking')
@@ -1591,6 +1785,7 @@ class OpeningBalance(db.Model):
         ),
     )
 
+
 def build_financial_year_closing_preview(financial_year):
     """
     Prepare the year-end closing summary without posting anything.
@@ -2005,6 +2200,75 @@ def is_financial_year_locked(transaction_date):
         financial_year.is_locked
         or financial_year.status == 'Closed'
     )
+
+def ensure_group_profile_columns():
+    """
+    Add Village Banking Group profile columns to SystemSetting
+    without affecting existing data.
+    """
+
+    inspector = inspect(db.engine)
+
+    if "system_setting" not in inspector.get_table_names():
+        return
+
+    existing_columns = {
+        column["name"]
+        for column in inspector.get_columns("system_setting")
+    }
+
+    additions = {
+        "chairperson_name": (
+            "ALTER TABLE system_setting "
+            "ADD COLUMN chairperson_name VARCHAR(120)"
+        ),
+
+        "secretary_name": (
+            "ALTER TABLE system_setting "
+            "ADD COLUMN secretary_name VARCHAR(120)"
+        ),
+
+        "treasurer_name": (
+            "ALTER TABLE system_setting "
+            "ADD COLUMN treasurer_name VARCHAR(120)"
+        ),
+
+        "meeting_day": (
+            "ALTER TABLE system_setting "
+            "ADD COLUMN meeting_day VARCHAR(30)"
+        ),
+
+        "meeting_time": (
+            "ALTER TABLE system_setting "
+            "ADD COLUMN meeting_time VARCHAR(30)"
+        ),
+
+        "meeting_venue": (
+            "ALTER TABLE system_setting "
+            "ADD COLUMN meeting_venue VARCHAR(200)"
+        ),
+
+        "date_established": (
+            "ALTER TABLE system_setting "
+            "ADD COLUMN date_established DATE"
+        ),
+
+        "province": (
+            "ALTER TABLE system_setting "
+            "ADD COLUMN province VARCHAR(100)"
+        ),
+
+        "district": (
+            "ALTER TABLE system_setting "
+            "ADD COLUMN district VARCHAR(100)"
+        ),
+    }
+
+    for column_name, sql in additions.items():
+        if column_name not in existing_columns:
+            db.session.execute(text(sql))
+
+    db.session.commit()
 
 def ensure_financial_year_columns():
     """
@@ -2435,6 +2699,54 @@ def generate_financial_year_closing_reference(financial_year):
 
     return reference
 
+def ensure_bank_account_columns():
+    inspector = inspect(db.engine)
+
+    table_name = "bank_account"
+
+    if table_name not in inspector.get_table_names():
+        return
+
+    existing_columns = {
+        column["name"]
+        for column in inspector.get_columns(table_name)
+    }
+
+    additions = {
+        "bank_code":
+            "ALTER TABLE bank_account ADD COLUMN bank_code VARCHAR(30)",
+
+        "swift_code":
+            "ALTER TABLE bank_account ADD COLUMN swift_code VARCHAR(30)",
+
+        "sort_code":
+            "ALTER TABLE bank_account ADD COLUMN sort_code VARCHAR(30)",
+
+        "branch_address":
+            "ALTER TABLE bank_account ADD COLUMN branch_address VARCHAR(200)",
+
+        "opening_date":
+            "ALTER TABLE bank_account ADD COLUMN opening_date DATE",
+
+        "opening_balance":
+            "ALTER TABLE bank_account ADD COLUMN opening_balance NUMERIC(14,2) DEFAULT 0",
+
+        "current_balance":
+            "ALTER TABLE bank_account ADD COLUMN current_balance NUMERIC(14,2) DEFAULT 0",
+
+        "description":
+            "ALTER TABLE bank_account ADD COLUMN description TEXT",
+
+        "display_order":
+            "ALTER TABLE bank_account ADD COLUMN display_order INTEGER DEFAULT 1",
+    }
+
+    for column_name, sql in additions.items():
+        if column_name not in existing_columns:
+            db.session.execute(text(sql))
+
+    db.session.commit()
+
 def ensure_opening_balance_columns():
     inspector = db.inspect(db.engine)
     table_names = inspector.get_table_names()
@@ -2730,6 +3042,24 @@ def normalize_import_header(value):
 
     return value.strip('_')
 
+
+@app.context_processor
+def inject_product_branding():
+    settings = SystemSetting.query.first()
+
+    return {
+        'product_name': PRODUCT_NAME,
+        'product_version': PRODUCT_VERSION,
+        'product_vendor': PRODUCT_VENDOR,
+        'licensed_organisation': (
+            settings.organisation_name
+            if settings and settings.organisation_name
+            else 'Organisation not configured'
+        )
+    }
+
+
+
 @app.route('/uploaded-logo/<path:filename>')
 def uploaded_logo(filename):
     return send_from_directory(
@@ -3006,11 +3336,7 @@ def sync_operational_transactions_to_gl():
 
 
 def ledger_balances(start_date=None, end_date=None):
-    query = JournalLine.query.join(JournalEntry).join(Account)
-    if start_date:
-        query = query.filter(JournalEntry.entry_date >= start_date)
-    if end_date:
-        query = query.filter(JournalEntry.entry_date <= end_date)
+    
     balances = []
     for account in Account.query.order_by(Account.code).all():
         lines = JournalLine.query.join(JournalEntry).filter(JournalLine.account_id == account.id)
@@ -3202,6 +3528,75 @@ def system_settings():
         settings=settings
     )
 
+@app.route('/startup')
+@login_required
+def startup():
+    settings = SystemSetting.query.first()
+
+    current_financial_year = (
+        FinancialYear.query
+        .filter(
+            db.func.lower(FinancialYear.status) == 'open'
+        )
+        .order_by(FinancialYear.year.desc())
+        .first()
+    )
+
+    module_statuses = [
+        {
+            'name': 'Members',
+            'ready': Member.query.count() >= 0
+        },
+        {
+            'name': 'Loans',
+            'ready': True
+        },
+        {
+            'name': 'Accounting',
+            'ready': Account.query.count() > 0
+        },
+        {
+            'name': 'Financial Year',
+            'ready': current_financial_year is not None
+        },
+        {
+            'name': 'Security',
+            'ready': User.query.filter_by(active=True).count() > 0
+        }
+    ]
+
+    return render_template(
+        'startup.html',
+        settings=settings,
+        current_financial_year=current_financial_year,
+        module_statuses=module_statuses
+    )
+
+@app.route('/about')
+@login_required
+def about():
+
+    settings = SystemSetting.query.first()
+
+    current_financial_year = (
+        FinancialYear.query
+        .filter(
+            db.func.lower(FinancialYear.status) == 'open'
+        )
+        .order_by(FinancialYear.year.desc())
+        .first()
+    )
+
+    return render_template(
+        'about.html',
+        settings=settings,
+        current_financial_year=current_financial_year,
+        member_count=Member.query.count(),
+        active_loans=Loan.query.filter_by(status='Active').count(),
+        user_count=User.query.count(),
+        account_count=Account.query.count()
+    )
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -3210,7 +3605,10 @@ def login():
             active=True
         ).first()
 
-        if user and check_password_hash(user.password_hash, request.form.get('password', '')):
+        if user and check_password_hash(
+            user.password_hash,
+            request.form.get('password', '')
+        ):
             session['user'] = {
                 'id': user.id,
                 'username': user.username,
@@ -3218,12 +3616,23 @@ def login():
                 'role': user.role
             }
 
-            log_audit('LOGIN_SUCCESS', 'User', user.id, f'{user.full_name} logged in')
-            flash('Welcome back. You are logged in securely.')
+            log_audit(
+                'LOGIN_SUCCESS',
+                'User',
+                user.id,
+                f'{user.full_name} logged in'
+            )
 
-            return redirect(request.args.get('next') or url_for('home'))
+            flash(
+                'Welcome back. You are logged in securely.'
+            )
 
-        flash('Invalid username or password.', 'error')
+            return redirect(url_for('startup'))
+
+        flash(
+            'Invalid username or password.',
+            'error'
+        )
 
     return render_template('login.html')
 
@@ -3460,6 +3869,11 @@ def settings():
             request.form.get('danger_color')
             or '#DC3545'
         )
+        setup_completed = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=False
+    )
 
         setting.updated_on = datetime.utcnow()
 
@@ -3485,6 +3899,137 @@ def settings():
     return render_template(
         'settings.html',
         setting=setting
+    )
+
+@app.route('/setup', methods=['GET', 'POST'])
+def first_time_setup():
+    settings = SystemSetting.query.first()
+
+    if settings and settings.setup_completed:
+        flash('Initial system setup has already been completed.', 'info')
+        return redirect(url_for('dashboard'))
+
+    if request.method == 'POST':
+        organisation_name = request.form.get(
+            'organisation_name',
+            ''
+        ).strip()
+
+        organisation_address = request.form.get(
+            'organisation_address',
+            ''
+        ).strip()
+
+        currency = request.form.get(
+            'currency',
+            'ZMW'
+        ).strip()
+
+        financial_year = request.form.get(
+            'financial_year',
+            type=int
+        )
+
+        start_date_text = request.form.get('start_date')
+        end_date_text = request.form.get('end_date')
+
+        if not organisation_name:
+            flash('Organisation name is required.', 'danger')
+            return redirect(url_for('first_time_setup'))
+
+        if not financial_year:
+            flash('Financial year is required.', 'danger')
+            return redirect(url_for('first_time_setup'))
+
+        try:
+            start_date = datetime.strptime(
+                start_date_text,
+                '%Y-%m-%d'
+            ).date()
+
+            end_date = datetime.strptime(
+                end_date_text,
+                '%Y-%m-%d'
+            ).date()
+
+        except (TypeError, ValueError):
+            flash('Please enter valid financial year dates.', 'danger')
+            return redirect(url_for('first_time_setup'))
+
+        if start_date > end_date:
+            flash(
+                'Financial year start date cannot be after the end date.',
+                'danger'
+            )
+            return redirect(url_for('first_time_setup'))
+
+        existing_year = FinancialYear.query.filter_by(
+            year=financial_year
+        ).first()
+
+        if existing_year:
+            flash(
+                f'Financial Year FY{financial_year} already exists.',
+                'danger'
+            )
+            return redirect(url_for('first_time_setup'))
+
+        try:
+            if not settings:
+                settings = Setting()
+                db.session.add(settings)
+
+            settings.organisation_name = organisation_name
+            settings.organisation_address = organisation_address
+            settings.currency = currency
+
+            username = (
+                (session.get('user') or {}).get('full_name')
+                or (session.get('user') or {}).get('username')
+                or 'System Administrator'
+            )
+
+            new_financial_year = FinancialYear(
+                year=financial_year,
+                start_date=start_date,
+                end_date=end_date,
+                status='Open',
+                opened_by=username,
+                is_locked=False
+            )
+
+            db.session.add(new_financial_year)
+
+            # Install the standard Chart of Accounts.
+            install_default_chart_of_accounts(
+                commit=False
+            )
+
+            settings.setup_completed = True
+
+            db.session.commit()
+
+            flash(
+                'System setup completed successfully. '
+                f'FY{financial_year} is now open.',
+                'success'
+            )
+
+            return redirect(url_for('dashboard'))
+
+        except Exception as exc:
+            db.session.rollback()
+
+            flash(
+                f'Setup could not be completed: {exc}',
+                'danger'
+            )
+
+    current_year = date.today().year
+
+    return render_template(
+        'first_time_setup.html',
+        current_year=current_year
     )
 
 @app.route(
@@ -3612,13 +4157,22 @@ def logo_management():
 @login_required
 @role_required('dashboard')
 def dashboard():
-     return redirect(url_for('executive_dashboard'))
+     return redirect(url_for('startup'))
    
 @app.route('/executive-dashboard')
 @login_required
 @role_required('dashboard')
 def executive_dashboard():
     balances = ledger_balances()
+
+    current_financial_year = (
+    FinancialYear.query
+    .filter(
+        db.func.lower(FinancialYear.status) == 'open'
+    )
+    .order_by(FinancialYear.year.desc())
+    .first()
+)
 
     balance_map = {
         b['account'].code: b['balance']
@@ -3656,7 +4210,9 @@ def executive_dashboard():
     total_expenses = money(expenses)
     current_surplus = money(total_income - total_expenses)
 
-    active_members = Member.query.count()
+    active_members = Member.query.filter(
+        db.func.lower(Member.status) == 'active'
+    ).count()
 
     active_loans = Loan.query.filter(
         Loan.status.in_(['Disbursed', 'Partially Paid'])
@@ -4069,6 +4625,8 @@ def executive_dashboard():
         members_requiring_followup=members_requiring_followup,
         financial_ratios=financial_ratios,
         executive_ai_advice=executive_ai_advice,
+        current_financial_year=current_financial_year,
+        next_meeting=next_meeting,
     )
 
 @app.route('/members')
@@ -11868,7 +12426,39 @@ def income_statement():
 @login_required
 @role_required('accounting')
 def balance_sheet():
-    balances = ledger_balances()
+    # Reporting period
+    selected_year = request.args.get('year', type=int)
+
+    if selected_year:
+        fy = FinancialYear.query.filter_by(
+            year=selected_year
+        ).first()
+    else:
+        fy = current_financial_year()
+
+    if fy:
+        start_date = fy.start_date
+        end_date = fy.end_date
+    else:
+        start_date = None
+        end_date = date.today()
+
+    # Calculate balances only after end_date has been determined
+    balances = ledger_balances(end_date=end_date)
+
+    report_title = financial_report_title("balance_sheet")
+
+    report_period = financial_report_period_label(
+        start_date,
+        end_date,
+        report_type="position"
+    )
+
+    financial_years = (
+        FinancialYear.query
+        .order_by(FinancialYear.year.desc())
+        .all()
+    )
 
     income = Decimal('0.00')
     expenses = Decimal('0.00')
@@ -11980,6 +12570,11 @@ def balance_sheet():
         fines_receivable=fines_receivable,
         total_receivables=total_receivables,
         opening_balance_equity=opening_balance_equity,
+
+        report_title=report_title,
+        report_period=report_period,
+        financial_year=fy,
+        financial_years=financial_years,
     )
 
 @app.route('/accounting/cash-flow')
@@ -14980,6 +15575,835 @@ def export_csv(kind):
         writer.writerow(['Unsupported export'])
     return Response(output.getvalue(), mimetype='text/csv', headers={'Content-Disposition': f'attachment; filename={kind}.csv'})
 
+@app.route('/administration')
+def administration():
+
+    settings = SystemSetting.query.first()
+
+    current_year = (
+        FinancialYear.query
+        .filter(
+            db.func.lower(FinancialYear.status) == 'open'
+        )
+        .order_by(FinancialYear.year.desc())
+        .first()
+    )
+
+    stats = {
+        'total_users': User.query.count(),
+        'active_users': User.query.filter_by(active=True).count(),
+
+        'total_accounts': Account.query.count(),
+        'active_accounts': Account.query.filter_by(active=True).count(),
+
+        'total_members': Member.query.count(),
+        'active_members': Member.query.filter_by(status='Active').count(),
+
+        'total_loans': Loan.query.count(),
+        'disbursed_loans': Loan.query.filter(
+            Loan.status.in_([
+                'Disbursed',
+                'Partially Paid',
+                'Paid'
+            ])
+        ).count(),
+
+        'total_contributions': Contribution.query.count(),
+
+        'savings_interest_records': SavingsInterest.query.count()
+    }
+
+    health = {
+        'organisation_configured': bool(settings),
+        'financial_year_open': bool(current_year),
+        'chart_of_accounts_installed': stats['total_accounts'] > 0,
+        'users_created': stats['total_users'] > 0,
+        'members_created': stats['total_members'] > 0
+    }
+
+    return render_template(
+        'administration.html',
+        settings=settings,
+        current_year=current_year,
+        stats=stats,
+        health=health
+    )
+
+@app.route(
+    '/administration/bank-accounts/new',
+    methods=['GET', 'POST']
+)
+@login_required
+def new_bank_account():
+
+    if request.method == 'POST':
+
+        bank_name = request.form.get(
+            'bank_name',
+            ''
+        ).strip()
+
+        branch_name = request.form.get(
+            'branch_name',
+            ''
+        ).strip()
+
+        branch_address = request.form.get(
+            'branch_address',
+            ''
+        ).strip()
+
+        bank_code = request.form.get(
+            'bank_code',
+            ''
+        ).strip()
+
+        swift_code = request.form.get(
+            'swift_code',
+            ''
+        ).strip()
+
+        sort_code = request.form.get(
+            'sort_code',
+            ''
+        ).strip()
+
+        account_name = request.form.get(
+            'account_name',
+            ''
+        ).strip()
+
+        # Remove accidental spaces from the account number.
+        account_number = ''.join(
+            request.form.get(
+                'account_number',
+                ''
+            ).split()
+        )
+
+        account_type = request.form.get(
+            'account_type',
+            'Current Account'
+        ).strip()
+
+        currency = request.form.get(
+            'currency',
+            'ZMW'
+        ).strip().upper()
+
+        description = request.form.get(
+            'description',
+            ''
+        ).strip()
+
+        opening_date_text = request.form.get(
+            'opening_date',
+            ''
+        ).strip()
+
+        display_order_text = request.form.get(
+            'display_order',
+            '1'
+        ).strip()
+
+        is_primary = (
+            request.form.get('is_primary') == 'on'
+        )
+
+        is_active = (
+            request.form.get('is_active') == 'on'
+        )
+
+        errors = []
+
+        if not bank_name:
+            errors.append('Bank name is required.')
+
+        if not account_name:
+            errors.append('Account name is required.')
+
+        if not account_number:
+            errors.append('Account number is required.')
+
+        # Opening balance
+        try:
+            opening_balance = Decimal(
+                request.form.get(
+                    'opening_balance',
+                    '0'
+                ).strip() or '0'
+            )
+        except (InvalidOperation, ValueError):
+            opening_balance = Decimal('0')
+            errors.append(
+                'Opening balance must be a valid number.'
+            )
+
+        if opening_balance < 0:
+            errors.append(
+                'Opening balance cannot be negative.'
+            )
+
+        # Display order
+        try:
+            display_order = int(
+                display_order_text or '1'
+            )
+        except ValueError:
+            display_order = 1
+            errors.append(
+                'Display order must be a whole number.'
+            )
+
+        if display_order < 1:
+            errors.append(
+                'Display order must be at least 1.'
+            )
+
+        # Opening date
+        opening_date_value = date.today()
+
+        if opening_date_text:
+            try:
+                opening_date_value = date.fromisoformat(
+                    opening_date_text
+                )
+            except ValueError:
+                errors.append(
+                    'Opening date is invalid.'
+                )
+
+        if is_primary and not is_active:
+            errors.append(
+                'The primary bank account must be active.'
+            )
+
+        # Duplicate account-number check
+        duplicate_account = (
+            BankAccount.query
+            .filter(
+                BankAccount.account_number
+                == account_number
+            )
+            .first()
+        )
+
+        if duplicate_account:
+            errors.append(
+                'A bank account with this account number '
+                'has already been recorded.'
+            )
+
+        if errors:
+            for error in errors:
+                flash(error, 'danger')
+
+            return render_template(
+                'bank_account_form.html',
+                form_data=request.form
+            )
+
+        try:
+            # The first account should automatically become
+            # the primary account.
+            account_count = BankAccount.query.count()
+
+            if account_count == 0:
+                is_primary = True
+                is_active = True
+
+            # Only one account may be primary.
+            if is_primary:
+                BankAccount.query.update(
+                    {
+                        BankAccount.is_primary: False
+                    },
+                    synchronize_session=False
+                )
+
+            account = BankAccount(
+                bank_name=bank_name,
+                branch_name=branch_name or None,
+                branch_address=branch_address or None,
+                bank_code=bank_code or None,
+                swift_code=swift_code or None,
+                sort_code=sort_code or None,
+
+                account_name=account_name,
+                account_number=account_number,
+                account_type=account_type,
+                currency=currency,
+
+                opening_date=opening_date_value,
+                opening_balance=opening_balance,
+
+                # A new account starts with its opening
+                # balance as the current balance.
+                current_balance=opening_balance,
+
+                description=description or None,
+                display_order=display_order,
+                is_primary=is_primary,
+                is_active=is_active
+            )
+
+            db.session.add(account)
+            db.session.commit()
+
+            flash(
+                f'{bank_name} account '
+                f'{account_number} was recorded successfully.',
+                'success'
+            )
+
+            return redirect(
+                url_for('bank_accounts')
+            )
+
+        except Exception:
+            db.session.rollback()
+
+            app.logger.exception(
+                'Failed to record bank account'
+            )
+
+            flash(
+                'The bank account could not be recorded. '
+                'Please review the information and try again.',
+                'danger'
+            )
+
+    return render_template(
+        'bank_account_form.html',
+        form_data={}
+    )
+
+
+
+@app.route('/administration/bank-accounts')
+@login_required
+def bank_accounts():
+    q = request.args.get('q', '').strip()
+    status = request.args.get('status', 'all').strip().lower()
+    account_type = request.args.get('account_type', '').strip()
+
+    all_accounts = (
+        BankAccount.query
+        .order_by(
+            BankAccount.is_primary.desc(),
+            BankAccount.display_order.asc(),
+            BankAccount.bank_name.asc()
+        )
+        .all()
+    )
+
+    query = BankAccount.query
+
+    if q:
+        search_term = f'%{q}%'
+        query = query.filter(
+            (BankAccount.bank_name.ilike(search_term)) |
+            (BankAccount.branch_name.ilike(search_term)) |
+            (BankAccount.account_name.ilike(search_term)) |
+            (BankAccount.account_number.ilike(search_term))
+        )
+
+    if status == 'active':
+        query = query.filter(BankAccount.is_active.is_(True))
+    elif status == 'inactive':
+        query = query.filter(BankAccount.is_active.is_(False))
+    elif status == 'primary':
+        query = query.filter(BankAccount.is_primary.is_(True))
+    else:
+        status = 'all'
+
+    if account_type:
+        query = query.filter(BankAccount.account_type == account_type)
+
+    accounts = (
+        query
+        .order_by(
+            BankAccount.is_primary.desc(),
+            BankAccount.display_order.asc(),
+            BankAccount.bank_name.asc()
+        )
+        .all()
+    )
+
+    primary_account = next(
+        (
+            account
+            for account in all_accounts
+            if account.is_primary and account.is_active
+        ),
+        None
+    )
+
+    total_balance = sum(
+        Decimal(account.current_balance or 0)
+        for account in all_accounts
+        if account.is_active
+    )
+
+    account_types = sorted({
+        account.account_type
+        for account in all_accounts
+        if account.account_type
+    })
+
+    return render_template(
+        'bank_accounts.html',
+        accounts=accounts,
+        registered_accounts=len(all_accounts),
+        active_accounts=sum(
+            1 for account in all_accounts if account.is_active
+        ),
+        primary_account=primary_account,
+        total_balance=total_balance,
+        account_types=account_types,
+        q=q,
+        status=status,
+        selected_account_type=account_type,
+        filters_applied=bool(
+            q or status != 'all' or account_type
+        )
+    )
+
+@app.route(
+    '/administration/bank-accounts/<int:account_id>/edit',
+    methods=['GET', 'POST']
+)
+@login_required
+def edit_bank_account(account_id):
+    account = BankAccount.query.get_or_404(account_id)
+
+    if request.method == 'POST':
+        bank_name = request.form.get('bank_name', '').strip()
+        account_name = request.form.get('account_name', '').strip()
+        account_number = (
+            request.form.get('account_number', '')
+            .replace(' ', '')
+            .strip()
+        )
+
+        errors = []
+
+        if not bank_name:
+            errors.append('Please select or enter the bank name.')
+
+        if not account_name:
+            errors.append('Please enter the official account name.')
+
+        if not account_number:
+            errors.append('Please enter the bank account number.')
+
+        duplicate_account = (
+            BankAccount.query
+            .filter(
+                BankAccount.account_number == account_number,
+                BankAccount.id != account.id
+            )
+            .first()
+        )
+
+        if duplicate_account:
+            errors.append(
+                'Another bank account already uses this account number.'
+            )
+
+        try:
+            opening_balance = Decimal(
+                request.form.get('opening_balance', '0') or '0'
+            )
+        except (InvalidOperation, ValueError):
+            opening_balance = Decimal('0')
+            errors.append(
+                'Please enter a valid opening balance.'
+            )
+
+        if opening_balance < 0:
+            errors.append(
+                'Opening balance must be zero or greater.'
+            )
+
+        opening_date_value = request.form.get(
+            'opening_date',
+            ''
+        ).strip()
+
+        opening_date = None
+
+        if opening_date_value:
+            try:
+                opening_date = datetime.strptime(
+                    opening_date_value,
+                    '%Y-%m-%d'
+                ).date()
+            except ValueError:
+                errors.append(
+                    'Please enter a valid opening date.'
+                )
+
+        try:
+            display_order = int(
+                request.form.get('display_order', '1') or '1'
+            )
+        except ValueError:
+            display_order = 1
+            errors.append(
+                'Display order must be a whole number.'
+            )
+
+        if display_order < 1:
+            errors.append(
+                'Display order must be at least 1.'
+            )
+
+        is_active = request.form.get('is_active') == 'on'
+        is_primary = request.form.get('is_primary') == 'on'
+
+        if is_primary and not is_active:
+            errors.append(
+                'The primary bank account must remain active.'
+            )
+
+        if account.is_primary and not is_primary:
+            errors.append(
+                'Use Set Primary on another active account before '
+                'removing primary status from this account.'
+            )
+
+        old_opening_balance = Decimal(
+            account.opening_balance or 0
+        )
+        current_balance = Decimal(
+            account.current_balance or 0
+        )
+
+        if (
+            opening_balance != old_opening_balance
+            and current_balance != old_opening_balance
+        ):
+            errors.append(
+                'The opening balance cannot be changed after account '
+                'activity has affected the current balance.'
+            )
+
+        form_data = request.form.to_dict()
+
+        if errors:
+            for error in errors:
+                flash(error, 'danger')
+
+            return render_template(
+                'bank_account_form.html',
+                account=account,
+                form_data=form_data,
+                is_edit=True
+            )
+
+        if is_primary:
+            (
+                BankAccount.query
+                .filter(BankAccount.id != account.id)
+                .update(
+                    {'is_primary': False},
+                    synchronize_session=False
+                )
+            )
+
+        account.bank_name = bank_name
+        account.branch_name = (
+            request.form.get('branch_name', '').strip()
+        )
+        account.branch_address = (
+            request.form.get('branch_address', '').strip()
+        )
+        account.bank_code = (
+            request.form.get('bank_code', '').strip()
+        )
+        account.sort_code = (
+            request.form.get('sort_code', '').strip()
+        )
+        account.swift_code = (
+            request.form.get('swift_code', '').strip()
+        )
+
+        account.account_name = account_name
+        account.account_number = account_number
+        account.account_type = request.form.get(
+            'account_type',
+            'Current Account'
+        )
+        account.currency = request.form.get(
+            'currency',
+            'ZMW'
+        )
+
+        account.opening_date = opening_date
+        account.opening_balance = opening_balance
+
+        # Keep the current balance aligned while the account still has
+        # no activity beyond its opening balance.
+        if current_balance == old_opening_balance:
+            account.current_balance = opening_balance
+
+        account.is_active = is_active
+        account.is_primary = is_primary
+        account.display_order = display_order
+
+        account.description = (
+            request.form.get('description', '').strip()
+        )
+
+        db.session.commit()
+
+        flash(
+            f'{account.bank_name} account '
+            f'{account.account_number} was updated successfully.',
+            'success'
+        )
+
+        return redirect(
+            url_for(
+                'view_bank_account',
+                account_id=account.id
+            )
+        )
+
+    form_data = {
+        'bank_name': account.bank_name or '',
+        'branch_name': account.branch_name or '',
+        'branch_address': account.branch_address or '',
+        'bank_code': account.bank_code or '',
+        'sort_code': account.sort_code or '',
+        'swift_code': account.swift_code or '',
+        'account_name': account.account_name or '',
+        'account_number': account.account_number or '',
+        'account_type': (
+            account.account_type or 'Current Account'
+        ),
+        'currency': account.currency or 'ZMW',
+        'opening_date': (
+            account.opening_date.strftime('%Y-%m-%d')
+            if account.opening_date
+            else ''
+        ),
+        'opening_balance': (
+            str(account.opening_balance or '0.00')
+        ),
+        'is_active': (
+            'on' if account.is_active else ''
+        ),
+        'is_primary': (
+            'on' if account.is_primary else ''
+        ),
+        'display_order': str(
+            account.display_order or 1
+        ),
+        'description': account.description or ''
+    }
+
+    return render_template(
+        'bank_account_form.html',
+        account=account,
+        form_data=form_data,
+        is_edit=True
+    )
+
+@app.route('/administration/bank-accounts/<int:account_id>')
+@login_required
+def view_bank_account(account_id):
+    account = BankAccount.query.get_or_404(account_id)
+
+    return render_template(
+        'bank_account_details.html',
+        account=account
+    )
+
+
+@app.route(
+    '/administration/bank-accounts/<int:account_id>/toggle-status',
+    methods=['POST']
+)
+@login_required
+def toggle_bank_account_status(account_id):
+    account = BankAccount.query.get_or_404(account_id)
+
+    if account.is_active and account.is_primary:
+        flash(
+            'The primary bank account cannot be deactivated. '
+            'Set another active account as primary first.',
+            'danger'
+        )
+        return redirect(url_for('bank_accounts'))
+
+    try:
+        account.is_active = not account.is_active
+        try:
+            db.session.commit()
+
+            log_audit(
+                'UPDATE_BANK_ACCOUNT',
+                'BankAccount',
+                account.id,
+                f'{account.bank_name} {account.account_number} updated'
+            )
+        except Exception:
+            db.session.rollback()
+            app.logger.exception('Failed to update bank account')
+            flash(
+                'The bank account could not be updated. '
+                'Please review the information and try again.',
+                'danger'
+            )
+            return render_template(
+                'bank_account_form.html',
+                account=account,
+                form_data=form_data,
+                is_edit=True
+            )
+
+        log_audit(
+            'TOGGLE_BANK_ACCOUNT_STATUS',
+            'BankAccount',
+            account.id,
+            f'{account.bank_name} {account.account_number}; '
+            f'active={account.is_active}'
+        )
+
+        flash(
+            f'Bank account was '
+            f'{"activated" if account.is_active else "deactivated"} '
+            'successfully.',
+            'success'
+        )
+    except Exception:
+        db.session.rollback()
+        app.logger.exception('Failed to change bank account status')
+        flash(
+            'The bank account status could not be changed.',
+            'danger'
+        )
+
+    return redirect(url_for('bank_accounts'))
+
+
+@app.route(
+    '/administration/bank-accounts/<int:account_id>/set-primary',
+    methods=['POST']
+)
+@login_required
+def set_primary_bank_account(account_id):
+    account = BankAccount.query.get_or_404(account_id)
+
+    if not account.is_active:
+        flash(
+            'Only an active bank account can be set as primary. '
+            'Activate this account first.',
+            'danger'
+        )
+        return redirect(url_for('bank_accounts'))
+
+    if account.is_primary:
+        flash('This is already the primary bank account.', 'info')
+        return redirect(url_for('bank_accounts'))
+
+    try:
+        BankAccount.query.update(
+            {BankAccount.is_primary: False},
+            synchronize_session=False
+        )
+        account.is_primary = True
+        db.session.commit()
+
+        log_audit(
+            'SET_PRIMARY_BANK_ACCOUNT',
+            'BankAccount',
+            account.id,
+            f'{account.bank_name} {account.account_number} set as primary'
+        )
+
+        flash(
+            f'{account.bank_name} account {account.account_number} '
+            'is now the primary bank account.',
+            'success'
+        )
+    except Exception:
+        db.session.rollback()
+        app.logger.exception('Failed to set primary bank account')
+        flash(
+            'The primary bank account could not be changed.',
+            'danger'
+        )
+
+    return redirect(url_for('bank_accounts'))
+
+
+@app.route(
+    '/administration/bank-accounts/<int:account_id>/delete',
+    methods=['POST']
+)
+@login_required
+def delete_bank_account(account_id):
+    account = BankAccount.query.get_or_404(account_id)
+
+    if account.is_primary:
+        flash(
+            'The primary bank account cannot be deleted. '
+            'Set another active account as primary first.',
+            'danger'
+        )
+        return redirect(url_for('bank_accounts'))
+
+    if account.is_active:
+        flash(
+            'An active bank account cannot be deleted. Deactivate it '
+            'first, then delete it only if it has no recorded balance.',
+            'danger'
+        )
+        return redirect(url_for('bank_accounts'))
+
+    opening_balance = Decimal(account.opening_balance or 0)
+    current_balance = Decimal(account.current_balance or 0)
+
+    if opening_balance != 0 or current_balance != 0:
+        flash(
+            'This bank account cannot be deleted because it has a '
+            'recorded opening or current balance. Deactivate it instead '
+            'to preserve the financial history.',
+            'danger'
+        )
+        return redirect(url_for('bank_accounts'))
+
+    account_label = f'{account.bank_name} {account.account_number}'
+
+    try:
+        db.session.delete(account)
+        db.session.commit()
+
+        log_audit(
+            'DELETE_BANK_ACCOUNT',
+            'BankAccount',
+            account_id,
+            f'{account_label} deleted'
+        )
+
+        flash(
+            f'Bank account {account_label} was deleted successfully.',
+            'success'
+        )
+    except Exception:
+        db.session.rollback()
+        app.logger.exception('Failed to delete bank account')
+        flash(
+            'The bank account could not be deleted because it is linked '
+            'to other records. Deactivate it instead.',
+            'danger'
+        )
+
+    return redirect(url_for('bank_accounts'))
+
 @app.route('/admin/reset-transactions', methods=['POST'])
 @login_required
 @role_required('settings')
@@ -15199,14 +16623,16 @@ def initialize_database():
 
         ensure_month_end_columns()
         ensure_settings_columns()
+        ensure_group_profile_columns()
         ensure_member_columns()
         ensure_loan_columns()
+        ensure_bank_account_columns()
         ensure_opening_balance_columns()
         ensure_financial_year_columns()
         ensure_schema()
         ensure_chart_of_accounts()
         ensure_admin()
-        
+
 
 # Initialize tables when the application is imported by Gunicorn on Render.
 initialize_database()

@@ -1,0 +1,866 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Bank Account Management{% endblock %}
+{% block subtitle %}Manage the group’s registered bank accounts{% endblock %}
+
+{% block content %}
+
+<style>
+    .management-centre {
+        max-width: 1500px;
+        margin: 0 auto;
+    }
+
+    /* =========================
+       HERO BANNER
+       ========================= */
+
+    .centre-hero {
+        background: linear-gradient(135deg, #145766, #238798);
+        color: #ffffff;
+        border-radius: 18px;
+        padding: 24px 28px;
+        margin-bottom: 22px;
+        box-shadow: 0 12px 28px rgba(20, 87, 102, 0.18);
+    }
+
+    .centre-hero-inner {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 24px;
+    }
+
+    .centre-hero-content {
+        min-width: 0;
+    }
+
+    .centre-hero-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 0 0 6px;
+        font-size: 1.75rem;
+        font-weight: 800;
+        line-height: 1.2;
+    }
+
+    .centre-hero-icon {
+        font-size: 1.65rem;
+    }
+
+    .centre-hero-description {
+        margin: 0;
+        max-width: 760px;
+        font-size: 0.98rem;
+        line-height: 1.5;
+        opacity: 0.92;
+    }
+
+    .centre-primary-action {
+        flex-shrink: 0;
+        background: #ffffff;
+        color: #17324d;
+        border: none;
+        border-radius: 11px;
+        padding: 12px 18px;
+        font-weight: 800;
+        text-decoration: none;
+        white-space: nowrap;
+        box-shadow: 0 5px 14px rgba(0, 0, 0, 0.12);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .centre-primary-action:hover {
+        color: #17324d;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
+    }
+
+    /* =========================
+       SUMMARY CARDS
+       ========================= */
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+        margin-bottom: 22px;
+    }
+
+    .summary-card {
+        background: #ffffff;
+        border: 1px solid #e6ebef;
+        border-radius: 16px;
+        padding: 18px 20px;
+        min-height: 118px;
+        box-shadow: 0 6px 18px rgba(20, 44, 62, 0.05);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .summary-card::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 5px;
+        background: #238798;
+    }
+
+    .summary-card-label {
+        color: #687785;
+        font-size: 0.77rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 9px;
+    }
+
+    .summary-card-value {
+        color: #102f4b;
+        font-size: 1.55rem;
+        font-weight: 800;
+        line-height: 1.25;
+    }
+
+    .summary-card-subtext {
+        margin-top: 5px;
+        color: #788692;
+        font-size: 0.82rem;
+    }
+
+    .summary-card-value.primary-account-value {
+        font-size: 1rem;
+        overflow-wrap: anywhere;
+    }
+
+    .summary-account-number {
+        display: block;
+        margin-top: 5px;
+        font-family: Consolas, Monaco, monospace;
+        color: #51616d;
+        font-size: 0.88rem;
+        font-weight: 700;
+    }
+
+    /* =========================
+       MAIN CONTENT PANEL
+       ========================= */
+
+    .centre-panel {
+        background: #ffffff;
+        border: 1px solid #e5eaee;
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 8px 24px rgba(20, 44, 62, 0.06);
+    }
+
+    .centre-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        padding: 18px 20px;
+        border-bottom: 1px solid #edf0f2;
+    }
+
+    .centre-toolbar-title h3 {
+        margin: 0;
+        color: #17324d;
+        font-size: 1.15rem;
+        font-weight: 800;
+    }
+
+    .centre-toolbar-title p {
+        margin: 4px 0 0;
+        color: #768592;
+        font-size: 0.85rem;
+    }
+
+    .centre-toolbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .toolbar-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-height: 38px;
+        padding: 8px 13px;
+        border-radius: 9px;
+        font-size: 0.86rem;
+        font-weight: 700;
+        text-decoration: none;
+        border: 1px solid #dbe2e7;
+        background: #f8fafb;
+        color: #27425a;
+        transition: background 0.2s ease, border-color 0.2s ease;
+    }
+
+    .toolbar-button:hover {
+        color: #17324d;
+        background: #eef4f6;
+        border-color: #cbd7dd;
+    }
+
+    .toolbar-button.primary {
+        background: #176c7a;
+        border-color: #176c7a;
+        color: #ffffff;
+    }
+
+    .toolbar-button.primary:hover {
+        background: #125b67;
+        border-color: #125b67;
+        color: #ffffff;
+    }
+
+    .filter-panel {
+        padding: 16px 20px;
+        background: #f8fafb;
+        border-bottom: 1px solid #edf0f2;
+    }
+
+    .filter-form {
+        display: grid;
+        grid-template-columns: minmax(240px, 2fr) minmax(150px, 1fr)
+            minmax(180px, 1fr) auto;
+        gap: 10px;
+        align-items: end;
+    }
+
+    .filter-field label {
+        display: block;
+        margin-bottom: 5px;
+        color: #526473;
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .filter-control {
+        width: 100%;
+        min-height: 40px;
+        padding: 8px 11px;
+        border: 1px solid #d5dee4;
+        border-radius: 9px;
+        background: #ffffff;
+        color: #273d50;
+    }
+
+    .filter-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    /* =========================
+       TABLE
+       ========================= */
+
+    .bank-table {
+        margin: 0;
+    }
+
+    .bank-table thead th {
+        background: #f6f8fa;
+        color: #526473;
+        border-bottom: 1px solid #dfe5e9;
+        padding: 13px 14px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        white-space: nowrap;
+    }
+
+    .bank-table tbody td {
+        padding: 14px;
+        color: #273d50;
+        vertical-align: middle;
+        border-color: #edf0f2;
+    }
+
+    .bank-table tbody tr:hover {
+        background: #f9fbfc;
+    }
+
+    .bank-name {
+        color: #153651;
+        font-weight: 800;
+    }
+
+    .account-number {
+        font-family: Consolas, Monaco, monospace;
+        color: #17324d;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .balance-value {
+        color: #153651;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .badge-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        border-radius: 999px;
+        padding: 5px 10px;
+        font-size: 0.72rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .badge-primary-account {
+        background: #fff3cd;
+        color: #765900;
+    }
+
+    .badge-active {
+        background: #dff3e8;
+        color: #14643c;
+    }
+
+    .badge-inactive {
+        background: #f8dfe2;
+        color: #8a2631;
+    }
+
+    .table-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 6px;
+        flex-wrap: wrap;
+        white-space: nowrap;
+    }
+
+    .table-actions form {
+        display: inline-flex;
+        margin: 0;
+    }
+
+    .action-button {
+        border: 1px solid #d9e0e5;
+        background: #ffffff;
+        color: #2f4b61;
+        border-radius: 8px;
+        padding: 6px 10px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .action-button:hover {
+        background: #eef4f6;
+        color: #17324d;
+    }
+
+    .action-button.primary {
+        border-color: #e5c969;
+        background: #fff8dc;
+        color: #705700;
+    }
+
+    .action-button.status {
+        border-color: #9fcdb5;
+        color: #14643c;
+    }
+
+    .action-button.delete {
+        border-color: #e5b2b8;
+        color: #9b2634;
+    }
+
+    /* =========================
+       EMPTY STATE
+       ========================= */
+
+    .empty-state {
+        min-height: 310px;
+        padding: 48px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .empty-state-content {
+        max-width: 480px;
+    }
+
+    .empty-state-icon {
+        width: 76px;
+        height: 76px;
+        margin: 0 auto 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: #eef7f8;
+        font-size: 2.6rem;
+    }
+
+    .empty-state h4 {
+        margin: 0 0 8px;
+        color: #17324d;
+        font-size: 1.25rem;
+        font-weight: 800;
+    }
+
+    .empty-state p {
+        margin: 0 auto 20px;
+        color: #74828d;
+        line-height: 1.6;
+    }
+
+    .empty-state-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 11px 17px;
+        border-radius: 9px;
+        background: #176c7a;
+        color: #ffffff;
+        font-weight: 800;
+        text-decoration: none;
+    }
+
+    .empty-state-button:hover {
+        background: #125b67;
+        color: #ffffff;
+    }
+
+    /* =========================
+       RESPONSIVE LAYOUT
+       ========================= */
+
+    @media (max-width: 1100px) {
+        .summary-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 760px) {
+        .centre-hero {
+            padding: 22px;
+        }
+
+        .centre-hero-inner {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .centre-primary-action {
+            width: 100%;
+            text-align: center;
+        }
+
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .centre-toolbar {
+            align-items: stretch;
+        }
+
+        .centre-toolbar-actions {
+            width: 100%;
+        }
+
+        .toolbar-button {
+            flex: 1 1 auto;
+        }
+
+        .filter-form {
+            grid-template-columns: 1fr;
+        }
+
+        .filter-actions .toolbar-button {
+            flex: 1 1 0;
+        }
+    }
+</style>
+
+<div class="management-centre">
+
+    <!-- Hero Banner -->
+    <section class="centre-hero">
+        <div class="centre-hero-inner">
+
+            <div class="centre-hero-content">
+                <h2 class="centre-hero-title">
+                    <span class="centre-hero-icon">🏦</span>
+                    Bank Account Management Centre
+                </h2>
+
+                <p class="centre-hero-description">
+                    Record and manage the official bank accounts operated by
+                    {{ licensed_organisation }}.
+                </p>
+            </div>
+
+            <a href="{{ url_for('new_bank_account') }}"
+                class="centre-primary-action">
+                    ➕ Record New Bank Account
+            </a>
+        </div>
+    </section>
+
+    <!-- Summary Cards -->
+    <section class="summary-grid">
+
+        <div class="summary-card">
+            <div class="summary-card-label">
+                Registered Accounts
+            </div>
+
+            <div class="summary-card-value">
+                {{ registered_accounts }}
+            </div>
+
+            <div class="summary-card-subtext">
+                Total accounts recorded
+            </div>
+        </div>
+
+        <div class="summary-card">
+            <div class="summary-card-label">
+                Active Accounts
+            </div>
+
+            <div class="summary-card-value">
+                {{ active_accounts }}
+            </div>
+
+            <div class="summary-card-subtext">
+                Available for transactions
+            </div>
+        </div>
+
+        <div class="summary-card">
+            <div class="summary-card-label">
+                Primary Account
+            </div>
+
+            {% if primary_account %}
+                <div class="summary-card-value primary-account-value">
+                    {{ primary_account.bank_name }}
+
+                    <span class="summary-account-number">
+                        {{ primary_account.account_number }}
+                    </span>
+                </div>
+            {% else %}
+                <div class="summary-card-value primary-account-value">
+                    Not designated
+                </div>
+
+                <div class="summary-card-subtext">
+                    Select a default account
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="summary-card">
+            <div class="summary-card-label">
+                Total Bank Balance
+            </div>
+
+            <div class="summary-card-value">
+                {{ total_balance|kwacha }}
+            </div>
+
+            <div class="summary-card-subtext">
+                Balance across active accounts
+            </div>
+        </div>
+
+    </section>
+
+    <!-- Main Accounts Panel -->
+    <section class="centre-panel">
+
+        <div class="centre-toolbar">
+
+            <div class="centre-toolbar-title">
+                <h3>Registered Bank Accounts</h3>
+                <p>
+                    View and maintain the group’s official banking details.
+                </p>
+            </div>
+
+            <div class="centre-toolbar-actions">
+
+                <a href="{{ url_for('new_bank_account') }}"
+                    class="toolbar-button primary">
+                        ➕ New Account
+                    </a>
+                <button type="button"
+                        class="toolbar-button"
+                        onclick="window.print()">
+                    🖨 Print
+                </button>
+
+                <button type="button"
+                        class="toolbar-button"
+                        onclick="window.location.reload()">
+                    ↻ Refresh
+                </button>
+
+                <a href="{{ url_for('administration') }}"
+                   class="toolbar-button">
+                    ← Administration
+                </a>
+
+            </div>
+
+        </div>
+
+        <div class="filter-panel">
+            <form method="get"
+                  action="{{ url_for('bank_accounts') }}"
+                  class="filter-form">
+                <div class="filter-field">
+                    <label for="q">Search</label>
+                    <input type="search"
+                           id="q"
+                           name="q"
+                           class="filter-control"
+                           value="{{ q }}"
+                           placeholder="Bank, branch, account name or number">
+                </div>
+
+                <div class="filter-field">
+                    <label for="status">Status</label>
+                    <select id="status" name="status" class="filter-control">
+                        <option value="all" {{ 'selected' if status == 'all' else '' }}>All statuses</option>
+                        <option value="active" {{ 'selected' if status == 'active' else '' }}>Active</option>
+                        <option value="inactive" {{ 'selected' if status == 'inactive' else '' }}>Inactive</option>
+                        <option value="primary" {{ 'selected' if status == 'primary' else '' }}>Primary</option>
+                    </select>
+                </div>
+
+                <div class="filter-field">
+                    <label for="account_type">Account Type</label>
+                    <select id="account_type"
+                            name="account_type"
+                            class="filter-control">
+                        <option value="">All account types</option>
+                        {% for type_name in account_types %}
+                            <option value="{{ type_name }}"
+                                {{ 'selected' if selected_account_type == type_name else '' }}>
+                                {{ type_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="toolbar-button primary">
+                        🔍 Search
+                    </button>
+                    <a href="{{ url_for('bank_accounts') }}"
+                       class="toolbar-button">
+                        Clear
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        {% if accounts %}
+
+            <div class="table-responsive">
+
+                <table class="table bank-table">
+
+                    <thead>
+                        <tr>
+                            <th>Bank</th>
+                            <th>Branch</th>
+                            <th>Account Name</th>
+                            <th>Account Number</th>
+                            <th>Account Type</th>
+                            <th>Currency</th>
+                            <th class="text-end">Balance</th>
+                            <th>Primary</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for account in accounts %}
+
+                            <tr>
+
+                                <td>
+                                    <span class="bank-name">
+                                        {{ account.bank_name }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    {{ account.branch_name or '—' }}
+                                </td>
+
+                                <td>
+                                    {{ account.account_name }}
+                                </td>
+
+                                <td>
+                                    <span class="account-number">
+                                        {{ account.account_number }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    {{ account.account_type or '—' }}
+                                </td>
+
+                                <td>
+                                    {{ account.currency or 'ZMW' }}
+                                </td>
+
+                                <td class="text-end">
+                                    <span class="balance-value">
+                                        {{ (account.current_balance or 0)|kwacha }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    {% if account.is_primary %}
+                                        <span class="badge-pill badge-primary-account">
+                                            ★ Primary
+                                        </span>
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {% if account.is_active %}
+                                        <span class="badge-pill badge-active">
+                                            ● Active
+                                        </span>
+                                    {% else %}
+                                        <span class="badge-pill badge-inactive">
+                                            ● Inactive
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    <div class="table-actions">
+
+                                        <a href="{{ url_for('view_bank_account', account_id=account.id) }}"
+                                            class="action-button view">
+                                                👁 View
+                                            </a>
+
+                                        <a href="{{ url_for('edit_bank_account', account_id=account.id) }}"
+                                            class="action-button edit">
+                                                ✏️ Edit
+                                            </a>
+
+                                        {% if not account.is_primary %}
+                                            <form method="post"
+                                                  action="{{ url_for('set_primary_bank_account', account_id=account.id) }}"
+                                                  onsubmit="return confirm('Set this as the primary bank account?');">
+                                                <button type="submit"
+                                                        class="action-button primary">
+                                                    ★ Set Primary
+                                                </button>
+                                            </form>
+                                        {% endif %}
+
+                                        <form method="post"
+                                              action="{{ url_for('toggle_bank_account_status', account_id=account.id) }}"
+                                              onsubmit="return confirm('{{ 'Deactivate' if account.is_active else 'Activate' }} this bank account?');">
+                                            <button type="submit"
+                                                    class="action-button status">
+                                                {{ '⏸ Deactivate' if account.is_active else '▶ Activate' }}
+                                            </button>
+                                        </form>
+
+                                        <form method="post"
+                                              action="{{ url_for('delete_bank_account', account_id=account.id) }}"
+                                              onsubmit="return confirm('Delete this bank account permanently? This is only allowed when it is not primary and has no recorded balance.');">
+                                            <button type="submit"
+                                                    class="action-button delete">
+                                                🗑 Delete
+                                            </button>
+                                        </form>
+
+                                    </div>
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        {% else %}
+
+            <div class="empty-state">
+
+                <div class="empty-state-content">
+
+                    <div class="empty-state-icon">
+                        🏦
+                    </div>
+
+                    {% if filters_applied and registered_accounts %}
+                        <h4>No Bank Accounts Match Your Search</h4>
+
+                        <p>
+                            Try changing the search text or filters, then
+                            search again.
+                        </p>
+
+                        <a href="{{ url_for('bank_accounts') }}"
+                           class="empty-state-button">
+                            Clear Search and Filters
+                        </a>
+                    {% else %}
+                        <h4>No Bank Accounts Have Been Recorded</h4>
+
+                        <p>
+                            The village banking group has not yet recorded any
+                            official bank accounts. Record the first account to
+                            begin managing bank balances and banking information.
+                        </p>
+
+                        <a href="{{ url_for('new_bank_account') }}"
+                           class="empty-state-button">
+                            ➕ Record First Bank Account
+                        </a>
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        {% endif %}
+
+    </section>
+
+</div>
+
+{% endblock %}

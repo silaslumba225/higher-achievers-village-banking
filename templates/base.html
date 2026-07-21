@@ -5,9 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <title>
-    {{ settings.organisation_name }} |
-    {{ settings.product_name }}
-  </title>
+  {% if page_title %}
+    {{ page_title }} | {{ product_name }} | {{ licensed_organisation }}
+  {% else %}
+    {{ product_name }} | {{ licensed_organisation }}
+  {% endif %}
+</title>
 
   <link
     rel="stylesheet"
@@ -171,19 +174,26 @@
     }
 
     .alert.success,
-    .alert-success {
-      border-left-color: var(--success-color);
-    }
+  .alert-success {
+    background: #ecfdf3;
+    color: var(--success-color);
+    border-left: 5px solid var(--success-color);
+  }
 
-    .alert.error,
-    .alert-danger {
-      border-left-color: var(--danger-color);
-    }
+  .alert.error,
+  .alert-danger,
+  .alert.danger {
+    background: #fef3f2;
+    color: var(--danger-color);
+    border-left: 5px solid var(--danger-color);
+  }
 
-    .alert.warning,
-    .alert-warning {
-      border-left-color: var(--warning-color);
-    }
+  .alert.warning,
+  .alert-warning {
+    background: #fffaeb;
+    color: var(--warning-color);
+    border-left: 5px solid var(--warning-color);
+}
 
     table thead th {
       background: var(--table-header-color);
@@ -227,6 +237,83 @@
         background: rgba(255, 255, 255, 0.10);
       }
     }
+    .brand-text {
+    line-height: 1.15;
+    min-width: 0;
+}
+
+.product-name {
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 800;
+    margin-bottom: 5px;
+}
+
+.licensed-label {
+    color: rgba(255,255,255,0.68);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 2px;
+}
+
+.organisation-name {
+    color: #ffffff;
+    font-size: 0.88rem;
+    font-weight: 650;
+    line-height: 1.2;
+}
+
+.product-version {
+    color: rgba(255,255,255,0.68);
+    font-size: 0.72rem;
+    margin-top: 5px;
+}
+.brand-text {
+    min-width: 0;
+    line-height: 1.15;
+}
+
+.product-name {
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 800;
+    line-height: 1.15;
+    margin-bottom: 7px;
+}
+
+.licensed-label {
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 3px;
+}
+
+.organisation-name {
+    color: #ffffff;
+    font-size: 0.87rem;
+    font-weight: 650;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+}
+
+.product-version {
+    color: rgba(255, 255, 255, 0.68);
+    font-size: 0.7rem;
+    margin-top: 6px;
+}
+.sidebar-footer .footer-label {
+    color: rgba(255, 255, 255, 0.68);
+    font-size: 0.72rem;
+    margin-bottom: 3px;
+}
+
+.sidebar-footer strong {
+    color: #ffffff;
+}
+
   </style>
 </head>
 
@@ -265,6 +352,23 @@
       </div>
 
     </div>
+    <div class="brand-text">
+  <div class="product-name">
+    {{ product_name }}
+  </div>
+
+  <div class="licensed-label">
+    Licensed to
+  </div>
+
+  <div class="organisation-name">
+    {{ licensed_organisation }}
+  </div>
+
+  <div class="product-version">
+    Version {{ product_version }}
+  </div>
+</div>
 
     <nav>
 
@@ -273,6 +377,13 @@
         ▣ Dashboard
       </a>
       {% endif %}
+      <a href="{{ url_for('administration') }}">
+        ⚙️ Administration
+      </a>
+      <a href="{{ url_for('about') }}">
+          <i class="fas fa-circle-info"></i>
+          About SL Village Banking Pro
+      </a>
 
       {% if user_can('members') %}
       <a href="{{ url_for('members') }}">
@@ -377,9 +488,14 @@
     </nav>
 
     <div class="sidebar-footer">
-      <small>Produced by</small>
-      <strong>{{ producer_name }}</strong>
+    <div class="footer-label">
+        Developed and supported by
     </div>
+
+    <strong>
+        {{ product_vendor }}
+    </strong>
+</div>
 
   </aside>
 

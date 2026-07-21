@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block page_title %}First-Time Setup{% endblock %}
+{% block subtitle %}
+Configure the organisation and opening financial year
+{% endblock %}
+
+{% block content %}
+
+<div class="container py-4">
+
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">
+                SL Village Banking Pro — First-Time Setup
+            </h4>
+        </div>
+
+        <div class="card-body">
+
+            <div class="alert alert-info">
+                Complete this setup before entering live transactions.
+                The financial year created here will become the first
+                open posting year.
+            </div>
+
+            <form method="post">
+
+                <h5 class="mb-3">Organisation Details</h5>
+
+                <div class="row g-3">
+
+                    <div class="col-md-8">
+                        <label class="form-label">
+                            Organisation Name
+                        </label>
+
+                        <input
+                            type="text"
+                            name="organisation_name"
+                            class="form-control"
+                            required
+                        >
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">
+                            Currency
+                        </label>
+
+                        <select
+                            name="currency"
+                            class="form-select"
+                            required
+                        >
+                            <option value="ZMW">
+                                Zambian Kwacha — ZMW
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">
+                            Organisation Address
+                        </label>
+
+                        <textarea
+                            name="organisation_address"
+                            class="form-control"
+                            rows="3"
+                        ></textarea>
+                    </div>
+
+                </div>
+
+                <hr class="my-4">
+
+                <h5 class="mb-3">Opening Financial Year</h5>
+
+                <div class="row g-3">
+
+                    <div class="col-md-4">
+                        <label class="form-label">
+                            Financial Year
+                        </label>
+
+                        <input
+                            type="number"
+                            name="financial_year"
+                            class="form-control"
+                            value="{{ current_year }}"
+                            required
+                        >
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">
+                            Start Date
+                        </label>
+
+                        <input
+                            type="date"
+                            name="start_date"
+                            class="form-control"
+                            value="{{ current_year }}-01-01"
+                            required
+                        >
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">
+                            End Date
+                        </label>
+
+                        <input
+                            type="date"
+                            name="end_date"
+                            class="form-control"
+                            value="{{ current_year }}-12-31"
+                            required
+                        >
+                    </div>
+
+                </div>
+
+                <div class="alert alert-warning mt-4">
+                    Once live transactions begin, changing the opening
+                    financial year should be restricted to an authorised
+                    administrator.
+                </div>
+
+                <div class="d-flex justify-content-end mt-4">
+
+                    <button
+                        type="submit"
+                        class="btn btn-success px-4"
+                    >
+                        Complete Setup
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

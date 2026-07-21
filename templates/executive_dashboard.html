@@ -194,9 +194,227 @@
     color: #667085;
     font-size: 13px;
   }
+  .executive-summary {
+    margin-bottom: 24px;
+}
+
+.executive-summary-card {
+    height: 100%;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    padding: 18px;
+    box-shadow: 0 8px 22px rgba(16, 24, 40, 0.06);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.executive-summary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 26px rgba(16, 24, 40, 0.10);
+}
+
+.executive-summary-icon {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    font-size: 18px;
+}
+
+.executive-summary-label {
+    color: #667085;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.executive-summary-value {
+    display: block;
+    margin-top: 5px;
+    color: #101828;
+    font-size: 1.35rem;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.executive-summary-note {
+    display: block;
+    margin-top: 5px;
+    color: #667085;
+    font-size: 0.78rem;
+}
+
+.summary-blue {
+    background: #eaf2ff;
+    color: #155eef;
+}
+
+.summary-green {
+    background: #eaf8ef;
+    color: #16803c;
+}
+
+.summary-purple {
+    background: #f2ebff;
+    color: #7c3aed;
+}
+
+.summary-orange {
+    background: #fff2df;
+    color: #c2410c;
+}
+
+.summary-teal {
+    background: #e5f8f6;
+    color: #0f766e;
+}
 </style>
 
 <div class="go-wrap">
+  <!-- =====================================================
+     EXECUTIVE SUMMARY
+===================================================== -->
+<div class="executive-summary">
+
+  <div class="row g-3">
+
+    <!-- Financial Year -->
+    <div class="col-xl col-md-4 col-sm-6">
+      <div class="executive-summary-card">
+
+        <div class="executive-summary-icon summary-blue">
+          <i class="fa-solid fa-calendar-check"></i>
+        </div>
+
+        <span class="executive-summary-label">
+          Posting Year
+        </span>
+
+        <span class="executive-summary-value">
+          {% if current_financial_year %}
+            FY{{ current_financial_year.year }}
+          {% else %}
+            Not Open
+          {% endif %}
+        </span>
+
+        <span class="executive-summary-note">
+          {% if current_financial_year %}
+            {{ current_financial_year.status }}
+          {% else %}
+            Financial year required
+          {% endif %}
+        </span>
+
+      </div>
+    </div>
+
+    <!-- Money Available -->
+    <div class="col-xl col-md-4 col-sm-6">
+      <div class="executive-summary-card">
+
+        <div class="executive-summary-icon summary-green">
+          <i class="fa-solid fa-wallet"></i>
+        </div>
+
+        <span class="executive-summary-label">
+          Money Available
+        </span>
+
+        <span class="executive-summary-value">
+          {{ total_cash|kwacha }}
+        </span>
+
+        <span class="executive-summary-note">
+          Cash, bank and mobile money
+        </span>
+
+      </div>
+    </div>
+
+    <!-- Members -->
+    <div class="col-xl col-md-4 col-sm-6">
+      <div class="executive-summary-card">
+
+        <div class="executive-summary-icon summary-purple">
+          <i class="fa-solid fa-users"></i>
+        </div>
+
+        <span class="executive-summary-label">
+          Active Members
+        </span>
+
+        <span class="executive-summary-value">
+          {{ active_members }}
+        </span>
+
+        <span class="executive-summary-note">
+          Currently active
+        </span>
+
+      </div>
+    </div>
+
+    <!-- Active Loans -->
+    <div class="col-xl col-md-4 col-sm-6">
+      <div class="executive-summary-card">
+
+        <div class="executive-summary-icon summary-orange">
+          <i class="fa-solid fa-hand-holding-dollar"></i>
+        </div>
+
+        <span class="executive-summary-label">
+          Active Loans
+        </span>
+
+        <span class="executive-summary-value">
+          {{ active_loans }}
+        </span>
+
+        <span class="executive-summary-note">
+          Disbursed or partly paid
+        </span>
+
+      </div>
+    </div>
+
+    <!-- Next Meeting -->
+    <div class="col-xl col-md-4 col-sm-6">
+      <div class="executive-summary-card">
+
+        <div class="executive-summary-icon summary-teal">
+          <i class="fa-solid fa-calendar-days"></i>
+        </div>
+
+        <span class="executive-summary-label">
+          Next Meeting
+        </span>
+
+        <span class="executive-summary-value">
+          {% if next_meeting %}
+            {{ next_meeting.meeting_date.strftime('%d %b %Y') }}
+          {% else %}
+            Not Scheduled
+          {% endif %}
+        </span>
+
+        <span class="executive-summary-note">
+          {% if next_meeting %}
+            {{ next_meeting.meeting_type or 'Group meeting' }}
+          {% else %}
+            Schedule the next meeting
+          {% endif %}
+        </span>
+
+      </div>
+    </div>
+
+  </div>
+
+</div>
 
   <section class="go-hero">
 
