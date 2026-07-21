@@ -163,10 +163,10 @@ ROLE_PERMISSIONS = {
     'exports',
     'settings'
 ],
-    'Chairperson': ['dashboard', 'loans', 'distributions', 'meetings', 'attendance', 'reports', 'statements', 'shareout', 'fines', 'welfare', 'audit', 'notifications', 'accounting', 'exports'],
+    'Chairperson': ['dashboard', 'loans', 'distributions', 'meetings', 'attendance', 'reports', 'statements', 'shareout', 'fines', 'welfare', 'notifications', 'accounting', 'exports'],
     'Treasurer': ['dashboard', 'contributions', 'loans', 'repayments', 'distributions', 'reports', 'statements', 'shareout', 'fines', 'welfare', 'notifications', 'accounting', 'exports'],
     'Secretary': ['dashboard', 'members', 'meetings', 'attendance', 'reports', 'statements', 'welfare', 'notifications', 'accounting', 'exports'],
-    'Auditor': ['dashboard', 'attendance', 'reports', 'statements', 'shareout', 'fines', 'welfare', 'audit', 'notifications', 'accounting', 'exports'],
+    'Auditor': ['dashboard', 'attendance', 'reports', 'statements', 'shareout', 'fines', 'welfare', 'notifications', 'accounting', 'exports'],
     'Data Clerk': ['dashboard', 'members', 'contributions', 'notifications'],
 }
 
@@ -4340,7 +4340,12 @@ def executive_dashboard():
         today_activity=today_activity,
         active_loans=active_loans,
         active_members=active_members,
-        welfare_fund=welfare_fund
+        welfare_fund=welfare_fund,
+        user_name=(
+            (session.get('user') or {}).get('full_name')
+            or (session.get('user') or {}).get('role')
+            or 'User'
+        )
     )
 
     dashboard_data = dashboard_service.build()
@@ -15851,6 +15856,8 @@ def export_csv(kind):
     return Response(output.getvalue(), mimetype='text/csv', headers={'Content-Disposition': f'attachment; filename={kind}.csv'})
 
 @app.route('/administration')
+@login_required
+@role_required('settings')
 def administration():
 
     settings = SystemSetting.query.first()
@@ -15909,6 +15916,7 @@ def administration():
     methods=['GET', 'POST']
 )
 @login_required
+@role_required('settings')
 def new_bank_account():
 
     if request.method == 'POST':
@@ -16157,6 +16165,7 @@ def new_bank_account():
 
 @app.route('/administration/bank-accounts')
 @login_required
+@role_required('settings')
 def bank_accounts():
     q = request.args.get('q', '').strip()
     status = request.args.get('status', 'all').strip().lower()
@@ -16249,6 +16258,7 @@ def bank_accounts():
     methods=['GET', 'POST']
 )
 @login_required
+@role_required('settings')
 def edit_bank_account(account_id):
     account = BankAccount.query.get_or_404(account_id)
 
@@ -16488,6 +16498,7 @@ def edit_bank_account(account_id):
 
 @app.route('/administration/bank-accounts/<int:account_id>')
 @login_required
+@role_required('settings')
 def view_bank_account(account_id):
     account = BankAccount.query.get_or_404(account_id)
 
@@ -16502,6 +16513,7 @@ def view_bank_account(account_id):
     methods=['POST']
 )
 @login_required
+@role_required('settings')
 def toggle_bank_account_status(account_id):
     account = BankAccount.query.get_or_404(account_id)
 
@@ -16569,6 +16581,7 @@ def toggle_bank_account_status(account_id):
     methods=['POST']
 )
 @login_required
+@role_required('settings')
 def set_primary_bank_account(account_id):
     account = BankAccount.query.get_or_404(account_id)
 
@@ -16620,6 +16633,7 @@ def set_primary_bank_account(account_id):
     methods=['POST']
 )
 @login_required
+@role_required('settings')
 def delete_bank_account(account_id):
     account = BankAccount.query.get_or_404(account_id)
 

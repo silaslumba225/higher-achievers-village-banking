@@ -18,7 +18,8 @@ class DashboardService:
         today_activity=None,
         active_loans=0,
         active_members=0,
-        welfare_fund=0
+        welfare_fund=0,
+        user_name='User'
     ):
         self.total_cash = total_cash
         self.overdue_loans = overdue_loans
@@ -28,6 +29,7 @@ class DashboardService:
         self.active_loans = active_loans
         self.active_members = active_members
         self.welfare_fund = welfare_fund
+        self.user_name = user_name or 'User'
 
     def build_daily_briefing(self):
         hour = datetime.now().hour
@@ -50,7 +52,7 @@ class DashboardService:
 
         return {
             "greeting": greeting,
-            "briefing_title": f"{greeting}, Treasurer.",
+            "briefing_title": f"{greeting}, {self.user_name}.",
             "briefing_message": "Welcome back. Here's today's summary of your village banking group.",
             "recommendation": recommendation,
         }

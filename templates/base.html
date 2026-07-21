@@ -174,26 +174,26 @@
     }
 
     .alert.success,
-  .alert-success {
-    background: #ecfdf3;
-    color: var(--success-color);
-    border-left: 5px solid var(--success-color);
-  }
+    .alert-success {
+      background: #ecfdf3;
+      color: var(--success-color);
+      border-left: 5px solid var(--success-color);
+    }
 
-  .alert.error,
-  .alert-danger,
-  .alert.danger {
-    background: #fef3f2;
-    color: var(--danger-color);
-    border-left: 5px solid var(--danger-color);
-  }
+    .alert.error,
+    .alert-danger,
+    .alert.danger {
+      background: #fef3f2;
+      color: var(--danger-color);
+      border-left: 5px solid var(--danger-color);
+    }
 
-  .alert.warning,
-  .alert-warning {
-    background: #fffaeb;
-    color: var(--warning-color);
-    border-left: 5px solid var(--warning-color);
-}
+    .alert.warning,
+    .alert-warning {
+      background: #fffaeb;
+      color: var(--warning-color);
+      border-left: 5px solid var(--warning-color);
+    }
 
     table thead th {
       background: var(--table-header-color);
@@ -377,9 +377,11 @@
         ▣ Dashboard
       </a>
       {% endif %}
+      {% if user_can('settings') %}
       <a href="{{ url_for('administration') }}">
         ⚙️ Administration
       </a>
+      {% endif %}
       <a href="{{ url_for('about') }}">
           <i class="fas fa-circle-info"></i>
           About SL Village Banking Pro
@@ -421,29 +423,41 @@
       </a>
       {% endif %}
 
+      {% if user_can('statements') %}
       <a href="{{ url_for('statements') }}">
         📄 Member Statements
       </a>
+      {% endif %}
 
+      {% if user_can('shareout') %}
       <a href="{{ url_for('shareout_control_centre') }}">
         🧮 Share-Out
       </a>
+      {% endif %}
 
+      {% if user_can('fines') %}
       <a href="{{ url_for('fines') }}">
         ⚠️ Fines & Penalties
       </a>
+      {% endif %}
 
+      {% if user_can('welfare') %}
       <a href="{{ url_for('welfare') }}">
         🤝 Welfare Fund
       </a>
+      {% endif %}
 
+      {% if user_can('attendance') %}
       <a href="{{ url_for('attendance') }}">
         ✅ Attendance Register
       </a>
+      {% endif %}
 
+      {% if user_can('notifications') %}
       <a href="{{ url_for('notifications') }}">
         📱 SMS & WhatsApp
       </a>
+      {% endif %}
 
       {% if user_can('accounting') %}
       <a href="{{ url_for('accounting') }}">
@@ -462,13 +476,17 @@
       </a>
       {% endif %}
 
+      {% if user_can('audit') %}
       <a href="{{ url_for('audit_trail') }}">
         📝 Audit Trail
       </a>
+      {% endif %}
 
+      {% if user_can('backups') %}
       <a href="{{ url_for('backups') }}">
         💾 Backup & Restore
       </a>
+      {% endif %}
 
       {% if user_can('users') %}
       <a href="{{ url_for('users') }}">
