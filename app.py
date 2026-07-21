@@ -11647,6 +11647,8 @@ def opening_balance_reverse(batch_id):
 
         log_audit(
             "REVERSE_OPENING_BALANCES",
+            "OpeningBalanceBatch",
+            batch.id,
             (
                 f"Reversed opening balance batch {batch.batch_no}; "
                 f"locked override: {'Yes' if was_locked else 'No'}; "
@@ -17057,6 +17059,45 @@ def ensure_loan_columns():
         except Exception:
             db.session.rollback()
 
+def ensure_opening_balance_reversal_audits():
+    """Backfill audit records for reversals completed before audit mapping was fixed."""
+    reversed_batches = OpeningBalanceBatch.query.filter_by(
+        status="Reversed"
+    ).all()
+
+    created = 0
+
+    for batch in reversed_batches:
+        existing = AuditLog.query.filter_by(
+            action="REVERSE_OPENING_BALANCES",
+            entity="OpeningBalanceBatch",
+            entity_id=str(batch.id),
+        ).first()
+
+        if existing:
+            continue
+
+        db.session.add(
+            AuditLog(
+                username="system",
+                full_name=batch.reversed_by or "System",
+                role="Administrator",
+                action="REVERSE_OPENING_BALANCES",
+                entity="OpeningBalanceBatch",
+                entity_id=str(batch.id),
+                details=(
+                    f"Reversed opening balance batch {batch.batch_no}; "
+                    f"locked override: {'Yes' if batch.is_locked else 'No'}; "
+                    f"reason: {batch.reversal_reason or 'Not recorded'}"
+                ),
+                created_at=batch.reversed_on or datetime.utcnow(),
+            )
+        )
+        created += 1
+
+    if created:
+        db.session.commit()
+
 def backfill_opening_loan_interest():
     """Restore imported interest omitted from previously created opening loans."""
     opening_loans = Loan.query.filter(
@@ -17189,6 +17230,7 @@ def initialize_database():
         ensure_schema()
         ensure_chart_of_accounts()
         ensure_admin()
+        ensure_opening_balance_reversal_audits()
 
 
 # Initialize tables when the application is imported by Gunicorn on Render.
