@@ -11450,6 +11450,8 @@ def opening_balance_post(batch_id):
 def opening_balance_reverse(batch_id):
 
     batch = OpeningBalanceBatch.query.get_or_404(batch_id)
+    user = session.get("user") or {}
+    was_locked = bool(batch.is_locked)
 
     if batch.status != "Posted":
         flash(
@@ -11463,9 +11465,12 @@ def opening_balance_reverse(batch_id):
             )
         )
 
-    if batch.is_locked:
+    if batch.is_locked and user.get("role") != "Administrator":
         flash(
-            "This opening balance batch is locked and cannot be reversed.",
+            (
+                "This opening balance batch is locked. Only an "
+                "Administrator can authorize its reversal."
+            ),
             "danger"
         )
         return redirect(
@@ -11585,7 +11590,6 @@ def opening_balance_reverse(batch_id):
             )
         )
 
-    user = session.get("user") or {}
     reversed_by = (
         user.get("full_name")
         or user.get("username")
@@ -11645,6 +11649,7 @@ def opening_balance_reverse(batch_id):
             "REVERSE_OPENING_BALANCES",
             (
                 f"Reversed opening balance batch {batch.batch_no}; "
+                f"locked override: {'Yes' if was_locked else 'No'}; "
                 f"reason: {reversal_reason}"
             )
         )
