@@ -5,6 +5,38 @@
 
 {% block content %}
 
+<style>
+  .contribution-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .transaction-pill {
+    display: inline-flex;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 800;
+  }
+
+  .transaction-pill.reversed {
+    background: #fef3f2;
+    color: #b42318;
+  }
+
+  .transaction-pill.reversal {
+    background: #fff7e8;
+    color: #9a5b00;
+  }
+
+  .btn.danger {
+    background: #ffffff;
+    border: 1px solid #efb6b2;
+    color: #b42318;
+  }
+</style>
+
 <div class="decision-hero">
   <h2>💰 Savings Intelligence Centre</h2>
   <p>Build wealth, monitor member savings and guide committee decisions.</p>
@@ -156,14 +188,43 @@
         <td>{{ c.member.full_name }}</td>
         <td>{{ c.month }}</td>
         <td>{{ c.method }}</td>
-        <td>{{ c.reference or '-' }}</td>
-        <td class="text-end"><strong>{{ c.amount|kwacha }}</strong></td>
         <td>
-        <a class="btn" href="{{ url_for('contribution_passbook', member_id=c.member.id) }}">
-          View Passbook
-        </a>
-        
-      </td>
+          {{ c.reference or '-' }}
+          {% if c.source_type == 'Reversal' %}
+            <br><span class="transaction-pill reversal">Reversal</span>
+          {% elif c.id in reversed_contribution_ids %}
+            <br><span class="transaction-pill reversed">Reversed</span>
+          {% endif %}
+        </td>
+        <td class="text-end">
+          <strong>{{ c.amount|kwacha }}</strong>
+        </td>
+        <td>
+          <div class="contribution-actions">
+            <a class="btn" href="{{ url_for('contribution_passbook', member_id=c.member.id) }}">
+              View Passbook
+            </a>
+
+            {% if c.source_type != 'Reversal' and c.id not in reversed_contribution_ids %}
+              <a class="btn"
+                 href="{{ url_for('contribution_edit', contribution_id=c.id) }}">
+                Edit
+              </a>
+
+              <form method="post"
+                    action="{{ url_for('contribution_reverse', contribution_id=c.id) }}"
+                    onsubmit="
+                      const reason = prompt('Enter the reason for reversing this contribution:');
+                      if (!reason || !reason.trim()) return false;
+                      this.querySelector('[name=reason]').value = reason.trim();
+                      return confirm('Reverse this contribution? The original entry will remain in the audit trail.');
+                    ">
+                <input type="hidden" name="reason" value="">
+                <button class="btn danger" type="submit">Reverse</button>
+              </form>
+            {% endif %}
+          </div>
+        </td>
       </tr>
       {% else %}
       <tr>
@@ -177,13 +238,13 @@
 {% if pagination %}
 <div class="actions">
   {% if pagination.has_prev %}
-    <a class="btn" href="{{ url_for('contributions', page=pagination.prev_num) }}">← Previous</a>
+    <a class="btn" href="{{ url_for('contributions', page=pagination.prev_num, search=search, month=month_filter, method=method_filter) }}">← Previous</a>
   {% endif %}
 
   <span class="badge">Page {{ pagination.page }} of {{ pagination.pages }}</span>
 
   {% if pagination.has_next %}
-    <a class="btn" href="{{ url_for('contributions', page=pagination.next_num) }}">Next →</a>
+    <a class="btn" href="{{ url_for('contributions', page=pagination.next_num, search=search, month=month_filter, method=method_filter) }}">Next →</a>
   {% endif %}
 </div>
 {% endif %}

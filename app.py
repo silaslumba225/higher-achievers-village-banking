@@ -3277,7 +3277,9 @@ def sync_operational_transactions_to_gl():
     welfare_payable = account_by_code('2010')
     welfare_expense = account_by_code('5030')
     # Contributions: Dr payment account / Cr member savings
-    for c in Contribution.query.all():
+    for c in Contribution.query.filter(
+        Contribution.source_type != 'Reversal'
+    ).all():
         if not JournalEntry.query.filter_by(source_type='Contribution', source_id=str(c.id)).first():
             post_journal(c.paid_on, f'Contribution from {c.member.full_name} for {c.month}', c.reference, 'Contribution', c.id, [
                 {'account': cash_account_for_method(c.method), 'debit': c.amount},
@@ -5396,6 +5398,16 @@ def contributions():
             per_page=per_page,
             error_out=False
         )
+
+    reversal_records = Contribution.query.filter_by(
+        source_type='Reversal'
+    ).all()
+    reversed_contribution_ids = {
+        reversal.source_id
+        for reversal in reversal_records
+        if reversal.source_id is not None
+    }
+
     today = date.today()
     current_month = today.strftime('%Y-%m')
 
@@ -5413,11 +5425,13 @@ def contributions():
         .scalar()
     )
 
-    saved_this_month = db.session.query(
-        Contribution.member_id
-    ).filter(
-        Contribution.month == current_month
-    ).distinct().count()
+    saved_this_month = (
+        db.session.query(Contribution.member_id)
+        .filter(Contribution.month == current_month)
+        .group_by(Contribution.member_id)
+        .having(db.func.sum(Contribution.amount) > 0)
+        .count()
+    )
 
     total_members = Member.query.count()
     missing_this_month = max(total_members - saved_this_month, 0)
@@ -5434,7 +5448,268 @@ def contributions():
         search=search,
         month_filter=month_filter,
         method_filter=method_filter,
+        reversed_contribution_ids=reversed_contribution_ids,
     )
+
+
+@app.route('/contributions/<int:contribution_id>/edit', methods=['GET', 'POST'])
+@login_required
+@role_required('contributions')
+def contribution_edit(contribution_id):
+    contribution = Contribution.query.get_or_404(contribution_id)
+
+    reversal = Contribution.query.filter_by(
+        source_type='Reversal',
+        source_id=contribution.id
+    ).first()
+
+    if contribution.source_type == 'Reversal' or reversal:
+        flash(
+            'A reversal record or a contribution that has already been '
+            'reversed cannot be edited.',
+            'error'
+        )
+        return redirect(url_for('contributions'))
+
+    if request.method == 'POST':
+        errors = []
+
+        member_id = request.form.get('member_id', type=int)
+        member = db.session.get(Member, member_id) if member_id else None
+        month = request.form.get('month', '').strip()
+        method = request.form.get('method', '').strip()
+        reference = request.form.get('reference', '').strip() or None
+
+        try:
+            paid_on = parse_date(request.form.get('paid_on'))
+        except ValueError:
+            paid_on = None
+            errors.append('Select a valid payment date.')
+
+        try:
+            amount = money(request.form.get('amount', '0'))
+        except (InvalidOperation, ValueError, TypeError):
+            amount = money(0)
+            errors.append('Enter a valid contribution amount.')
+
+        if not member:
+            errors.append('Select a valid member.')
+        if not re.fullmatch(r'\d{4}-\d{2}', month):
+            errors.append('Select a valid contribution month.')
+        if amount <= 0:
+            errors.append('Contribution amount must be greater than zero.')
+        if method not in PAYMENT_METHODS:
+            errors.append('Select a valid payment method.')
+        if not paid_on and 'Select a valid payment date.' not in errors:
+            errors.append('Select a valid payment date.')
+
+        if errors:
+            for error in errors:
+                flash(error, 'error')
+            return render_template(
+                'contribution_edit.html',
+                contribution=contribution,
+                members=Member.query.order_by(Member.full_name).all(),
+                form_data=request.form
+            )
+
+        old_details = (
+            f'{contribution.member.member_no}; {contribution.month}; '
+            f'{kwacha(contribution.amount)}; {contribution.method}; '
+            f'{contribution.paid_on}'
+        )
+
+        try:
+            contribution.member_id = member.id
+            contribution.month = month
+            contribution.amount = amount
+            contribution.method = method
+            contribution.reference = reference
+            contribution.paid_on = paid_on
+
+            cash_entry = CashBookEntry.query.filter_by(
+                source_type='Contribution',
+                source_id=contribution.id
+            ).first()
+
+            if cash_entry:
+                cash_entry.entry_date = paid_on
+                cash_entry.entry_type = 'In'
+                cash_entry.category = 'Member Contribution'
+                cash_entry.amount = amount
+                cash_entry.description = (
+                    f'{member.member_no} - {member.full_name}'
+                )
+                cash_entry.method = method
+                cash_entry.reference = reference
+            else:
+                post_to_cash_book(
+                    entry_date=paid_on,
+                    entry_type='In',
+                    category='Member Contribution',
+                    amount=amount,
+                    description=f'{member.member_no} - {member.full_name}',
+                    method=method,
+                    reference=reference,
+                    source_type='Contribution',
+                    source_id=contribution.id
+                )
+
+            journal_entry = JournalEntry.query.filter_by(
+                source_type='Contribution',
+                source_id=str(contribution.id)
+            ).first()
+
+            if journal_entry:
+                JournalLine.query.filter_by(
+                    journal_entry_id=journal_entry.id
+                ).delete(synchronize_session=False)
+                db.session.delete(journal_entry)
+                db.session.flush()
+
+            post_journal(
+                entry_date=paid_on,
+                description=(
+                    f'Member contribution - {member.member_no} - '
+                    f'{member.full_name}'
+                ),
+                debit_account_code=cash_account(method),
+                credit_account_code='2000',
+                amount=amount,
+                reference=reference,
+                source_type='Contribution',
+                source_id=contribution.id,
+                commit=False
+            )
+
+            db.session.commit()
+
+            log_audit(
+                'EDIT_CONTRIBUTION',
+                'Contribution',
+                contribution.id,
+                (
+                    f'Before: {old_details}. After: {member.member_no}; '
+                    f'{month}; {kwacha(amount)}; {method}; {paid_on}'
+                )
+            )
+
+            flash('Contribution corrected successfully.', 'success')
+            return redirect(url_for('contributions'))
+
+        except Exception:
+            db.session.rollback()
+            app.logger.exception('Failed to edit contribution')
+            flash(
+                'The contribution could not be corrected. No records '
+                'were changed.',
+                'error'
+            )
+
+    return render_template(
+        'contribution_edit.html',
+        contribution=contribution,
+        members=Member.query.order_by(Member.full_name).all(),
+        form_data={}
+    )
+
+
+@app.route('/contributions/<int:contribution_id>/reverse', methods=['POST'])
+@login_required
+@role_required('contributions')
+def contribution_reverse(contribution_id):
+    contribution = Contribution.query.get_or_404(contribution_id)
+    reason = request.form.get('reason', '').strip()
+
+    if contribution.source_type == 'Reversal':
+        flash('A reversal entry cannot itself be reversed.', 'error')
+        return redirect(url_for('contributions'))
+
+    existing_reversal = Contribution.query.filter_by(
+        source_type='Reversal',
+        source_id=contribution.id
+    ).first()
+
+    if existing_reversal:
+        flash('This contribution has already been reversed.', 'error')
+        return redirect(url_for('contributions'))
+
+    if not reason:
+        flash('A reason is required before reversing a contribution.', 'error')
+        return redirect(url_for('contributions'))
+
+    try:
+        reversal = Contribution(
+            member_id=contribution.member_id,
+            month=contribution.month,
+            amount=-money(contribution.amount),
+            method=contribution.method,
+            reference=(
+                f'REV-{contribution.reference}'
+                if contribution.reference
+                else f'REV-CONTRIB-{contribution.id}'
+            )[:80],
+            paid_on=date.today(),
+            source_type='Reversal',
+            source_id=contribution.id
+        )
+        db.session.add(reversal)
+        db.session.flush()
+
+        post_to_cash_book(
+            entry_date=reversal.paid_on,
+            entry_type='Out',
+            category='Contribution Reversal',
+            amount=money(contribution.amount),
+            description=(
+                f'Reversal: {contribution.member.member_no} - '
+                f'{contribution.member.full_name}. Reason: {reason}'
+            ),
+            method=contribution.method,
+            reference=reversal.reference,
+            source_type='ContributionReversal',
+            source_id=reversal.id
+        )
+
+        post_journal(
+            entry_date=reversal.paid_on,
+            description=(
+                f'Contribution reversal - {contribution.member.member_no} '
+                f'- {contribution.member.full_name}'
+            ),
+            debit_account_code='2000',
+            credit_account_code=cash_account(contribution.method),
+            amount=money(contribution.amount),
+            reference=reversal.reference,
+            source_type='ContributionReversal',
+            source_id=reversal.id,
+            commit=False
+        )
+
+        db.session.commit()
+
+        log_audit(
+            'REVERSE_CONTRIBUTION',
+            'Contribution',
+            contribution.id,
+            (
+                f'{contribution.member.member_no}; {contribution.month}; '
+                f'{kwacha(contribution.amount)}. Reason: {reason}. '
+                f'Reversal record: {reversal.id}'
+            )
+        )
+
+        flash('Contribution reversed successfully.', 'success')
+
+    except Exception:
+        db.session.rollback()
+        app.logger.exception('Failed to reverse contribution')
+        flash(
+            'The contribution could not be reversed. No records were changed.',
+            'error'
+        )
+
+    return redirect(url_for('contributions'))
 @app.route('/contributions/passbook/<int:member_id>')
 @login_required
 @role_required('contributions')

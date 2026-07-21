@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Correct Contribution{% endblock %}
+{% block subtitle %}Correct a savings entry and its linked accounting records{% endblock %}
+
+{% block content %}
+
+<style>
+  .edit-hero {
+    background: linear-gradient(135deg, #155eef, #0f3fa8);
+    color: #ffffff;
+    border-radius: 22px;
+    padding: 25px 28px;
+    margin-bottom: 22px;
+    box-shadow: 0 12px 28px rgba(16, 24, 40, .14);
+  }
+
+  .edit-hero h2 { margin: 0 0 6px; }
+  .edit-hero p { margin: 0; opacity: .9; }
+
+  .edit-card {
+    max-width: 980px;
+    margin: 0 auto;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 22px;
+    padding: 24px;
+    box-shadow: 0 10px 26px rgba(16, 24, 40, .07);
+  }
+
+  .edit-note {
+    padding: 13px 15px;
+    margin-bottom: 20px;
+    border-radius: 12px;
+    background: #fffaeb;
+    color: #854a0e;
+    border-left: 5px solid #f79009;
+    font-weight: 700;
+  }
+
+  .edit-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .edit-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 22px;
+  }
+
+  @media (max-width: 720px) {
+    .edit-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<section class="edit-hero">
+  <h2>✏️ Correct Contribution</h2>
+  <p>
+    Update the savings record together with its linked cash-book and
+    general-ledger entries.
+  </p>
+</section>
+
+<section class="edit-card">
+  <div class="edit-note">
+    This correction will be recorded in the audit trail. Use Reverse instead
+    when the whole transaction should be cancelled.
+  </div>
+
+  <form method="post">
+    <div class="edit-grid">
+      <label>Member
+        <select name="member_id" required>
+          {% set selected_member = form_data.get('member_id', contribution.member_id|string) %}
+          {% for member in members %}
+            <option value="{{ member.id }}"
+              {% if selected_member|string == member.id|string %}selected{% endif %}>
+              {{ member.member_no }} - {{ member.full_name }}
+            </option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label>Contribution Month
+        <input type="month"
+               name="month"
+               value="{{ form_data.get('month', contribution.month) }}"
+               required>
+      </label>
+
+      <label>Amount
+        <input type="number"
+               name="amount"
+               min="0.01"
+               step="0.01"
+               value="{{ form_data.get('amount', contribution.amount) }}"
+               required>
+      </label>
+
+      <label>Payment Method
+        {% set selected_method = form_data.get('method', contribution.method) %}
+        <select name="method" required>
+          {% for method in payment_methods %}
+            <option value="{{ method }}"
+              {% if selected_method == method %}selected{% endif %}>
+              {{ method }}
+            </option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label>Reference
+        <input type="text"
+               name="reference"
+               maxlength="80"
+               value="{{ form_data.get('reference', contribution.reference or '') }}"
+               placeholder="Receipt, mobile money or bank reference">
+      </label>
+
+      <label>Paid On
+        <input type="date"
+               name="paid_on"
+               value="{{ form_data.get('paid_on', contribution.paid_on.isoformat() if contribution.paid_on else '') }}"
+               required>
+      </label>
+    </div>
+
+    <div class="edit-actions">
+      <a class="btn" href="{{ url_for('contributions') }}">Cancel</a>
+      <button class="btn primary" type="submit">Save Correction</button>
+    </div>
+  </form>
+</section>
+
+{% endblock %}
