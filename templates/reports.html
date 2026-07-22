@@ -1,33 +1,93 @@
 {% extends 'base.html' %}
+
 {% block page_title %}Reports & Compliance{% endblock %}
-{% block subtitle %}Monthly arrears, contributions and loan portfolio reports{% endblock %}
+{% block subtitle %}Monthly contribution compliance, arrears and loan portfolio monitoring{% endblock %}
+
 {% block content %}
-<div class="actions"><form><input type="month" name="month" value="{{ month }}"><button class="btn primary">Run Report</button></form><a class="btn" href="{{ url_for('export_csv', kind='members') }}">Members CSV</a><a class="btn" href="{{ url_for('export_csv', kind='loans') }}">Loans CSV</a></div>
-<section class="two-col"><div class="panel"><div class="panel-head"><h2>Contributions for {{ month }}</h2><span class="badge">{{ contribs|length }} paid</span></div><table><thead><tr><th>Member</th><th>Date</th><th>Amount</th><th>Method</th></tr></thead><tbody>{% for c in contribs %}<tr><td>{{ c.member.full_name }}</td><td>{{ c.paid_on }}</td><td>{{ c.amount|kwacha }}</td><td>{{ c.method }}</td></tr>{% endfor %}</tbody></table></div><div class="panel"><div class="panel-head"><h2>Arrears / Not Paid</h2><span class="badge warning">{{ arrears|length }} members</span></div><table><thead><tr><th>Member No</th><th>Name</th><th>Phone</th></tr></thead><tbody>{% for m in arrears %}<tr><td>{{ m.member_no }}</td><td>{{ m.full_name }}</td><td>{{ m.phone or '-' }}</td></tr>{% endfor %}</tbody></table></div></section>
-<div class="panel"><div class="panel-head"><h2>Open Loans</h2><span class="badge">{{ open_loans|length }} active</span></div><table><thead><tr><th>Member</th><th>Total Due</th><th>Paid</th><th>Balance</th><th>Due Date</th></tr></thead><tbody>{% for l in open_loans %}<tr><td>{{ l.member.full_name }}</td><td>{{ l.total_due|kwacha }}</td><td>{{ l.total_paid|kwacha }}</td><td>{{ l.balance|kwacha }}</td><td>{{ l.due_on }}</td></tr>{% endfor %}</tbody></table></div>
-{% if arrears_pagination %}
-<div class="actions">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
 
-  {% if arrears_pagination.page > 1 %}
-    <a class="btn" href="{{ url_for('reports', page=1, month=month) }}">« First</a>
-  {% endif %}
+<style>
+  .reports-page { padding-bottom: 32px; }
+  .report-hero { background: linear-gradient(135deg,#6f42c1,#0d6efd); color:#fff; border-radius:18px; padding:26px; box-shadow:0 12px 30px rgba(0,0,0,.12); }
+  .report-card { border:0; border-radius:16px; box-shadow:0 6px 20px rgba(0,0,0,.07); height:100%; }
+  .metric-label { color:#6c757d; font-size:.82rem; margin-bottom:4px; }
+  .metric-value { font-size:1.35rem; font-weight:750; margin:0; }
+  .metric-icon { width:46px; height:46px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:1.15rem; }
+  .table-card { border:0; border-radius:16px; box-shadow:0 6px 20px rgba(0,0,0,.07); overflow:hidden; }
+  .table-card .table { margin-bottom:0; }
+  .table-card thead th { background:#f1e8fb; color:#40205f; border-bottom:0; font-size:.78rem; text-transform:uppercase; letter-spacing:.02em; white-space:nowrap; }
+  .status-pill { display:inline-flex; padding:5px 10px; border-radius:999px; font-size:.75rem; font-weight:700; white-space:nowrap; }
+  .status-paid { color:#087443; background:#d9f3e7; }
+  .status-partial { color:#8a6100; background:#fff0bf; }
+  .status-unpaid,.status-overdue { color:#b42318; background:#fee4e2; }
+  .status-current { color:#175cd3; background:#dbeafe; }
+  .progress { height:10px; border-radius:999px; }
+  @media print { .no-print,.sidebar { display:none!important; } .main-content { width:100%!important; padding:0!important; } .report-card,.table-card,.report-hero { box-shadow:none!important; } }
+</style>
 
-  {% if arrears_pagination.has_prev %}
-    <a class="btn" href="{{ url_for('reports', page=arrears_pagination.prev_num, month=month) }}">← Previous</a>
-  {% endif %}
+<div class="reports-page">
+  <div class="report-hero mb-4">
+    <div class="row align-items-center g-3">
+      <div class="col-lg-7">
+        <h2 class="fw-bold mb-2"><i class="fas fa-chart-column me-2"></i>Reports & Compliance Centre</h2>
+        <p class="mb-0 opacity-75">Review monthly contribution performance, member arrears and loan portfolio risk.</p>
+      </div>
+      <div class="col-lg-5 no-print">
+        <form method="get" class="d-flex flex-wrap gap-2 justify-content-lg-end">
+          <input type="month" name="month" value="{{ month }}" class="form-control" style="max-width:180px" required>
+          <button class="btn btn-light fw-semibold"><i class="fas fa-filter me-1"></i>Run Report</button>
+        </form>
+      </div>
+    </div>
+  </div>
 
-  <span class="badge">
-    Page {{ arrears_pagination.page }} of {{ arrears_pagination.pages or 1 }}
-  </span>
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 no-print">
+    <div class="text-muted">Reporting month: <strong class="text-dark">{{ month }}</strong> · Required contribution: <strong class="text-dark">{{ required_contribution|kwacha }}</strong></div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-danger" target="_blank" href="{{ url_for('reports_compliance_pdf', month=month) }}"><i class="fas fa-file-pdf me-1"></i>Compliance PDF</a>
+      <a class="btn btn-outline-success" href="{{ url_for('reports_contributions_csv', month=month) }}"><i class="fas fa-file-csv me-1"></i>Contributions CSV</a>
+      <a class="btn btn-outline-warning" href="{{ url_for('reports_arrears_csv', month=month) }}"><i class="fas fa-file-csv me-1"></i>Arrears CSV</a>
+      <a class="btn btn-outline-danger" target="_blank" href="{{ url_for('reports_open_loans_pdf') }}"><i class="fas fa-file-pdf me-1"></i>Loans PDF</a>
+      <a class="btn btn-outline-primary" href="{{ url_for('export_csv', kind='members') }}"><i class="fas fa-users me-1"></i>Members CSV</a>
+      <a class="btn btn-outline-primary" href="{{ url_for('export_csv', kind='loans') }}"><i class="fas fa-file-csv me-1"></i>Loans CSV</a>
+      <button class="btn btn-outline-secondary" onclick="window.print()"><i class="fas fa-print me-1"></i>Print</button>
+    </div>
+  </div>
 
-  {% if arrears_pagination.has_next %}
-    <a class="btn" href="{{ url_for('reports', page=arrears_pagination.next_num, month=month) }}">Next →</a>
-  {% endif %}
+  <div class="row g-3 mb-4">
+    <div class="col-md-6 col-xl-3"><div class="card report-card"><div class="card-body d-flex gap-3 align-items-center"><div class="metric-icon bg-primary-subtle text-primary"><i class="fas fa-coins"></i></div><div><div class="metric-label">Expected Contributions</div><p class="metric-value">{{ total_expected|kwacha }}</p></div></div></div></div>
+    <div class="col-md-6 col-xl-3"><div class="card report-card"><div class="card-body d-flex gap-3 align-items-center"><div class="metric-icon bg-success-subtle text-success"><i class="fas fa-money-bill-trend-up"></i></div><div><div class="metric-label">Net Collected</div><p class="metric-value">{{ total_collected|kwacha }}</p></div></div></div></div>
+    <div class="col-md-6 col-xl-3"><div class="card report-card"><div class="card-body d-flex gap-3 align-items-center"><div class="metric-icon bg-danger-subtle text-danger"><i class="fas fa-triangle-exclamation"></i></div><div><div class="metric-label">Contribution Shortfall</div><p class="metric-value">{{ total_shortfall|kwacha }}</p></div></div></div></div>
+    <div class="col-md-6 col-xl-3"><div class="card report-card"><div class="card-body d-flex gap-3 align-items-center"><div class="metric-icon bg-info-subtle text-info"><i class="fas fa-percent"></i></div><div><div class="metric-label">Member Compliance</div><p class="metric-value">{{ compliance_rate }}%</p></div></div></div></div>
+  </div>
 
-  {% if arrears_pagination.page < arrears_pagination.pages %}
-    <a class="btn" href="{{ url_for('reports', page=arrears_pagination.pages, month=month) }}">Last »</a>
-  {% endif %}
+  <div class="card report-card mb-4"><div class="card-body p-4">
+    <div class="d-flex justify-content-between mb-2"><div><h5 class="fw-bold mb-1">Monthly Contribution Compliance</h5><p class="text-muted mb-0">{{ fully_paid_members }} of {{ active_members_count }} active members have met the monthly requirement.</p></div><strong>{{ compliance_rate }}%</strong></div>
+    <div class="progress my-3"><div class="progress-bar bg-success" style="width:{{ compliance_rate }}%"></div></div>
+    <div class="row g-3 text-center"><div class="col"><div class="metric-label">Fully Paid</div><strong class="text-success">{{ fully_paid_members }}</strong></div><div class="col"><div class="metric-label">Partially Paid</div><strong class="text-warning">{{ partially_paid_members }}</strong></div><div class="col"><div class="metric-label">Not Paid</div><strong class="text-danger">{{ unpaid_members }}</strong></div><div class="col"><div class="metric-label">Transactions</div><strong>{{ transaction_count }}</strong></div><div class="col"><div class="metric-label">Reversals</div><strong>{{ reversal_count }}</strong></div></div>
+  </div></div>
 
+  <div class="row g-4 mb-4">
+    <div class="col-xl-7"><div class="table-card bg-white h-100"><div class="p-4 pb-2"><h5 class="fw-bold mb-1">Contribution Arrears</h5><p class="text-muted">Members whose net monthly contribution is below {{ required_contribution|kwacha }}.</p></div><div class="table-responsive"><table class="table align-middle"><thead><tr><th>Member</th><th>Net Paid</th><th>Shortfall</th><th>Status</th></tr></thead><tbody>
+      {% for row in arrears %}<tr><td><strong>{{ row.member.full_name }}</strong><br><small class="text-muted">{{ row.member.member_no }} · {{ row.member.phone or '-' }}</small></td><td>{{ row.net_paid|kwacha }}</td><td class="text-danger fw-semibold">{{ row.shortfall|kwacha }}</td><td>{% if row.status == 'Partially Paid' %}<span class="status-pill status-partial">Partially Paid</span>{% else %}<span class="status-pill status-unpaid">Not Paid</span>{% endif %}</td></tr>
+      {% else %}<tr><td colspan="4" class="text-center text-muted py-4">All active members have met the monthly contribution requirement.</td></tr>{% endfor %}
+    </tbody></table></div>
+    {% if arrears_pages > 1 %}<div class="p-3 d-flex justify-content-between align-items-center no-print"><span class="text-muted">Page {{ arrears_page }} of {{ arrears_pages }} · {{ arrears_total }} members</span><div class="btn-group">{% if arrears_page > 1 %}<a class="btn btn-sm btn-outline-primary" href="{{ url_for('reports', month=month, page=arrears_page-1) }}">Previous</a>{% endif %}{% if arrears_page < arrears_pages %}<a class="btn btn-sm btn-outline-primary" href="{{ url_for('reports', month=month, page=arrears_page+1) }}">Next</a>{% endif %}</div></div>{% endif %}
+    </div></div>
+
+    <div class="col-xl-5"><div class="table-card bg-white h-100"><div class="p-4 pb-2"><h5 class="fw-bold mb-1">Recent Contribution Entries</h5><p class="text-muted">Transactions are shown separately; summary figures use their net value.</p></div><div class="table-responsive"><table class="table align-middle"><thead><tr><th>Member</th><th>Date</th><th>Amount</th><th>Type</th></tr></thead><tbody>
+      {% for c in recent_contributions %}<tr><td>{{ c.member.full_name }}</td><td>{{ c.paid_on }}</td><td class="{% if c.amount < 0 %}text-danger{% else %}text-success{% endif %} fw-semibold">{{ c.amount|kwacha }}</td><td>{% if c.source_type == 'Reversal' or c.amount < 0 %}<span class="status-pill status-unpaid">Reversal</span>{% else %}<span class="status-pill status-paid">Payment</span>{% endif %}</td></tr>
+      {% else %}<tr><td colspan="4" class="text-center text-muted py-4">No contribution entries for this month.</td></tr>{% endfor %}
+    </tbody></table></div></div></div>
+  </div>
+
+  <div class="table-card bg-white"><div class="p-4 pb-2 d-flex justify-content-between"><div><h5 class="fw-bold mb-1">Open Loan Portfolio</h5><p class="text-muted mb-0">Outstanding and overdue loans requiring monitoring.</p></div><span class="badge text-bg-light align-self-start">{{ open_loans|length }} active</span></div>
+    <div class="row g-3 px-4 pb-3"><div class="col-md-4"><div class="metric-label">Total Outstanding</div><strong>{{ total_loan_outstanding|kwacha }}</strong></div><div class="col-md-4"><div class="metric-label">Overdue Loans</div><strong class="text-danger">{{ overdue_loans_count }}</strong></div><div class="col-md-4"><div class="metric-label">Overdue Balance</div><strong class="text-danger">{{ overdue_loan_balance|kwacha }}</strong></div></div>
+    <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Member</th><th>Total Due</th><th>Paid</th><th>Balance</th><th>Due Date</th><th>Status</th></tr></thead><tbody>
+      {% for loan in open_loans %}<tr><td><strong>{{ loan.member.full_name }}</strong><br><small class="text-muted">{{ loan.member.member_no }}</small></td><td>{{ loan.total_due|kwacha }}</td><td>{{ loan.total_paid|kwacha }}</td><td class="fw-semibold">{{ loan.balance|kwacha }}</td><td>{{ loan.due_on }}</td><td>{% if loan.due_on and loan.due_on < today %}<span class="status-pill status-overdue">Overdue</span>{% else %}<span class="status-pill status-current">Current</span>{% endif %}</td></tr>
+      {% else %}<tr><td colspan="6" class="text-center text-muted py-4">No open loans.</td></tr>{% endfor %}
+    </tbody></table></div>
+  </div>
 </div>
-{% endif %}
 {% endblock %}

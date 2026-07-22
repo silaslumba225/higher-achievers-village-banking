@@ -396,7 +396,12 @@ def build_pdf_branding(setting, styles):
 
     return header_table
 
-def draw_pdf_footer(canvas, document, setting):
+def draw_pdf_footer(
+    canvas,
+    document,
+    setting,
+    generated_on=None,
+):
     canvas.saveState()
 
     organization_name = (
@@ -443,6 +448,13 @@ def draw_pdf_footer(canvas, document, setting):
         8 * mm,
         f'{organization_name} | {product_name}'
     )
+
+    if generated_on:
+        canvas.drawCentredString(
+            page_width / 2,
+            8 * mm,
+            f'Generated on {generated_on}',
+        )
 
     canvas.drawRightString(
         page_width - document.rightMargin,
@@ -3198,7 +3210,11 @@ def account_by_code(code):
 def cash_account_for_method(method):
     if method == 'Bank Transfer':
         return account_by_code('1010')
-    if method == 'Mobile Money':
+    if method in [
+        'Mobile Money',
+        'Airtel Money',
+        'MTN Money',
+    ]:
         return account_by_code('1020')
     return account_by_code('1000')
 
@@ -3452,10 +3468,53 @@ def cash_account(method):
     if method == 'Bank Transfer':
         return '1010'
 
-    if method == 'Mobile Money':
+    if method in [
+        'Mobile Money',
+        'Airtel Money',
+        'MTN Money',
+    ]:
         return '1020'
 
     return '1000'
+
+
+def available_payment_funds(method, as_of_date=None):
+    account_code = cash_account(method)
+    balances = ledger_balances(end_date=as_of_date)
+
+    ledger_balance = money(next(
+        (
+            row['balance']
+            for row in balances
+            if row['account'].code == account_code
+        ),
+        Decimal('0.00')
+    ))
+
+    balance = ledger_balance
+
+    if method == 'Bank Transfer':
+        reconciliation_query = BankReconciliation.query.filter_by(
+            status='Completed'
+        )
+
+        if as_of_date:
+            reconciliation_query = reconciliation_query.filter(
+                BankReconciliation.reconciliation_date <= as_of_date
+            )
+
+        latest_reconciliation = reconciliation_query.order_by(
+            BankReconciliation.reconciliation_date.desc(),
+            BankReconciliation.id.desc(),
+        ).first()
+
+        if latest_reconciliation:
+            verified_balance = money(
+                latest_reconciliation.adjusted_bank_balance or 0
+            )
+            balance = min(ledger_balance, verified_balance)
+
+    return money(max(balance, Decimal('0.00')))
 
 def get_next_member_number():
     members = Member.query.with_entities(
@@ -6666,10 +6725,38 @@ def distributions():
             or date.today()
         )
 
+        payment_method = request.form['method']
+
+        available_funds = available_payment_funds(
+            payment_method,
+            payment_date,
+        )
+
+        if payment_amount > available_funds:
+            flash(
+                (
+                    f'Insufficient {payment_method} funds. '
+                    f'Available balance is {kwacha(available_funds)}, '
+                    f'but the requested distribution is '
+                    f'{kwacha(payment_amount)}.'
+                ),
+                'error'
+            )
+
+            return redirect(
+                url_for(
+                    'distributions',
+                    start_month=start_month,
+                    end_month=end_month,
+                    expenses=expenses,
+                    other_income=other_income,
+                )
+            )
+
         d = Distribution(
             member_id=member_id,
             amount=payment_amount,
-            method=request.form['method'],
+            method=payment_method,
             reference=request.form.get('reference'),
             authorized_by=request.form.get('authorized_by'),
             paid_on=payment_date,
@@ -6818,6 +6905,29 @@ def distributions():
         })
 
     total_outstanding = money(total_outstanding)
+
+    bank_available_balance = available_payment_funds(
+        'Bank Transfer',
+        date.today(),
+    )
+
+    bank_shortfall = money(
+        max(
+            total_outstanding - bank_available_balance,
+            Decimal('0.00')
+        )
+    )
+
+    bank_funds_sufficient = (
+        bank_available_balance >= total_outstanding
+    )
+
+    projected_bank_balance = money(
+        max(
+            bank_available_balance - total_outstanding,
+            Decimal('0.00')
+        )
+    )
 
     eligible_members = len([
         row
@@ -6971,6 +7081,10 @@ def distributions():
         total_net_payable=shareout_data['total_net_payable'],
         cycle=cycle,
         cycle_locked=cycle_locked,
+        bank_available_balance=bank_available_balance,
+        bank_shortfall=bank_shortfall,
+        bank_funds_sufficient=bank_funds_sufficient,
+        projected_bank_balance=projected_bank_balance,
     )
 @app.route('/distributions.pdf')
 @login_required
@@ -7674,26 +7788,19 @@ def distributions_pdf():
         '%d %B %Y at %H:%M'
     )
 
-    elements.append(Spacer(1, 7))
-
-    elements.append(
-        Paragraph(
-            f'Generated on {generated_on}',
-            small_style
-        )
-    )
-
     document.build(
         elements,
         onFirstPage=lambda canvas, doc: draw_pdf_footer(
             canvas,
             doc,
-            setting
+            setting,
+            generated_on,
         ),
         onLaterPages=lambda canvas, doc: draw_pdf_footer(
             canvas,
             doc,
-            setting
+            setting,
+            generated_on,
         ),
     )
 
@@ -10122,40 +10229,574 @@ def export_attendance_csv():
 @role_required('reports')
 def reports():
     month = request.args.get('month') or date.today().strftime('%Y-%m')
-
-    contribs = Contribution.query.filter_by(month=month).all()
-    paid_member_ids = {c.member_id for c in contribs}
-
-    arrears_query = Member.query.filter(
-        Member.id.notin_(paid_member_ids)
-    ) if paid_member_ids else Member.query
-
-    page = request.args.get('page', 1, type=int)
-    per_page = 25
-
-    arrears_pagination = arrears_query.order_by(
-        Member.member_no
-    ).paginate(
-        page=page,
-        per_page=per_page,
-        error_out=False
+    settings = get_settings()
+    required_contribution = money(
+        settings.contribution_amount or 0
     )
 
-    open_loans = Loan.query.filter(
-        Loan.status.in_(['Disbursed', 'Partially Paid'])
+    active_members = Member.query.filter(
+        db.or_(
+            Member.status == 'Active',
+            Member.status.is_(None),
+        )
+    ).order_by(Member.member_no).all()
+
+    contribution_rows = Contribution.query.filter_by(
+        month=month
     ).order_by(
-        Loan.issued_on.desc(),
-        Loan.id.desc()
+        Contribution.paid_on.desc(),
+        Contribution.id.desc(),
     ).all()
+
+    contributions_by_member = {}
+    methods_by_member = {}
+    last_payment_by_member = {}
+
+    for contribution in contribution_rows:
+        contributions_by_member[contribution.member_id] = money(
+            contributions_by_member.get(
+                contribution.member_id,
+                Decimal('0.00')
+            ) + money(contribution.amount)
+        )
+
+        if contribution.method:
+            methods_by_member.setdefault(
+                contribution.member_id,
+                set()
+            ).add(contribution.method)
+
+        current_last = last_payment_by_member.get(
+            contribution.member_id
+        )
+        if not current_last or contribution.paid_on > current_last:
+            last_payment_by_member[
+                contribution.member_id
+            ] = contribution.paid_on
+
+    contribution_status = []
+    arrears_all = []
+    fully_paid_members = 0
+    partially_paid_members = 0
+    unpaid_members = 0
+    total_collected = Decimal('0.00')
+    total_shortfall = Decimal('0.00')
+
+    for member in active_members:
+        net_paid = money(
+            contributions_by_member.get(
+                member.id,
+                Decimal('0.00')
+            )
+        )
+        collectible_paid = max(net_paid, Decimal('0.00'))
+        total_collected += collectible_paid
+
+        shortfall = money(
+            max(
+                required_contribution - net_paid,
+                Decimal('0.00')
+            )
+        )
+        total_shortfall += shortfall
+
+        if required_contribution <= 0:
+            status = 'Not Required'
+        elif net_paid >= required_contribution:
+            status = 'Paid'
+            fully_paid_members += 1
+        elif net_paid > 0:
+            status = 'Partially Paid'
+            partially_paid_members += 1
+        else:
+            status = 'Not Paid'
+            unpaid_members += 1
+
+        row = {
+            'member': member,
+            'net_paid': net_paid,
+            'required': required_contribution,
+            'shortfall': shortfall,
+            'status': status,
+            'last_paid_on': last_payment_by_member.get(member.id),
+            'methods': ', '.join(sorted(
+                methods_by_member.get(member.id, set())
+            )) or '-',
+        }
+        contribution_status.append(row)
+
+        if shortfall > 0:
+            arrears_all.append(row)
+
+    active_members_count = len(active_members)
+    total_expected = money(
+        required_contribution * active_members_count
+    )
+    total_collected = money(total_collected)
+    total_shortfall = money(total_shortfall)
+
+    compliance_rate = (
+        0
+        if active_members_count == 0
+        else round(
+            fully_paid_members / active_members_count * 100
+        )
+    )
+
+    page = max(request.args.get('page', 1, type=int), 1)
+    per_page = 25
+    arrears_pages = max(
+        (len(arrears_all) + per_page - 1) // per_page,
+        1,
+    )
+    page = min(page, arrears_pages)
+    page_start = (page - 1) * per_page
+    arrears = arrears_all[page_start:page_start + per_page]
+
+    open_loans = [
+        loan
+        for loan in Loan.query.filter(
+            Loan.status.in_(['Disbursed', 'Partially Paid'])
+        ).order_by(
+            Loan.due_on.asc(),
+            Loan.id.desc(),
+        ).all()
+        if money(loan.balance) > 0
+    ]
+
+    today = date.today()
+    overdue_loans = [
+        loan for loan in open_loans
+        if loan.due_on and loan.due_on < today
+    ]
+
+    total_loan_outstanding = money(sum(
+        (money(loan.balance) for loan in open_loans),
+        Decimal('0.00')
+    ))
+    overdue_loan_balance = money(sum(
+        (money(loan.balance) for loan in overdue_loans),
+        Decimal('0.00')
+    ))
+
+    reversal_count = sum(
+        1
+        for contribution in contribution_rows
+        if contribution.source_type == 'Reversal'
+        or money(contribution.amount) < 0
+    )
+
+    recent_contributions = contribution_rows[:10]
 
     return render_template(
         'reports.html',
         month=month,
-        contribs=contribs,
-        arrears=arrears_pagination.items,
-        arrears_pagination=arrears_pagination,
-        open_loans=open_loans
+        required_contribution=required_contribution,
+        active_members_count=active_members_count,
+        total_expected=total_expected,
+        total_collected=total_collected,
+        total_shortfall=total_shortfall,
+        fully_paid_members=fully_paid_members,
+        partially_paid_members=partially_paid_members,
+        unpaid_members=unpaid_members,
+        compliance_rate=compliance_rate,
+        contribution_status=contribution_status,
+        recent_contributions=recent_contributions,
+        transaction_count=len(contribution_rows),
+        reversal_count=reversal_count,
+        arrears=arrears,
+        arrears_total=len(arrears_all),
+        arrears_page=page,
+        arrears_pages=arrears_pages,
+        open_loans=open_loans,
+        overdue_loans_count=len(overdue_loans),
+        total_loan_outstanding=total_loan_outstanding,
+        overdue_loan_balance=overdue_loan_balance,
+        today=today,
     )
+
+def build_monthly_compliance_export(month):
+    settings = get_settings()
+    required = money(settings.contribution_amount or 0)
+
+    members = Member.query.filter(
+        db.or_(
+            Member.status == 'Active',
+            Member.status.is_(None),
+        )
+    ).order_by(Member.member_no).all()
+
+    entries = Contribution.query.filter_by(month=month).order_by(
+        Contribution.paid_on.asc(),
+        Contribution.id.asc(),
+    ).all()
+
+    totals = {}
+    methods = {}
+    last_dates = {}
+
+    for entry in entries:
+        totals[entry.member_id] = money(
+            totals.get(entry.member_id, Decimal('0.00'))
+            + money(entry.amount)
+        )
+        if entry.method:
+            methods.setdefault(entry.member_id, set()).add(entry.method)
+        if (
+            entry.member_id not in last_dates
+            or entry.paid_on > last_dates[entry.member_id]
+        ):
+            last_dates[entry.member_id] = entry.paid_on
+
+    rows = []
+    fully_paid = 0
+    partial = 0
+    unpaid = 0
+
+    for member in members:
+        net_paid = money(totals.get(member.id, Decimal('0.00')))
+        shortfall = money(max(required - net_paid, Decimal('0.00')))
+
+        if required <= 0:
+            status = 'Not Required'
+        elif net_paid >= required:
+            status = 'Paid'
+            fully_paid += 1
+        elif net_paid > 0:
+            status = 'Partially Paid'
+            partial += 1
+        else:
+            status = 'Not Paid'
+            unpaid += 1
+
+        rows.append({
+            'member': member,
+            'required': required,
+            'net_paid': net_paid,
+            'shortfall': shortfall,
+            'status': status,
+            'methods': ', '.join(sorted(methods.get(member.id, set()))) or '-',
+            'last_paid_on': last_dates.get(member.id),
+        })
+
+    expected = money(required * len(members))
+    collected = money(sum(
+        (max(row['net_paid'], Decimal('0.00')) for row in rows),
+        Decimal('0.00')
+    ))
+    shortfall = money(sum(
+        (row['shortfall'] for row in rows),
+        Decimal('0.00')
+    ))
+    compliance_rate = (
+        0 if not members else round(fully_paid / len(members) * 100)
+    )
+
+    return {
+        'settings': settings,
+        'required': required,
+        'members': members,
+        'entries': entries,
+        'rows': rows,
+        'arrears': [row for row in rows if row['shortfall'] > 0],
+        'fully_paid': fully_paid,
+        'partial': partial,
+        'unpaid': unpaid,
+        'expected': expected,
+        'collected': collected,
+        'shortfall': shortfall,
+        'compliance_rate': compliance_rate,
+    }
+
+
+def current_open_loan_export_data():
+    today = date.today()
+    loans = [
+        loan
+        for loan in Loan.query.filter(
+            Loan.status.in_(['Disbursed', 'Partially Paid'])
+        ).order_by(Loan.due_on.asc(), Loan.id.desc()).all()
+        if money(loan.balance) > 0
+    ]
+    overdue = [
+        loan for loan in loans
+        if loan.due_on and loan.due_on < today
+    ]
+    return {
+        'loans': loans,
+        'today': today,
+        'total_outstanding': money(sum(
+            (money(loan.balance) for loan in loans),
+            Decimal('0.00')
+        )),
+        'overdue_count': len(overdue),
+        'overdue_balance': money(sum(
+            (money(loan.balance) for loan in overdue),
+            Decimal('0.00')
+        )),
+    }
+
+
+@app.route('/reports/contributions.csv')
+@login_required
+@role_required('reports')
+def reports_contributions_csv():
+    month = request.args.get('month') or date.today().strftime('%Y-%m')
+    data = build_monthly_compliance_export(month)
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        'Member No', 'Member Name', 'Phone', 'Required Contribution',
+        'Net Contribution', 'Shortfall', 'Status', 'Payment Methods',
+        'Last Payment Date'
+    ])
+    for row in data['rows']:
+        writer.writerow([
+            row['member'].member_no,
+            row['member'].full_name,
+            row['member'].phone or '',
+            row['required'],
+            row['net_paid'],
+            row['shortfall'],
+            row['status'],
+            row['methods'],
+            row['last_paid_on'] or '',
+        ])
+    log_audit(
+        'EXPORT_MONTHLY_CONTRIBUTIONS_CSV',
+        'Contribution',
+        None,
+        f'Monthly contribution compliance exported for {month}'
+    )
+    return Response(
+        '\ufeff' + output.getvalue(),
+        mimetype='text/csv',
+        headers={
+            'Content-Disposition':
+                f'attachment; filename="contribution_compliance_{month}.csv"'
+        }
+    )
+
+
+@app.route('/reports/arrears.csv')
+@login_required
+@role_required('reports')
+def reports_arrears_csv():
+    month = request.args.get('month') or date.today().strftime('%Y-%m')
+    data = build_monthly_compliance_export(month)
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        'Member No', 'Member Name', 'Phone', 'Required Contribution',
+        'Net Contribution', 'Shortfall', 'Status'
+    ])
+    for row in data['arrears']:
+        writer.writerow([
+            row['member'].member_no,
+            row['member'].full_name,
+            row['member'].phone or '',
+            row['required'],
+            row['net_paid'],
+            row['shortfall'],
+            row['status'],
+        ])
+    log_audit(
+        'EXPORT_CONTRIBUTION_ARREARS_CSV',
+        'Contribution',
+        None,
+        f'Contribution arrears exported for {month}'
+    )
+    return Response(
+        '\ufeff' + output.getvalue(),
+        mimetype='text/csv',
+        headers={
+            'Content-Disposition':
+                f'attachment; filename="contribution_arrears_{month}.csv"'
+        }
+    )
+
+
+def build_reports_pdf_response(
+    elements,
+    setting,
+    filename,
+    title,
+):
+    buffer = io.BytesIO()
+    document = SimpleDocTemplate(
+        buffer,
+        pagesize=landscape(A4),
+        rightMargin=12 * mm,
+        leftMargin=12 * mm,
+        topMargin=12 * mm,
+        bottomMargin=17 * mm,
+        title=title,
+        author=(
+            setting.organisation_name
+            if setting and setting.organisation_name
+            else CLIENT_NAME
+        ),
+    )
+    generated_on = datetime.now().strftime('%d %B %Y at %H:%M')
+    document.build(
+        elements,
+        onFirstPage=lambda canvas, doc: draw_pdf_footer(
+            canvas, doc, setting, generated_on
+        ),
+        onLaterPages=lambda canvas, doc: draw_pdf_footer(
+            canvas, doc, setting, generated_on
+        ),
+    )
+    buffer.seek(0)
+    return Response(
+        buffer.getvalue(),
+        mimetype='application/pdf',
+        headers={
+            'Content-Disposition': f'inline; filename="{filename}"'
+        }
+    )
+
+
+@app.route('/reports/compliance.pdf')
+@login_required
+@role_required('reports')
+def reports_compliance_pdf():
+    month = request.args.get('month') or date.today().strftime('%Y-%m')
+    data = build_monthly_compliance_export(month)
+    setting = data['settings']
+    styles = getSampleStyleSheet()
+    primary = pdf_colour(
+        setting.primary_color if setting else None,
+        '#6F42C1'
+    )
+    header_fill = pdf_colour(
+        setting.table_header_color if setting else None,
+        '#EDE3F8'
+    )
+    title_style = ParagraphStyle(
+        'ComplianceTitle', parent=styles['Heading1'], fontSize=15,
+        leading=18, textColor=primary, spaceAfter=7
+    )
+    section_style = ParagraphStyle(
+        'ComplianceSection', parent=styles['Heading2'], fontSize=10,
+        leading=12, textColor=primary, spaceBefore=8, spaceAfter=5
+    )
+    small = ParagraphStyle(
+        'ComplianceSmall', parent=styles['Normal'], fontSize=6.5, leading=8
+    )
+    elements = [build_pdf_branding(setting, styles), Spacer(1, 6)]
+    elements.append(Paragraph('MONTHLY COMPLIANCE REPORT', title_style))
+    elements.append(Paragraph(
+        f'<b>Reporting month:</b> {month} &nbsp;&nbsp; '
+        f'<b>Required contribution:</b> {kwacha(data["required"])}',
+        styles['Normal']
+    ))
+    elements.append(Spacer(1, 7))
+    summary = Table([
+        ['Expected', kwacha(data['expected']), 'Net Collected', kwacha(data['collected']), 'Member Shortfall', kwacha(data['shortfall'])],
+        ['Active Members', str(len(data['members'])), 'Fully Paid', str(data['fully_paid']), 'Compliance', f'{data["compliance_rate"]}%'],
+        ['Partially Paid', str(data['partial']), 'Not Paid', str(data['unpaid']), 'Arrears Members', str(len(data['arrears']))],
+    ], colWidths=[32*mm,30*mm,32*mm,30*mm,32*mm,30*mm])
+    summary.setStyle(TableStyle([
+        ('BACKGROUND',(0,0),(0,-1),header_fill),('BACKGROUND',(2,0),(2,-1),header_fill),('BACKGROUND',(4,0),(4,-1),header_fill),
+        ('FONTNAME',(0,0),(0,-1),'Helvetica-Bold'),('FONTNAME',(2,0),(2,-1),'Helvetica-Bold'),('FONTNAME',(4,0),(4,-1),'Helvetica-Bold'),
+        ('GRID',(0,0),(-1,-1),.35,colors.HexColor('#AAB7C4')),('FONTSIZE',(0,0),(-1,-1),7),
+        ('ALIGN',(1,0),(1,-1),'RIGHT'),('ALIGN',(3,0),(3,-1),'RIGHT'),('ALIGN',(5,0),(5,-1),'RIGHT'),
+        ('TOPPADDING',(0,0),(-1,-1),4),('BOTTOMPADDING',(0,0),(-1,-1),4),
+    ]))
+    elements.extend([summary, Paragraph('Contribution Arrears', section_style)])
+    arrears_rows = [['Member','Phone','Required','Net Paid','Shortfall','Status']]
+    for row in data['arrears']:
+        arrears_rows.append([
+            Paragraph(f'<b>{row["member"].member_no}</b><br/>{row["member"].full_name}', small),
+            row['member'].phone or '-', kwacha(row['required']),
+            kwacha(row['net_paid']), kwacha(row['shortfall']), row['status'],
+        ])
+    if len(arrears_rows) == 1:
+        arrears_rows.append(['No contribution arrears','','','','',''])
+    arrears_table = Table(arrears_rows, repeatRows=1, colWidths=[52*mm,32*mm,30*mm,30*mm,30*mm,32*mm])
+    arrears_table.setStyle(TableStyle([
+        ('BACKGROUND',(0,0),(-1,0),primary),('TEXTCOLOR',(0,0),(-1,0),colors.white),
+        ('FONTNAME',(0,0),(-1,0),'Helvetica-Bold'),('GRID',(0,0),(-1,-1),.3,colors.HexColor('#AAB7C4')),
+        ('FONTSIZE',(0,0),(-1,-1),6.5),('ALIGN',(2,1),(4,-1),'RIGHT'),
+        ('ROWBACKGROUNDS',(0,1),(-1,-1),[colors.white,header_fill]),('VALIGN',(0,0),(-1,-1),'MIDDLE'),
+        ('TOPPADDING',(0,0),(-1,-1),3),('BOTTOMPADDING',(0,0),(-1,-1),3),
+    ]))
+    elements.append(arrears_table)
+    elements.append(Paragraph('Contribution Transaction Audit', section_style))
+    tx_rows = [['Date','Member','Method','Reference','Type','Amount']]
+    for entry in data['entries']:
+        entry_type = 'Reversal' if entry.source_type == 'Reversal' or money(entry.amount) < 0 else 'Payment'
+        tx_rows.append([
+            str(entry.paid_on),
+            Paragraph(f'<b>{entry.member.member_no}</b><br/>{entry.member.full_name}', small),
+            entry.method or '-', entry.reference or '-', entry_type, kwacha(entry.amount),
+        ])
+    if len(tx_rows) == 1:
+        tx_rows.append(['No contribution transactions','','','','',''])
+    tx_table = Table(tx_rows, repeatRows=1, colWidths=[28*mm,52*mm,34*mm,45*mm,28*mm,29*mm])
+    tx_table.setStyle(TableStyle([
+        ('BACKGROUND',(0,0),(-1,0),primary),('TEXTCOLOR',(0,0),(-1,0),colors.white),
+        ('FONTNAME',(0,0),(-1,0),'Helvetica-Bold'),('GRID',(0,0),(-1,-1),.3,colors.HexColor('#AAB7C4')),
+        ('FONTSIZE',(0,0),(-1,-1),6.5),('ALIGN',(5,1),(5,-1),'RIGHT'),
+        ('ROWBACKGROUNDS',(0,1),(-1,-1),[colors.white,header_fill]),('VALIGN',(0,0),(-1,-1),'MIDDLE'),
+        ('TOPPADDING',(0,0),(-1,-1),3),('BOTTOMPADDING',(0,0),(-1,-1),3),
+    ]))
+    elements.append(tx_table)
+    log_audit('EXPORT_COMPLIANCE_PDF','Reports',None,f'Monthly compliance PDF exported for {month}')
+    return build_reports_pdf_response(
+        elements, setting, f'monthly_compliance_{month}.pdf',
+        f'Monthly Compliance Report {month}'
+    )
+
+
+@app.route('/reports/open-loans.pdf')
+@login_required
+@role_required('reports')
+def reports_open_loans_pdf():
+    data = current_open_loan_export_data()
+    setting = get_settings()
+    styles = getSampleStyleSheet()
+    primary = pdf_colour(setting.primary_color if setting else None, '#6F42C1')
+    header_fill = pdf_colour(setting.table_header_color if setting else None, '#EDE3F8')
+    title_style = ParagraphStyle('LoanReportTitle',parent=styles['Heading1'],fontSize=15,leading=18,textColor=primary,spaceAfter=7)
+    small = ParagraphStyle('LoanReportSmall',parent=styles['Normal'],fontSize=6.5,leading=8)
+    elements = [build_pdf_branding(setting, styles), Spacer(1,6), Paragraph('OPEN LOAN PORTFOLIO REPORT',title_style)]
+    summary = Table([
+        ['Open Loans',str(len(data['loans'])),'Total Outstanding',kwacha(data['total_outstanding']),'Report Date',str(data['today'])],
+        ['Overdue Loans',str(data['overdue_count']),'Overdue Balance',kwacha(data['overdue_balance']),'Current Loans',str(len(data['loans'])-data['overdue_count'])],
+    ],colWidths=[32*mm,28*mm,34*mm,34*mm,32*mm,34*mm])
+    summary.setStyle(TableStyle([
+        ('BACKGROUND',(0,0),(0,-1),header_fill),('BACKGROUND',(2,0),(2,-1),header_fill),('BACKGROUND',(4,0),(4,-1),header_fill),
+        ('FONTNAME',(0,0),(0,-1),'Helvetica-Bold'),('FONTNAME',(2,0),(2,-1),'Helvetica-Bold'),('FONTNAME',(4,0),(4,-1),'Helvetica-Bold'),
+        ('GRID',(0,0),(-1,-1),.35,colors.HexColor('#AAB7C4')),('FONTSIZE',(0,0),(-1,-1),7),
+        ('ALIGN',(1,0),(1,-1),'RIGHT'),('ALIGN',(3,0),(3,-1),'RIGHT'),('ALIGN',(5,0),(5,-1),'RIGHT'),
+        ('TOPPADDING',(0,0),(-1,-1),4),('BOTTOMPADDING',(0,0),(-1,-1),4),
+    ]))
+    elements.extend([summary,Spacer(1,8)])
+    rows=[['Loan No.','Member','Total Due','Paid','Balance','Due Date','Status']]
+    for loan in data['loans']:
+        status='Overdue' if loan.due_on and loan.due_on < data['today'] else 'Current'
+        rows.append([
+            loan.loan_no or f'LN{loan.id:04d}',
+            Paragraph(f'<b>{loan.member.member_no}</b><br/>{loan.member.full_name}',small),
+            kwacha(loan.total_due),kwacha(loan.total_paid),kwacha(loan.balance),str(loan.due_on or '-'),status,
+        ])
+    if len(rows)==1: rows.append(['No open loans','','','','','',''])
+    table=Table(rows,repeatRows=1,colWidths=[28*mm,50*mm,30*mm,30*mm,32*mm,30*mm,28*mm])
+    table.setStyle(TableStyle([
+        ('BACKGROUND',(0,0),(-1,0),primary),('TEXTCOLOR',(0,0),(-1,0),colors.white),
+        ('FONTNAME',(0,0),(-1,0),'Helvetica-Bold'),('GRID',(0,0),(-1,-1),.3,colors.HexColor('#AAB7C4')),
+        ('FONTSIZE',(0,0),(-1,-1),6.5),('ALIGN',(2,1),(4,-1),'RIGHT'),
+        ('ROWBACKGROUNDS',(0,1),(-1,-1),[colors.white,header_fill]),('VALIGN',(0,0),(-1,-1),'MIDDLE'),
+        ('TOPPADDING',(0,0),(-1,-1),3),('BOTTOMPADDING',(0,0),(-1,-1),3),
+    ]))
+    elements.append(table)
+    log_audit('EXPORT_OPEN_LOANS_PDF','Loan',None,'Open loan portfolio PDF exported')
+    return build_reports_pdf_response(
+        elements,setting,'open_loan_portfolio.pdf','Open Loan Portfolio Report'
+    )
+
 
 @app.route('/opening-balances')
 @login_required
@@ -12515,7 +13156,9 @@ def bank_reconciliation():
         BankStatementLine.id.desc()
     ).all()
 
-    cash_entries = CashBookEntry.query.order_by(
+    cash_entries = CashBookEntry.query.filter(
+        CashBookEntry.method == 'Bank Transfer'
+    ).order_by(
         CashBookEntry.entry_date.desc(),
         CashBookEntry.id.desc()
     ).all()
@@ -12592,6 +13235,14 @@ def match_bank_reconciliation():
     bank_line = BankStatementLine.query.get_or_404(bank_line_id)
     cash_entry = CashBookEntry.query.get_or_404(cash_entry_id)
 
+    if cash_entry.method != 'Bank Transfer':
+        flash(
+            'Only Bank Transfer Cash Book entries can be matched '
+            'during bank reconciliation.',
+            'error'
+        )
+        return redirect(url_for('bank_reconciliation'))
+
     bank_line.reconciled = True
     bank_line.cash_book_entry_id = cash_entry.id
 
@@ -12621,7 +13272,8 @@ def auto_match_bank_reconciliation():
         cash_entry = CashBookEntry.query.filter(
             CashBookEntry.entry_date == line.statement_date,
             CashBookEntry.entry_type == line.entry_type,
-            CashBookEntry.amount == line.amount
+            CashBookEntry.amount == line.amount,
+            CashBookEntry.method == 'Bank Transfer'
         ).first()
 
         if cash_entry:
@@ -12761,7 +13413,9 @@ def delete_bank_statement_batch(batch_id):
 @role_required('accounting')
 def bank_reconciliation_statement():
     bank_lines = BankStatementLine.query.all()
-    cash_entries = CashBookEntry.query.all()
+    cash_entries = CashBookEntry.query.filter(
+        CashBookEntry.method == 'Bank Transfer'
+    ).all()
 
     bank_statement_in = money(sum((l.amount for l in bank_lines if l.entry_type == 'In'), Decimal('0.00')))
     bank_statement_out = money(sum((l.amount for l in bank_lines if l.entry_type == 'Out'), Decimal('0.00')))
@@ -12820,7 +13474,9 @@ def bank_reconciliation_statement():
 @role_required('accounting')
 def complete_bank_reconciliation():
     bank_lines = BankStatementLine.query.all()
-    cash_entries = CashBookEntry.query.all()
+    cash_entries = CashBookEntry.query.filter(
+        CashBookEntry.method == 'Bank Transfer'
+    ).all()
 
     bank_statement_in = money(sum((l.amount for l in bank_lines if l.entry_type == 'In'), Decimal('0.00')))
     bank_statement_out = money(sum((l.amount for l in bank_lines if l.entry_type == 'Out'), Decimal('0.00')))
@@ -14453,7 +15109,6 @@ def calculate_shareout_data(
         + fines_paid_total
         + other_income
         - expenses
-        - distributions_total
     )
 
     rows = []
@@ -14698,7 +15353,6 @@ def calculate_shareout_data(
         + fines_paid_total
         + other_income
         - expenses
-        - distributions_total
     )
 
     return {
@@ -14808,7 +15462,6 @@ def shareout():
         + fines_paid_total
         + other_income
         - expenses
-        - distributions_total
     )
     eligible_members = 0
     members_requiring_review = 0
