@@ -24,9 +24,6 @@ class MeetingIntelligenceService:
         if self.average_attendance < 10:
             score -= 20
 
-        if self.pending_resolutions > 5:
-            score -= 20
-
         if self.days_to_next is None:
             score -= 10
 
@@ -69,22 +66,21 @@ class MeetingIntelligenceService:
                 "title": "Next meeting",
 
                 "message":
-                    f"Committee meeting in {self.days_to_next} day(s)."
-
+                    f"{self.next_meeting.meeting_type} in {self.days_to_next} day(s)."
             })
 
         if self.pending_resolutions > 0:
 
             assistant.append({
 
-                "level": "warning",
+                "level": "info",
 
                 "icon": "fa-list-check",
 
-                "title": "Outstanding resolutions",
+                "title": "Recorded resolutions",
 
                 "message":
-                    f"{self.pending_resolutions} meeting resolution(s) require follow-up."
+                    f"{self.pending_resolutions} meeting(s) contain recorded resolutions or minutes."
 
             })
 

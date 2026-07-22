@@ -1,162 +1,83 @@
 {% extends 'base.html' %}
-
 {% block page_title %}Meeting Intelligence Centre{% endblock %}
-{% block subtitle %}Manage meetings, attendance, agendas and resolutions{% endblock %}
+{% block subtitle %}Schedule meetings, maintain agendas and resolutions, and monitor participation{% endblock %}
 
 {% block content %}
+<style>
+  .meeting-hero{background:linear-gradient(120deg,#165ee9,#173fa9);color:#fff;border-radius:24px;padding:30px;margin-bottom:22px;display:flex;justify-content:space-between;gap:24px;align-items:center;box-shadow:0 16px 34px rgba(23,63,169,.18)}
+  .meeting-hero h2{font-size:30px;margin:0 0 7px}.meeting-hero p{margin:0}.meeting-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;margin-bottom:22px}
+  .meeting-card,.meeting-panel{background:#fff;border:1px solid #e2e7f0;border-radius:20px;padding:22px;box-shadow:0 10px 24px rgba(36,25,77,.06)}
+  .meeting-card span{color:#60708b;font-size:14px}.meeting-card strong{display:block;font-size:27px;margin-top:12px}.meeting-panel{margin-bottom:22px}
+  .meeting-form{display:grid;grid-template-columns:1fr 1fr;gap:16px}.meeting-form .wide{grid-column:1/-1}.meeting-form label{font-weight:700;color:#34445e;font-size:13px;text-transform:uppercase}
+  .meeting-form input,.meeting-form select,.meeting-form textarea,.meeting-filter input,.meeting-filter select{width:100%;padding:12px;border:1px solid #ccd5e3;border-radius:12px;background:#fff;margin-top:6px}.meeting-form textarea{min-height:88px;resize:vertical}
+  .meeting-filter{display:grid;grid-template-columns:2fr 1fr auto auto;gap:12px;align-items:end;margin:16px 0}.meeting-btn{border:0;border-radius:11px;padding:12px 17px;font-weight:800;cursor:pointer;text-decoration:none;display:inline-block}
+  .meeting-btn.primary{background:#6f3dcc;color:#fff}.meeting-btn.secondary{background:#edf1f7;color:#15243b}.meeting-btn.danger{background:#fff;color:#c62828;border:1px solid #ef9a9a}.meeting-btn.success{background:#158b48;color:#fff}
+  .meeting-table{width:100%;border-collapse:collapse}.meeting-table th{background:#eee3fb;color:#3e4b63;text-align:left;padding:13px;font-size:13px}.meeting-table td{padding:14px 13px;border-bottom:1px solid #e4e9f1;vertical-align:top}.meeting-actions{display:flex;flex-wrap:wrap;gap:8px}
+  .health-track{height:12px;background:#e8edf4;border-radius:999px;overflow:hidden}.health-bar{height:100%;background:#1d6ef2;border-radius:999px}.advisor{padding:13px 15px;border-left:4px solid #1d6ef2;background:#f2f7ff;border-radius:10px;margin-top:10px}
+  details.edit-box{margin-top:10px}details.edit-box summary{cursor:pointer;color:#5d31bd;font-weight:700}.empty{text-align:center;color:#748199;padding:28px!important}
+  @media(max-width:900px){.meeting-grid{grid-template-columns:1fr 1fr}.meeting-form,.meeting-filter{grid-template-columns:1fr}.meeting-form .wide{grid-column:auto}.meeting-hero{align-items:flex-start;flex-direction:column}}
+</style>
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+<section class="meeting-hero">
+  <div><h2>📅 Meeting Intelligence Centre</h2><p>Plan meetings, preserve decisions and connect every meeting to its attendance register.</p></div>
+  <a class="meeting-btn secondary" href="{{ url_for('attendance') }}">✓ Attendance Register</a>
+</section>
 
-<div class="panel">
-  <h2>📅 Meeting Overview</h2>
+<section class="meeting-grid">
+  <div class="meeting-card"><span>Next Meeting</span><strong>{{ next_meeting.meeting_date.strftime('%d %b %Y') if next_meeting else 'Not scheduled' }}</strong></div>
+  <div class="meeting-card"><span>Days Remaining</span><strong>{{ days_to_next if days_to_next is not none else '—' }}</strong></div>
+  <div class="meeting-card"><span>Meetings This Year</span><strong>{{ meetings_this_year }}</strong></div>
+  <div class="meeting-card"><span>Average Attendance</span><strong>{{ average_attendance }}</strong></div>
+</section>
 
-  <div class="row g-3">
-    <div class="col-md-3">
-      <div class="alert alert-primary">
-        <strong>Next Meeting</strong><br>
-        {% if next_meeting %}
-          {{ next_meeting.meeting_date }}
-        {% else %}
-          Not scheduled
-        {% endif %}
-      </div>
-    </div>
+<section class="meeting-panel">
+  <h2>Governance Health — {{ meeting_health_score }}%</h2>
+  <div class="health-track"><div class="health-bar" style="width:{{ meeting_health_score }}%"></div></div>
+  <p><strong>{{ meeting_health_status }}</strong> · {{ total_meetings }} meeting(s) recorded · {{ pending_resolutions }} meeting(s) contain resolutions.</p>
+  {% for item in meeting_assistant %}<div class="advisor"><strong>{{ item.title }}</strong><br>{{ item.message }}</div>{% endfor %}
+</section>
 
-    <div class="col-md-3">
-      <div class="alert alert-success">
-        <strong>Days Remaining</strong><br>
-        {{ days_to_next if days_to_next is not none else '-' }}
-      </div>
-    </div>
-
-    <div class="col-md-3">
-      <div class="alert alert-info">
-        <strong>Average Attendance</strong><br>
-        {{ average_attendance }}
-      </div>
-    </div>
-
-    <div class="col-md-3">
-      <div class="alert alert-warning">
-        <strong>Resolutions</strong><br>
-        {{ pending_resolutions }}
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="panel">
-  <h2>❤️ Meeting Health</h2>
-
-  <h1>{{ meeting_health_score }}%</h1>
-
-  <div class="progress" style="height:16px;border-radius:999px;">
-    <div class="progress-bar bg-{{ meeting_health_colour }}"
-         style="width: {{ meeting_health_score }}%;">
-    </div>
-  </div>
-
-  <p class="mt-2">
-    <strong>{{ meeting_health_status }}</strong>
-  </p>
-</div>
-
-<div class="panel">
-  <h2>🤖 Meeting Intelligence Advisor</h2>
-
-<p class="text-muted-small">
-    Powered by {{ settings.product_name }}
-</p>
-
-  {% for item in meeting_assistant %}
-    <div class="alert alert-{{ item.level }}">
-      <strong>
-        <i class="fa-solid {{ item.icon }}"></i>
-        {{ item.title }}
-      </strong><br>
-      {{ item.message }}
-    </div>
-  {% endfor %}
-</div>
-
-<div class="panel">
-  <h2>Record Meeting</h2>
-
-  <form method="post" class="form-grid">
-    <label>Meeting Type
-      <select name="meeting_type">
-        <option>Committee</option>
-        <option>Full Members</option>
-      </select>
-    </label>
-
-    <label>Meeting Date
-      <input type="date" name="meeting_date" required>
-    </label>
-
-    <label>Attendance Count
-      <input type="number" name="attendance_count">
-    </label>
-
-    <label>Agenda
-      <textarea name="agenda"></textarea>
-    </label>
-
-    <label>Resolutions
-      <textarea name="resolutions"></textarea>
-    </label>
-
-    <button class="btn primary">Save Meeting</button>
+<section class="meeting-panel">
+  <h2>Schedule a Meeting</h2>
+  <p>Meeting attendance is recorded separately after the meeting.</p>
+  <form method="post" class="meeting-form">
+    <label>Meeting Type<select name="meeting_type" required><option value="">Select type</option>{% for item in meeting_types %}<option value="{{ item }}">{{ item }}</option>{% endfor %}</select></label>
+    <label>Meeting Date<input type="date" name="meeting_date" required></label>
+    <label class="wide">Agenda<textarea name="agenda" required placeholder="Topics to be discussed"></textarea></label>
+    <label class="wide">Resolutions / Minutes<textarea name="resolutions" placeholder="May be completed or updated after the meeting"></textarea></label>
+    <div class="wide"><button class="meeting-btn primary" type="submit">+ Schedule Meeting</button></div>
   </form>
-</div>
+</section>
 
-<div class="panel">
+<section class="meeting-panel">
   <h2>Meeting Register</h2>
+  <form method="get" class="meeting-filter">
+    <label>Search<input name="q" value="{{ q }}" placeholder="Agenda or resolution"></label>
+    <label>Type<select name="meeting_type"><option value="">All meeting types</option>{% for item in meeting_types %}<option value="{{ item }}" {% if selected_meeting_type == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select></label>
+    <button class="meeting-btn primary">🔍 Apply Filter</button><a class="meeting-btn secondary" href="{{ url_for('meetings') }}">Clear</a>
+  </form>
+  <div style="overflow-x:auto"><table class="meeting-table">
+    <thead><tr><th>Date</th><th>Type</th><th>Attendance</th><th>Agenda / Resolutions</th><th>Actions</th></tr></thead>
+    <tbody>{% for m in meetings %}<tr>
+      <td><strong>{{ m.meeting_date.strftime('%d %b %Y') }}</strong></td><td>{{ m.meeting_type }}</td><td>{{ m.attendance_count }}</td>
+      <td><strong>{{ m.agenda }}</strong><br><small>{{ m.resolutions or 'No resolutions recorded' }}</small></td>
+      <td><div class="meeting-actions"><a class="meeting-btn success" href="{{ url_for('attendance_register', meeting_id=m.id) }}">Attendance</a>
+        <form method="post" action="{{ url_for('meeting_delete', meeting_id=m.id) }}" onsubmit="return confirm('Delete this meeting? Meetings with attendance cannot be deleted.');"><button class="meeting-btn danger">Delete</button></form></div>
+        <details class="edit-box"><summary>Edit meeting</summary><form method="post" action="{{ url_for('meeting_edit', meeting_id=m.id) }}" class="meeting-form" style="margin-top:12px">
+          <label>Type<select name="meeting_type">{% for item in meeting_types %}<option value="{{ item }}" {% if m.meeting_type == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select></label>
+          <label>Date<input type="date" name="meeting_date" value="{{ m.meeting_date.isoformat() }}" required></label>
+          <label class="wide">Agenda<textarea name="agenda" required>{{ m.agenda or '' }}</textarea></label>
+          <label class="wide">Resolutions<textarea name="resolutions">{{ m.resolutions or '' }}</textarea></label>
+          <div class="wide"><button class="meeting-btn primary">Save Changes</button></div>
+        </form></details>
+      </td>
+    </tr>{% else %}<tr><td colspan="5" class="empty">No meetings match the selected filters.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th>Type</th>
-        <th>Attendance</th>
-        <th>Agenda</th>
-        <th>Resolutions</th>
-      </tr>
-    </thead>
-
-    <tbody>
-      {% for m in meetings %}
-      <tr>
-        <td>{{ m.meeting_date }}</td>
-        <td><span class="badge">{{ m.meeting_type }}</span></td>
-        <td>{{ m.attendance_count }}</td>
-        <td>{{ m.agenda or '-' }}</td>
-        <td>{{ m.resolutions or '-' }}</td>
-      </tr>
-      {% else %}
-      <tr>
-        <td colspan="5">No meetings recorded yet.</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-
-{% if pagination %}
-<div class="actions">
-  {% if pagination.has_prev %}
-    <a class="btn" href="{{ url_for('meetings', page=pagination.prev_num) }}">← Previous</a>
-  {% endif %}
-
-  <span class="badge">
-    Page {{ pagination.page }} of {{ pagination.pages }}
-  </span>
-
-  {% if pagination.has_next %}
-    <a class="btn" href="{{ url_for('meetings', page=pagination.next_num) }}">Next →</a>
-  {% endif %}
-</div>
-{% endif %}
-
+{% if pagination %}<div class="meeting-actions">
+  {% if pagination.has_prev %}<a class="meeting-btn secondary" href="{{ url_for('meetings', page=pagination.prev_num, q=q, meeting_type=selected_meeting_type) }}">← Previous</a>{% endif %}
+  <span class="meeting-btn secondary">Page {{ pagination.page }} of {{ pagination.pages or 1 }}</span>
+  {% if pagination.has_next %}<a class="meeting-btn secondary" href="{{ url_for('meetings', page=pagination.next_num, q=q, meeting_type=selected_meeting_type) }}">Next →</a>{% endif %}
+</div>{% endif %}
 {% endblock %}

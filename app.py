@@ -9721,13 +9721,65 @@ def export_welfare_csv():
 @login_required
 @role_required('meetings')
 def meetings():
+    meeting_types = ['Committee', 'Full Members', 'Annual General Meeting', 'Special Meeting']
     if request.method == 'POST':
-        mtg = Meeting(meeting_type=request.form['meeting_type'], meeting_date=parse_date(request.form['meeting_date']), agenda=request.form.get('agenda'), resolutions=request.form.get('resolutions'), attendance_count=int(request.form.get('attendance_count') or 0))
-        db.session.add(mtg); db.session.commit(); log_audit('SAVE_MEETING', 'Meeting', mtg.id, f'{mtg.meeting_type} meeting on {mtg.meeting_date}; attendance {mtg.attendance_count}'); flash('Meeting record saved.'); return redirect(url_for('meetings'))
+        try:
+            meeting_type = request.form.get('meeting_type', '').strip()
+            meeting_date = parse_date(request.form.get('meeting_date'))
+            agenda = request.form.get('agenda', '').strip()
+
+            if meeting_type not in meeting_types:
+                flash('Select a valid meeting type.', 'error')
+                return redirect(url_for('meetings'))
+            if not meeting_date:
+                flash('Meeting date is required.', 'error')
+                return redirect(url_for('meetings'))
+            if not agenda:
+                flash('Enter the meeting agenda.', 'error')
+                return redirect(url_for('meetings'))
+            if Meeting.query.filter_by(
+                meeting_type=meeting_type,
+                meeting_date=meeting_date
+            ).first():
+                flash('A meeting of this type already exists on the selected date.', 'error')
+                return redirect(url_for('meetings'))
+
+            mtg = Meeting(
+                meeting_type=meeting_type,
+                meeting_date=meeting_date,
+                agenda=agenda,
+                resolutions=request.form.get('resolutions', '').strip() or None,
+                attendance_count=0
+            )
+            db.session.add(mtg)
+            db.session.commit()
+            log_audit(
+                'CREATE_MEETING', 'Meeting', mtg.id,
+                f'{mtg.meeting_type} meeting scheduled for {mtg.meeting_date}'
+            )
+            flash('Meeting scheduled successfully.', 'success')
+        except Exception:
+            db.session.rollback()
+            app.logger.exception('Failed to create meeting')
+            flash('The meeting could not be saved. Please try again.', 'error')
+        return redirect(url_for('meetings'))
+
+    q = request.args.get('q', '').strip()
+    meeting_type = request.args.get('meeting_type', '').strip()
+    query = Meeting.query
+    if q:
+        like = f'%{q}%'
+        query = query.filter(db.or_(
+            Meeting.agenda.like(like),
+            Meeting.resolutions.like(like)
+        ))
+    if meeting_type in meeting_types:
+        query = query.filter(Meeting.meeting_type == meeting_type)
+
     page = request.args.get('page', 1, type=int)
     per_page = 25
 
-    pagination = Meeting.query.order_by(
+    pagination = query.order_by(
     Meeting.meeting_date.desc(),
     Meeting.id.desc()
     ).paginate(
@@ -9749,29 +9801,6 @@ def meetings():
     meetings_this_year = Meeting.query.filter(
         db.extract('year', Meeting.meeting_date) == today.year
     ).count()
-
-    average_attendance = db.session.query(
-        db.func.coalesce(db.func.avg(Meeting.attendance_count), 0)
-    ).scalar()
-
-    latest_meeting = Meeting.query.order_by(
-        Meeting.meeting_date.desc(),
-        Meeting.id.desc()
-    ).first()
-
-    today = date.today()
-
-    next_meeting = Meeting.query.filter(
-        Meeting.meeting_date >= today
-    ).order_by(
-        Meeting.meeting_date.asc()
-    ).first()
-
-    meetings_this_year = Meeting.query.filter(
-        db.extract('year', Meeting.meeting_date) == today.year
-    ).count()
-
-    total_meetings = Meeting.query.count()
 
     average_attendance = db.session.query(
         db.func.coalesce(db.func.avg(Meeting.attendance_count), 0)
@@ -9809,8 +9838,82 @@ def meetings():
     meetings_this_year=meetings_this_year,
     total_meetings=total_meetings,
     average_attendance=round(average_attendance or 0),
-    pending_resolutions=pending_resolutions
+    pending_resolutions=pending_resolutions,
+    meeting_types=meeting_types,
+    q=q,
+    selected_meeting_type=meeting_type,
+    **meeting_data
 )
+
+
+@app.route('/meetings/<int:meeting_id>/edit', methods=['POST'])
+@login_required
+@role_required('meetings')
+def meeting_edit(meeting_id):
+    meeting = Meeting.query.get_or_404(meeting_id)
+    meeting_types = ['Committee', 'Full Members', 'Annual General Meeting', 'Special Meeting']
+    try:
+        meeting_type = request.form.get('meeting_type', '').strip()
+        meeting_date = parse_date(request.form.get('meeting_date'))
+        agenda = request.form.get('agenda', '').strip()
+
+        if meeting_type not in meeting_types or not meeting_date or not agenda:
+            flash('Meeting type, date and agenda are required.', 'error')
+            return redirect(url_for('meetings'))
+
+        duplicate = Meeting.query.filter(
+            Meeting.id != meeting.id,
+            Meeting.meeting_type == meeting_type,
+            Meeting.meeting_date == meeting_date
+        ).first()
+        if duplicate:
+            flash('A meeting of this type already exists on the selected date.', 'error')
+            return redirect(url_for('meetings'))
+
+        if meeting.attendance_records and (
+            meeting_type != meeting.meeting_type or
+            meeting_date != meeting.meeting_date
+        ):
+            flash(
+                'Meeting type and date cannot be changed after attendance has been recorded. '
+                'You may still update the agenda and resolutions.',
+                'error'
+            )
+            return redirect(url_for('meetings'))
+
+        before = f'{meeting.meeting_type}; {meeting.meeting_date}'
+        meeting.meeting_type = meeting_type
+        meeting.meeting_date = meeting_date
+        meeting.agenda = agenda
+        meeting.resolutions = request.form.get('resolutions', '').strip() or None
+        db.session.commit()
+        log_audit(
+            'EDIT_MEETING', 'Meeting', meeting.id,
+            f'Before: {before}. After: {meeting.meeting_type}; {meeting.meeting_date}'
+        )
+        flash('Meeting updated successfully.', 'success')
+    except Exception:
+        db.session.rollback()
+        app.logger.exception('Failed to update meeting')
+        flash('The meeting could not be updated.', 'error')
+    return redirect(url_for('meetings'))
+
+
+@app.route('/meetings/<int:meeting_id>/delete', methods=['POST'])
+@login_required
+@role_required('meetings')
+def meeting_delete(meeting_id):
+    meeting = Meeting.query.get_or_404(meeting_id)
+    if meeting.attendance_records:
+        flash('A meeting with attendance records cannot be deleted.', 'error')
+        return redirect(url_for('meetings'))
+
+    details = f'{meeting.meeting_type} meeting on {meeting.meeting_date}'
+    db.session.delete(meeting)
+    db.session.commit()
+    log_audit('DELETE_MEETING', 'Meeting', meeting_id, details)
+    flash('Meeting deleted successfully.', 'success')
+    return redirect(url_for('meetings'))
 
 
 @app.route('/attendance')
@@ -9847,7 +9950,8 @@ def attendance():
             'late': late,
             'absent': absent,
             'excused': excused,
-            'expected': total_members
+            'expected': total_members,
+            'attendance_rate': round(((present + late) / total_members * 100), 1) if total_members else 0
         })
 
     return render_template(
@@ -9864,51 +9968,142 @@ def attendance_register(meeting_id):
     members = Member.query.filter_by(status='Active').order_by(Member.member_no).all()
     user = session.get('user') or {}
     if request.method == 'POST':
-        absent_fine = Decimal('50.00')
-        late_fine = Decimal('20.00')
-        create_fines = True
+        create_fines = request.form.get('create_fines') == 'yes'
         saved = 0
         fines_created = 0
-        for member in members:
-            status = request.form.get(f'status_{member.id}') or 'Present'
-            remarks = request.form.get(f'remarks_{member.id}', '').strip()
-            record = MeetingAttendance.query.filter_by(meeting_id=meeting.id, member_id=member.id).first()
-            if not record:
-                record = MeetingAttendance(meeting_id=meeting.id, member_id=member.id)
-                db.session.add(record)
-            record.status = status
-            record.remarks = remarks
-            record.recorded_by = user.get('full_name') or user.get('username')
-            record.recorded_at = datetime.utcnow()
-            if create_fines and not record.fine_generated:
-                fine_amount = Decimal('0.00')
-                category = None
-                reason = None
-                if status == 'Absent' and absent_fine > 0:
-                    fine_amount = absent_fine
-                    category = 'Absence from Meeting'
-                    reason = f'Absent from {meeting.meeting_type} meeting on {meeting.meeting_date}'
-                elif status == 'Late' and late_fine > 0:
-                    fine_amount = late_fine
-                    category = 'Late Meeting Attendance'
-                    reason = f'Late for {meeting.meeting_type} meeting on {meeting.meeting_date}'
-                if fine_amount > 0:
-                    fine = FinePenalty(member_id=member.id, category=category, amount=fine_amount, reason=reason, fine_date=meeting.meeting_date, recorded_by=record.recorded_by)
+        fines_reversed = 0
+        try:
+            for member in members:
+                status = request.form.get(f'status_{member.id}') or 'Present'
+                if status not in ATTENDANCE_STATUSES:
+                    raise ValueError(f'Invalid attendance status for {member.full_name}.')
+
+                remarks = request.form.get(f'remarks_{member.id}', '').strip()
+                record = MeetingAttendance.query.filter_by(
+                    meeting_id=meeting.id,
+                    member_id=member.id
+                ).first()
+                if not record:
+                    record = MeetingAttendance(meeting_id=meeting.id, member_id=member.id)
+                    db.session.add(record)
+                    db.session.flush()
+
+                target_amount = Decimal('0.00')
+                target_category = None
+                target_reason = None
+                if create_fines and status == 'Absent':
+                    target_amount = ABSENCE_FINE_AMOUNT
+                    target_category = 'Absence from Meeting'
+                    target_reason = f'Absent from {meeting.meeting_type} meeting on {meeting.meeting_date}'
+                elif create_fines and status == 'Late':
+                    target_amount = LATE_ATTENDANCE_FINE_AMOUNT
+                    target_category = 'Late Meeting Attendance'
+                    target_reason = f'Late for {meeting.meeting_type} meeting on {meeting.meeting_date}'
+
+                active_fine = FinePenalty.query.filter(
+                    FinePenalty.source_type == 'MeetingAttendance',
+                    FinePenalty.source_id == record.id,
+                    FinePenalty.status != 'Waived'
+                ).first()
+
+                fine_changed = active_fine and (
+                    target_amount <= 0 or
+                    active_fine.category != target_category or
+                    money(active_fine.amount) != money(target_amount)
+                )
+                if fine_changed:
+                    if active_fine.total_paid > 0:
+                        raise ValueError(
+                            f'Attendance for {member.full_name} cannot be changed because the related fine has a payment.'
+                        )
+                    active_fine.status = 'Waived'
+                    active_fine.waived_by = user.get('full_name') or user.get('username') or 'System'
+                    active_fine.waived_on = date.today()
+                    post_journal(
+                        entry_date=date.today(),
+                        description=f'Attendance fine reversed - {member.member_no} - {member.full_name}',
+                        reference=f'ATT-FINE-REV-{active_fine.id}',
+                        debit_account_code='4010',
+                        credit_account_code='1120',
+                        amount=active_fine.amount,
+                        source_type='AttendanceFineReversal',
+                        source_id=active_fine.id,
+                        commit=False
+                    )
+                    active_fine = None
+                    fines_reversed += 1
+
+                if target_amount > 0 and not active_fine:
+                    fine = FinePenalty(
+                        member_id=member.id,
+                        category=target_category,
+                        amount=target_amount,
+                        reason=target_reason,
+                        fine_date=meeting.meeting_date,
+                        status='Unpaid',
+                        recorded_by=user.get('full_name') or user.get('username') or 'System',
+                        source_type='MeetingAttendance',
+                        source_id=record.id
+                    )
                     db.session.add(fine)
-                    record.fine_generated = True
+                    db.session.flush()
+                    post_journal(
+                        entry_date=meeting.meeting_date,
+                        description=f'Attendance fine charged - {member.member_no} - {member.full_name}',
+                        reference=f'ATT-FINE-{fine.id}',
+                        debit_account_code='1120',
+                        credit_account_code='4010',
+                        amount=fine.amount,
+                        source_type='AttendanceFine',
+                        source_id=fine.id,
+                        commit=False
+                    )
+                    active_fine = fine
                     fines_created += 1
-            saved += 1
-        meeting.attendance_count = sum(1 for member in members if (request.form.get(f'status_{member.id}') or 'Present') in ['Present', 'Late'])
-        db.session.commit()
+
+                record.status = status
+                record.remarks = remarks or None
+                record.recorded_by = user.get('full_name') or user.get('username') or 'System'
+                record.recorded_at = datetime.utcnow()
+                record.fine_generated = bool(active_fine)
+                saved += 1
+
+            meeting.attendance_count = sum(
+                1 for member in members
+                if (request.form.get(f'status_{member.id}') or 'Present') in ['Present', 'Late']
+            )
+            db.session.commit()
+        except ValueError as exc:
+            db.session.rollback()
+            flash(str(exc), 'error')
+            return redirect(url_for('attendance_register', meeting_id=meeting.id))
+        except Exception:
+            db.session.rollback()
+            app.logger.exception('Failed to save attendance register')
+            flash('Attendance could not be saved. Please try again.', 'error')
+            return redirect(url_for('attendance_register', meeting_id=meeting.id))
+
         log_audit('SAVE_ATTENDANCE', 'Meeting', meeting.id, f'Attendance saved for {meeting.meeting_type} on {meeting.meeting_date}. Records: {saved}; fines created: {fines_created}')
-        flash(f'Attendance register saved. {saved} records updated. {fines_created} fines generated.')
+        flash(
+            f'Attendance saved. {saved} records updated, {fines_created} fines created and '
+            f'{fines_reversed} obsolete fines reversed.',
+            'success'
+        )
         return redirect(url_for('attendance_register', meeting_id=meeting.id))
 
     existing = {r.member_id: r for r in MeetingAttendance.query.filter_by(meeting_id=meeting.id).all()}
     stats = {'Present':0, 'Absent':0, 'Late':0, 'Excused':0}
     for r in existing.values():
         stats[r.status] = stats.get(r.status, 0) + 1
-    return render_template('attendance_register.html', meeting=meeting, members=members, existing=existing, stats=stats)
+    return render_template(
+        'attendance_register.html',
+        meeting=meeting,
+        members=members,
+        existing=existing,
+        stats=stats,
+        absence_fine=ABSENCE_FINE_AMOUNT,
+        late_fine=LATE_ATTENDANCE_FINE_AMOUNT
+    )
 
 @app.route('/export/attendance.csv')
 @login_required

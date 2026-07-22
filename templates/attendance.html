@@ -1,57 +1,21 @@
 {% extends 'base.html' %}
-{% block page_title %}Attendance Register{% endblock %}
-{% block subtitle %}Track meeting attendance, absences, lateness and attendance rates{% endblock %}
-
+{% block page_title %}Attendance Management{% endblock %}
+{% block subtitle %}Record attendance, monitor participation and manage attendance penalties{% endblock %}
 {% block content %}
-<section class="panel">
-  <div class="panel-head">
-    <div>
-      <h2>Attendance Register</h2>
-      <p>Select a meeting to record or review attendance.</p>
-    </div>
-    <a class="btn" href="{{ url_for('export_attendance_csv') }}">Export CSV</a>
-  </div>
-
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Meeting Date</th>
-          <th>Type</th>
-          <th>Attendance Count</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in summary %}
-        <tr>
-          <td>{{ row.meeting.meeting_date }}</td>
-          <td>{{ row.meeting.meeting_type }}</td>
-          <td>{{ row.present_count }} present / {{ row.total_count }} recorded</td>
-          <td>
-            <a class="btn small" href="{{ url_for('attendance_register', meeting_id=row.meeting.id) }}">Open Register</a>
-          </td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="4">No meetings found. Create meetings first under the Meetings menu.</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</section>
-{% if pagination %}
-<div class="actions">
-  {% if pagination.has_prev %}
-    <a class="btn" href="{{ url_for('attendance', page=pagination.prev_num) }}">← Previous</a>
-  {% endif %}
-
-  <span class="badge">Page {{ pagination.page }} of {{ pagination.pages }}</span>
-
-  {% if pagination.has_next %}
-    <a class="btn" href="{{ url_for('attendance', page=pagination.next_num) }}">Next →</a>
-  {% endif %}
-</div>
-{% endif %}
+<style>
+  .att-hero{background:linear-gradient(120deg,#087f5b,#1687d9);color:#fff;border-radius:24px;padding:30px;margin-bottom:22px;display:flex;justify-content:space-between;gap:18px;align-items:center}.att-panel{background:#fff;border:1px solid #e1e7ef;border-radius:20px;padding:22px;box-shadow:0 10px 24px rgba(36,25,77,.06)}
+  .att-table{width:100%;border-collapse:collapse}.att-table th{background:#e8def8;padding:13px;text-align:left;color:#3f4d65}.att-table td{padding:14px 13px;border-bottom:1px solid #e3e8ef}.att-stats{display:flex;flex-wrap:wrap;gap:6px}.pill{padding:6px 9px;border-radius:999px;background:#edf2f8;font-size:12px;font-weight:700}.pill.good{background:#daf5e5;color:#08743c}.pill.warn{background:#fff1cc;color:#955800}.pill.bad{background:#fde0e2;color:#a71925}.att-btn{display:inline-block;border:0;border-radius:11px;padding:11px 15px;text-decoration:none;font-weight:800;background:#6e3bc6;color:#fff}.att-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.empty{text-align:center;padding:28px!important;color:#748199}
+  @media(max-width:800px){.att-hero{flex-direction:column;align-items:flex-start}}
+</style>
+<section class="att-hero"><div><h2>✅ Attendance Management Centre</h2><p>Select a meeting to record or review member participation.</p></div><div class="att-actions"><a class="att-btn" href="{{ url_for('meetings') }}">Meetings</a><a class="att-btn" href="{{ url_for('export_attendance_csv') }}">⇩ Export CSV</a></div></section>
+<section class="att-panel"><div style="overflow-x:auto"><table class="att-table">
+  <thead><tr><th>Meeting</th><th>Recorded</th><th>Participation</th><th>Attendance Rate</th><th>Action</th></tr></thead>
+  <tbody>{% for row in summary %}<tr>
+    <td><strong>{{ row.meeting.meeting_date.strftime('%d %b %Y') }}</strong><br>{{ row.meeting.meeting_type }}</td>
+    <td>{{ row.total }} of {{ row.expected }} active members</td>
+    <td><div class="att-stats"><span class="pill good">Present {{ row.present }}</span><span class="pill warn">Late {{ row.late }}</span><span class="pill bad">Absent {{ row.absent }}</span><span class="pill">Excused {{ row.excused }}</span></div></td>
+    <td><strong>{{ row.attendance_rate }}%</strong></td><td><a class="att-btn" href="{{ url_for('attendance_register', meeting_id=row.meeting.id) }}">Open Register</a></td>
+  </tr>{% else %}<tr><td colspan="5" class="empty">No meetings found. Schedule a meeting first.</td></tr>{% endfor %}</tbody>
+</table></div></section>
+{% if pagination %}<div class="att-actions" style="margin-top:16px">{% if pagination.has_prev %}<a class="att-btn" href="{{ url_for('attendance', page=pagination.prev_num) }}">← Previous</a>{% endif %}<span class="pill">Page {{ pagination.page }} of {{ pagination.pages or 1 }}</span>{% if pagination.has_next %}<a class="att-btn" href="{{ url_for('attendance', page=pagination.next_num) }}">Next →</a>{% endif %}</div>{% endif %}
 {% endblock %}

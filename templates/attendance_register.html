@@ -1,50 +1,18 @@
 {% extends 'base.html' %}
 {% block page_title %}Meeting Attendance Register{% endblock %}
 {% block subtitle %}Mark members as present, absent, late or excused{% endblock %}
-
 {% block content %}
-<section class="panel">
-  <h2>{{ meeting.meeting_type }} - {{ meeting.meeting_date }}</h2>
-  <p>Record attendance for this meeting.</p>
-
-  <form method="post">
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Member No</th>
-            <th>Name</th>
-            <th>Status</th>
-            <th>Remarks</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for m in members %}
-          {% set existing_record = existing.get(m.id) %}
-          <tr>
-            <td><strong>{{ m.member_no }}</strong></td>
-            <td>{{ m.full_name }}</td>
-            <td>
-              <select name="status_{{ m.id }}">
-                {% for s in ['Present', 'Absent', 'Late', 'Excused'] %}
-                  <option value="{{ s }}" {% if existing_record and existing_record.status == s %}selected{% endif %}>{{ s }}</option>
-                {% endfor %}
-              </select>
-            </td>
-            <td>
-              <input name="remarks_{{ m.id }}" value="{{ existing_record.remarks if existing_record else '' }}" placeholder="Optional remarks">
-            </td>
-          </tr>
-          {% else %}
-          <tr><td colspan="4">No members available.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-
-    <br>
-    <button type="submit" class="primary">Save Attendance</button>
-    <a class="btn" href="{{ url_for('attendance') }}">Back</a>
-  </form>
-</section>
+<style>
+  .reg-hero{background:linear-gradient(120deg,#6038bd,#167f9b);color:#fff;border-radius:24px;padding:28px;margin-bottom:20px}.reg-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}.reg-stat,.reg-panel{background:#fff;border:1px solid #e1e7ef;border-radius:18px;padding:19px;box-shadow:0 9px 20px rgba(36,25,77,.06)}.reg-stat span{color:#65738a}.reg-stat strong{display:block;font-size:25px;margin-top:8px}
+  .reg-table{width:100%;border-collapse:collapse}.reg-table th{background:#e9dff8;padding:13px;text-align:left}.reg-table td{padding:12px;border-bottom:1px solid #e2e8f0}.reg-table select,.reg-table input{width:100%;padding:10px;border:1px solid #ccd5e2;border-radius:10px}.reg-btn{border:0;border-radius:11px;padding:12px 17px;background:#6f3dcc;color:#fff;font-weight:800;cursor:pointer;text-decoration:none;display:inline-block}.reg-btn.secondary{background:#edf1f6;color:#182943}.fine-control{background:#fff7df;border:1px solid #f0d27b;border-radius:14px;padding:15px;margin:16px 0}.reg-actions{display:flex;gap:10px;flex-wrap:wrap}@media(max-width:800px){.reg-grid{grid-template-columns:1fr 1fr}}
+</style>
+<section class="reg-hero"><h2>{{ meeting.meeting_type }} — {{ meeting.meeting_date.strftime('%d %b %Y') }}</h2><p>{{ meeting.agenda }}</p></section>
+<section class="reg-grid"><div class="reg-stat"><span>Present</span><strong>{{ stats.Present }}</strong></div><div class="reg-stat"><span>Late</span><strong>{{ stats.Late }}</strong></div><div class="reg-stat"><span>Absent</span><strong>{{ stats.Absent }}</strong></div><div class="reg-stat"><span>Excused</span><strong>{{ stats.Excused }}</strong></div></section>
+<section class="reg-panel"><form method="post">
+  <div class="fine-control"><label><input type="checkbox" name="create_fines" value="yes" checked> <strong>Generate attendance fines</strong></label><br><small>Absent: {{ absence_fine|kwacha }} · Late: {{ late_fine|kwacha }}. Correcting unpaid attendance reverses its obsolete fine. Attendance linked to a paid fine is protected from alteration.</small></div>
+  <div style="overflow-x:auto"><table class="reg-table"><thead><tr><th>Member No.</th><th>Member</th><th>Status</th><th>Remarks</th><th>Fine</th></tr></thead><tbody>
+  {% for m in members %}{% set record = existing.get(m.id) %}<tr><td><strong>{{ m.member_no }}</strong></td><td>{{ m.full_name }}</td><td><select name="status_{{ m.id }}">{% for s in attendance_statuses %}<option value="{{ s }}" {% if record and record.status == s %}selected{% elif not record and s == 'Present' %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></td><td><input name="remarks_{{ m.id }}" value="{{ record.remarks if record and record.remarks else '' }}" placeholder="Optional remarks"></td><td>{{ 'Generated' if record and record.fine_generated else '—' }}</td></tr>
+  {% else %}<tr><td colspan="5">No active members are available.</td></tr>{% endfor %}</tbody></table></div>
+  <div class="reg-actions" style="margin-top:18px"><button type="submit" class="reg-btn">Save Attendance</button><a class="reg-btn secondary" href="{{ url_for('attendance') }}">Back</a></div>
+</form></section>
 {% endblock %}
