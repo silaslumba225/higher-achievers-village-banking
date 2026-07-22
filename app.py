@@ -1030,7 +1030,9 @@ class FinePenalty(db.Model):
 
     @property
     def balance(self):
-        return money(self.amount - self.total_paid)
+        if self.status == 'Waived':
+            return money(0)
+        return money(max(self.amount - self.total_paid, Decimal('0.00')))
 
 class FinePayment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -9071,33 +9073,63 @@ def shareout_statement(member_id):
 @role_required('fines')
 def fines():
     if request.method == 'POST':
-        user = session.get('user') or {}
-        fp = FinePenalty(
-            member_id=int(request.form['member_id']),
-            category=request.form['category'],
-            amount=money(request.form['amount']),
-            reason=request.form.get('reason'),
-            fine_date=parse_date(request.form.get('fine_date')),
-            recorded_by=user.get('full_name') or user.get('username')
-        )
-        db.session.add(fp)
-        db.session.flush()
+        try:
+            member = Member.query.get_or_404(int(request.form.get('member_id', 0)))
+            category = request.form.get('category', '').strip()
+            amount = money(request.form.get('amount'))
+            fine_date = parse_date(request.form.get('fine_date')) or date.today()
+            reason = request.form.get('reason', '').strip()
 
-        post_to_cash_book(
-            entry_date=fp.paid_on,
-            entry_type='In',
-            category='Fine Payment',
-            amount=fp.amount,
-            description=f'{fp.member.member_no} - {fp.member.full_name}',
-            method=fp.method,
-            reference=fp.reference,
-            source_type='FinePayment',
-            source_id=fp.id
-        )
+            if category not in FINE_CATEGORIES:
+                flash('Select a valid fine category.', 'error')
+                return redirect(url_for('fines'))
+            if amount <= 0:
+                flash('Fine amount must be greater than zero.', 'error')
+                return redirect(url_for('fines'))
+            if fine_date > date.today():
+                flash('Fine date cannot be in the future.', 'error')
+                return redirect(url_for('fines'))
 
-        db.session.commit()
-        log_audit('RECORD_FINE', 'FinePenalty', f.id, f'{f.member.full_name} fined {kwacha(f.amount)} for {f.category}')
-        flash('Fine / penalty recorded successfully.')
+            user = session.get('user') or {}
+            fp = FinePenalty(
+                member_id=member.id,
+                category=category,
+                amount=amount,
+                reason=reason or None,
+                fine_date=fine_date,
+                status='Unpaid',
+                recorded_by=user.get('full_name') or user.get('username') or 'System'
+            )
+            db.session.add(fp)
+            db.session.flush()
+
+            # A fine creates a receivable. Cash is recorded only when it is paid.
+            post_journal(
+                entry_date=fp.fine_date,
+                description=f'Fine charged - {member.member_no} - {member.full_name}',
+                reference=f'FINE-{fp.id}',
+                debit_account_code='1120',
+                credit_account_code='4010',
+                amount=fp.amount,
+                source_type='FinePenalty',
+                source_id=fp.id,
+                commit=False
+            )
+            db.session.commit()
+
+            log_audit(
+                'RECORD_FINE', 'FinePenalty', fp.id,
+                f'{member.full_name} fined {kwacha(fp.amount)} for {fp.category}. '
+                f'Reason: {fp.reason or "Not specified"}'
+            )
+            flash('Fine / penalty recorded successfully.', 'success')
+        except (TypeError, ValueError, InvalidOperation):
+            db.session.rollback()
+            flash('Enter valid fine details and try again.', 'error')
+        except Exception:
+            db.session.rollback()
+            app.logger.exception('Failed to record fine')
+            flash('The fine could not be recorded. Please try again.', 'error')
         return redirect(url_for('fines'))
     q = request.args.get('q','').strip()
     status = request.args.get('status','').strip()
@@ -9149,51 +9181,74 @@ def fine_payment(fine_id):
     if fine.status == 'Waived':
         flash('Cannot pay a waived fine.', 'error')
         return redirect(url_for('fines'))
+    if fine.balance <= 0:
+        flash('This fine has already been paid in full.', 'error')
+        return redirect(url_for('fines'))
+
+    try:
+        amount = money(request.form.get('amount'))
+        method = request.form.get('method', '').strip()
+        paid_on = parse_date(request.form.get('paid_on')) or date.today()
+    except (TypeError, ValueError, InvalidOperation):
+        flash('Enter valid payment details and try again.', 'error')
+        return redirect(url_for('fines'))
+
+    if amount <= 0:
+        flash('Payment amount must be greater than zero.', 'error')
+        return redirect(url_for('fines'))
+    if amount > fine.balance:
+        flash('Payment cannot exceed the outstanding fine balance.', 'error')
+        return redirect(url_for('fines'))
+    if method not in PAYMENT_METHODS:
+        flash('Select a valid payment method.', 'error')
+        return redirect(url_for('fines'))
+    if paid_on > date.today():
+        flash('Payment date cannot be in the future.', 'error')
+        return redirect(url_for('fines'))
 
     payment = FinePayment(
         fine_id=fine.id,
-        amount=money(request.form['amount']),
-        method=request.form['method'],
-        reference=request.form.get('reference'),
-        paid_on=parse_date(request.form.get('paid_on'))
+        amount=amount,
+        method=method,
+        reference=request.form.get('reference', '').strip() or None,
+        paid_on=paid_on
     )
 
-    if payment.amount <= 0:
-        flash('Payment amount must be greater than zero.', 'error')
+    try:
+        db.session.add(payment)
+        db.session.flush()
+
+        post_to_cash_book(
+            entry_date=payment.paid_on,
+            entry_type='In',
+            category='Fine Payment',
+            amount=payment.amount,
+            description=f'{fine.member.member_no} - {fine.member.full_name}',
+            method=payment.method,
+            reference=payment.reference,
+            source_type='FinePayment',
+            source_id=payment.id
+        )
+        post_journal(
+            entry_date=payment.paid_on,
+            description=f'Fine payment - {fine.member.member_no} - {fine.member.full_name}',
+            reference=payment.reference,
+            debit_account_code=cash_account(payment.method),
+            credit_account_code='1120',
+            amount=payment.amount,
+            source_type='FinePayment',
+            source_id=payment.id,
+            commit=False
+        )
+
+        remaining = money(fine.amount - fine.total_paid)
+        fine.status = 'Paid' if remaining <= 0 else 'Partially Paid'
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        app.logger.exception('Failed to record fine payment')
+        flash('The fine payment could not be recorded. Please try again.', 'error')
         return redirect(url_for('fines'))
-
-    if payment.amount > fine.balance:
-        flash('Payment cannot exceed the outstanding fine balance.', 'error')
-        return redirect(url_for('fines'))
-
-    db.session.add(payment)
-    db.session.flush()
-
-    post_to_cash_book(
-        entry_date=payment.paid_on,
-        entry_type='In',
-        category='Fine Payment',
-        amount=payment.amount,
-        description=f'{fine.member.member_no} - {fine.member.full_name}',
-        method=payment.method,
-        reference=payment.reference,
-        source_type='FinePayment',
-        source_id=payment.id
-    )
-    post_journal(
-        entry_date=payment.paid_on,
-        description=f'Fine payment - {fine.member.member_no} - {fine.member.full_name}',
-        debit_account_code=cash_account(payment.method),
-        credit_account_code='4010',
-        amount=payment.amount,
-        source_type='FinePayment',
-        source_id=payment.id
-    )
-
-    db.session.commit()
-
-    fine.status = 'Paid' if fine.balance <= 0 else 'Partially Paid'
-    db.session.commit()
 
     log_audit(
         'RECORD_FINE_PAYMENT',
@@ -9202,7 +9257,7 @@ def fine_payment(fine_id):
         f'{fine.member.full_name} paid {kwacha(payment.amount)} for fine #{fine.id} via {payment.method}'
     )
 
-    flash('Fine payment recorded.')
+    flash('Fine payment recorded successfully.', 'success')
     return redirect(url_for('fines'))
 
 @app.route('/fines/<int:fine_id>/waive', methods=['POST'])
@@ -9211,15 +9266,44 @@ def fine_payment(fine_id):
 def fine_waive(fine_id):
     fine = FinePenalty.query.get_or_404(fine_id)
     user = session.get('user') or {}
-    if fine.status == 'Paid':
+    reason = request.form.get('waiver_reason', '').strip()
+
+    if fine.source_type == 'OpeningBalance':
+        flash('An imported opening fine must be corrected through its opening balance batch.', 'error')
+    elif fine.status == 'Paid' or fine.balance <= 0:
         flash('Paid fines cannot be waived.', 'error')
+    elif fine.status == 'Waived':
+        flash('This fine has already been waived.', 'error')
+    elif not reason:
+        flash('A waiver reason is required.', 'error')
     else:
-        fine.status = 'Waived'
-        fine.waived_by = user.get('full_name') or user.get('username')
-        fine.waived_on = date.today()
-        db.session.commit()
-        log_audit('WAIVE_FINE', 'FinePenalty', fine.id, f'Fine #{fine.id} for {fine.member.full_name} waived by {fine.waived_by}. Reason: {request.form.get("waiver_reason") or "Not specified"}')
-        flash('Fine waived successfully.')
+        outstanding = fine.balance
+        try:
+            fine.status = 'Waived'
+            fine.waived_by = user.get('full_name') or user.get('username') or 'System'
+            fine.waived_on = date.today()
+            post_journal(
+                entry_date=fine.waived_on,
+                description=f'Fine waived - {fine.member.member_no} - {fine.member.full_name}',
+                reference=f'WAIVE-FINE-{fine.id}',
+                debit_account_code='4010',
+                credit_account_code='1120',
+                amount=outstanding,
+                source_type='FineWaiver',
+                source_id=fine.id,
+                commit=False
+            )
+            db.session.commit()
+            log_audit(
+                'WAIVE_FINE', 'FinePenalty', fine.id,
+                f'Fine #{fine.id} for {fine.member.full_name} waived by {fine.waived_by}. '
+                f'Outstanding amount waived: {kwacha(outstanding)}. Reason: {reason}'
+            )
+            flash('Fine waived successfully.', 'success')
+        except Exception:
+            db.session.rollback()
+            app.logger.exception('Failed to waive fine')
+            flash('The fine could not be waived. Please try again.', 'error')
     return redirect(url_for('fines'))
 
 @app.route('/export/fines.csv')

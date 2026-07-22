@@ -1,110 +1,170 @@
 {% extends 'base.html' %}
 {% block page_title %}Fines & Penalties{% endblock %}
-{% block subtitle %}Manage member fines, penalties and payments{% endblock %}
+{% block subtitle %}Issue member fines, receive payments and monitor outstanding balances{% endblock %}
 
 {% block content %}
+<style>
+  .fine-hero { display:flex; justify-content:space-between; align-items:center; gap:20px; padding:28px; margin-bottom:22px; color:#fff; border-radius:22px; background:linear-gradient(120deg,#8b0aa5,#0f8f9d); }
+  .fine-hero h2 { margin:0 0 7px; font-size:1.8rem; }
+  .fine-hero p { margin:0; }
+  .fine-form-grid, .fine-filter-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
+  .fine-field label { display:block; margin-bottom:6px; font-weight:700; font-size:.82rem; text-transform:uppercase; }
+  .fine-field input, .fine-field select { width:100%; box-sizing:border-box; }
+  .fine-field.wide { grid-column:span 2; }
+  .fine-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .fine-btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:10px 14px; border:1px solid #d6dce8; border-radius:10px; background:#fff; color:#102447; font-weight:700; text-decoration:none; cursor:pointer; }
+  .fine-btn.primary { background:#7040cf; border-color:#7040cf; color:#fff; }
+  .fine-btn.danger { border-color:#ef8d94; color:#b51522; }
+  .fine-btn.small { padding:7px 10px; font-size:.85rem; }
+  .fine-table-wrap { overflow-x:auto; }
+  .fine-table { width:100%; min-width:1050px; border-collapse:collapse; }
+  .fine-table th, .fine-table td { padding:13px 11px; border-bottom:1px solid #e1e5ee; text-align:left; vertical-align:top; }
+  .fine-table th { background:#eee3fa; font-size:.8rem; text-transform:uppercase; }
+  .fine-status { display:inline-block; padding:5px 10px; border-radius:999px; font-weight:700; font-size:.78rem; }
+  .fine-status.unpaid { background:#fee2e2; color:#b91c1c; }
+  .fine-status.partially-paid { background:#fff1c7; color:#8a5600; }
+  .fine-status.paid { background:#dcf5e7; color:#08733c; }
+  .fine-status.waived { background:#e8eaf0; color:#4b5563; }
+  .fine-inline { display:flex; flex-wrap:wrap; gap:6px; margin-top:7px; }
+  .fine-inline input, .fine-inline select { min-width:105px; max-width:145px; }
+  .fine-history { margin-top:8px; }
+  .fine-history summary { cursor:pointer; color:#7040cf; font-weight:700; }
+  .fine-history ul { margin:8px 0 0; padding-left:18px; }
+  @media (max-width:1000px) { .fine-form-grid, .fine-filter-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  @media (max-width:650px) { .fine-hero { align-items:flex-start; flex-direction:column; } .fine-form-grid, .fine-filter-grid { grid-template-columns:1fr; } .fine-field.wide { grid-column:span 1; } }
+</style>
+
+<section class="fine-hero">
+  <div>
+    <h2>⚖️ Fines Management Centre</h2>
+    <p>Apply penalties consistently, receive payments and maintain a complete audit trail.</p>
+  </div>
+  <a class="fine-btn" href="{{ url_for('export_fines_csv') }}">⬇ Export CSV</a>
+</section>
 
 <section class="kpi-grid">
-  <div class="kpi">
-    <span>Total Fines</span>
-    <strong>{{ total_fines }}</strong>
-  </div>
-
-  <div class="kpi">
-    <span>Total Paid</span>
-    <strong>{{ total_paid }}</strong>
-  </div>
-
-  <div class="kpi accent">
-    <span>Outstanding Balance</span>
-    <strong>{{ total_balance }}</strong>
-  </div>
+  <div class="kpi"><span>Total Fines</span><strong>{{ total_fines|kwacha }}</strong></div>
+  <div class="kpi"><span>Total Paid</span><strong>{{ total_paid|kwacha }}</strong></div>
+  <div class="kpi accent"><span>Outstanding Balance</span><strong>{{ total_balance|kwacha }}</strong></div>
 </section>
 
 <section class="panel">
   <div class="panel-head">
-    <h2>Fines Register</h2>
+    <div><h2>Issue a Fine or Penalty</h2><p>Record an approved charge against a member.</p></div>
   </div>
+  <form method="post" action="{{ url_for('fines') }}" class="fine-form-grid">
+    <div class="fine-field wide">
+      <label for="member_id">Member</label>
+      <select id="member_id" name="member_id" required>
+        <option value="">Select member</option>
+        {% for member in members %}<option value="{{ member.id }}">{{ member.member_no }} - {{ member.full_name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="fine-field">
+      <label for="category">Category</label>
+      <select id="category" name="category" required>
+        <option value="">Select category</option>
+        {% for category in fine_categories %}<option value="{{ category }}">{{ category }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="fine-field">
+      <label for="amount">Amount</label>
+      <input id="amount" type="number" name="amount" step="0.01" min="0.01" placeholder="0.00" required>
+    </div>
+    <div class="fine-field">
+      <label for="fine_date">Fine Date</label>
+      <input id="fine_date" type="date" name="fine_date" required>
+    </div>
+    <div class="fine-field wide">
+      <label for="reason">Reason</label>
+      <input id="reason" name="reason" maxlength="250" placeholder="Explain why the fine was issued">
+    </div>
+    <div class="fine-field fine-actions" style="align-self:end">
+      <button class="fine-btn primary" type="submit">＋ Record Fine</button>
+    </div>
+  </form>
+</section>
 
-  <form method="get" class="actions">
-    <input name="q" value="{{ q }}" placeholder="Search member">
-    <select name="status">
-      <option value="">All Statuses</option>
-      <option value="Paid" {% if status=='Paid' %}selected{% endif %}>Paid</option>
-      <option value="Pending" {% if status=='Pending' %}selected{% endif %}>Pending</option>
-    </select>
-    <button type="submit">Filter</button>
+<section class="panel">
+  <div class="panel-head">
+    <div><h2>Fines Register</h2><p>Search by member number, name, category or reason.</p></div>
+  </div>
+  <form method="get" class="fine-filter-grid">
+    <div class="fine-field wide">
+      <label for="fine_search">Search</label>
+      <input id="fine_search" name="q" value="{{ q }}" placeholder="Member, category or reason">
+    </div>
+    <div class="fine-field">
+      <label for="fine_status">Status</label>
+      <select id="fine_status" name="status">
+        <option value="">All statuses</option>
+        {% for item in fine_statuses %}<option value="{{ item }}" {% if status == item %}selected{% endif %}>{{ item }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="fine-field fine-actions" style="align-self:end">
+      <button class="fine-btn primary" type="submit">🔍 Apply Filter</button>
+      <a class="fine-btn" href="{{ url_for('fines') }}">Clear</a>
+    </div>
   </form>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Member</th>
-        <th>Reason</th>
-        <th>Amount</th>
-        <th>Paid</th>
-        <th>Balance</th>
-        <th>Status</th>
-        <th>Payment</th>
-      </tr>
-    </thead>
-
-    <tbody>
+  <div class="fine-table-wrap">
+    <table class="fine-table">
+      <thead><tr><th>Date</th><th>Member</th><th>Fine</th><th>Amount</th><th>Paid</th><th>Balance</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
       {% for fine in fines %}
-      <tr>
-        <td>{{ fine.member_name }}</td>
-        <td>{{ fine.reason }}</td>
-        <td>{{ fine.amount }}</td>
-        <td>{{ fine.paid_amount }}</td>
-        <td>{{ fine.balance }}</td>
-        <td>
-          <span class="status {% if fine.balance <= 0 %}active{% endif %}">
-            {% if fine.balance <= 0 %}
-              Paid
-            {% else %}
-              Pending
+        <tr>
+          <td>{{ fine.fine_date.strftime('%d %b %Y') if fine.fine_date else '-' }}</td>
+          <td><strong>{{ fine.member.full_name }}</strong><br><small>{{ fine.member.member_no }}</small></td>
+          <td><strong>{{ fine.category }}</strong><br><small>{{ fine.reason or 'No reason recorded' }}</small></td>
+          <td>{{ fine.amount|kwacha }}</td>
+          <td>
+            {{ fine.total_paid|kwacha }}
+            {% if fine.payments %}
+            <details class="fine-history"><summary>{{ fine.payments|length }} payment(s)</summary><ul>
+              {% for payment in fine.payments %}<li>{{ payment.paid_on.strftime('%d %b %Y') if payment.paid_on else '-' }} — {{ payment.amount|kwacha }} via {{ payment.method }}{% if payment.reference %} ({{ payment.reference }}){% endif %}</li>{% endfor %}
+            </ul></details>
             {% endif %}
-          </span>
-        </td>
-        <td>
-          {% if fine.balance > 0 %}
-          <form method="post" action="{{ url_for('fine_payment', fine_id=fine.id) }}" class="inline-form">
-            <input type="number" name="amount" step="0.01" min="0.01" max="{{ fine.balance }}" placeholder="Amount" required>
-            <select name="method" required>
-              {% for p in payment_methods %}
-                <option>{{ p }}</option>
-              {% endfor %}
-            </select>
-            <input name="reference" placeholder="Reference">
-            <input type="date" name="paid_on">
-            <button type="submit">Pay</button>
-          </form>
-          {% else %}
-            <small>Fully paid</small>
-          {% endif %}
-        </td>
-      </tr>
+          </td>
+          <td>{{ fine.balance|kwacha }}</td>
+          <td><span class="fine-status {{ fine.status|lower|replace(' ', '-') }}">{{ fine.status }}</span></td>
+          <td>
+            {% if fine.status not in ['Paid', 'Waived'] and fine.balance > 0 %}
+            <form method="post" action="{{ url_for('fine_payment', fine_id=fine.id) }}" class="fine-inline">
+              <input type="number" name="amount" step="0.01" min="0.01" max="{{ fine.balance }}" placeholder="Amount" required>
+              <select name="method" required>{% for method in payment_methods %}<option value="{{ method }}">{{ method }}</option>{% endfor %}</select>
+              <input name="reference" maxlength="80" placeholder="Reference">
+              <input type="date" name="paid_on" required>
+              <button class="fine-btn primary small" type="submit">Pay</button>
+            </form>
+            {% if fine.source_type != 'OpeningBalance' %}
+            <form method="post" action="{{ url_for('fine_waive', fine_id=fine.id) }}" class="fine-inline" onsubmit="return confirm('Waive the outstanding balance on this fine?');">
+              <input name="waiver_reason" maxlength="250" placeholder="Waiver reason" required>
+              <button class="fine-btn danger small" type="submit">Waive Balance</button>
+            </form>
+            {% endif %}
+            {% else %}<small>No action required</small>{% endif %}
+          </td>
+        </tr>
       {% else %}
-      <tr>
-        <td colspan="7">No fines recorded.</td>
-      </tr>
+        <tr><td colspan="8">No fines match the selected filters.</td></tr>
       {% endfor %}
-    </tbody>
-  </table>
-
+      </tbody>
+    </table>
+  </div>
 </section>
-{% if pagination %}
-<div class="actions">
-  {% if pagination.has_prev %}
-    <a class="btn" href="{{ url_for('fines', page=pagination.prev_num, q=q, status=status) }}">← Previous</a>
-  {% endif %}
 
+{% if pagination and pagination.pages > 0 %}
+<div class="fine-actions">
+  {% if pagination.has_prev %}<a class="fine-btn" href="{{ url_for('fines', page=pagination.prev_num, q=q, status=status) }}">← Previous</a>{% endif %}
   <span class="badge">Page {{ pagination.page }} of {{ pagination.pages }}</span>
-
-  {% if pagination.has_next %}
-    <a class="btn" href="{{ url_for('fines', page=pagination.next_num, q=q, status=status) }}">Next →</a>
-  {% endif %}
+  {% if pagination.has_next %}<a class="fine-btn" href="{{ url_for('fines', page=pagination.next_num, q=q, status=status) }}">Next →</a>{% endif %}
 </div>
 {% endif %}
 
+<script>
+  document.querySelectorAll('input[type="date"]').forEach(function (field) {
+    if (!field.value) field.value = new Date().toISOString().slice(0, 10);
+    field.max = new Date().toISOString().slice(0, 10);
+  });
+</script>
 {% endblock %}
