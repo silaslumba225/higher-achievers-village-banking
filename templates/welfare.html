@@ -1,327 +1,172 @@
 {% extends 'base.html' %}
 {% block page_title %}Welfare Fund{% endblock %}
-{% block subtitle %}Manage welfare contributions, emergency claims, approvals, payments and fund balance{% endblock %}
+{% block subtitle %}Manage contributions, claims, approvals, payments and available fund balance{% endblock %}
 
 {% block content %}
-<div class="row g-3 mb-4">
+<style>
+  .welfare-hero { display:flex; justify-content:space-between; align-items:center; gap:20px; padding:28px; margin-bottom:22px; color:#fff; border-radius:22px; background:linear-gradient(120deg,#118b58,#1577ca); }
+  .welfare-hero h2 { margin:0 0 7px; font-size:1.85rem; }
+  .welfare-hero p { margin:0; }
+  .welfare-btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:10px 14px; border:1px solid #d5dce7; border-radius:10px; background:#fff; color:#102447; font-weight:700; text-decoration:none; cursor:pointer; }
+  .welfare-btn.primary { background:#7040cf; border-color:#7040cf; color:#fff; }
+  .welfare-btn.success { background:#138a4b; border-color:#138a4b; color:#fff; }
+  .welfare-btn.danger { border-color:#ef8d94; color:#b51522; }
+  .welfare-btn.small { padding:7px 10px; font-size:.82rem; }
+  .welfare-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
+  .welfare-form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:13px; }
+  .welfare-field label { display:block; margin-bottom:6px; font-size:.8rem; font-weight:700; text-transform:uppercase; }
+  .welfare-field input, .welfare-field select { width:100%; box-sizing:border-box; }
+  .welfare-field.wide { grid-column:span 2; }
+  .welfare-actions { display:flex; flex-wrap:wrap; align-items:center; gap:7px; }
+  .welfare-health { margin:0 0 22px; padding:16px 18px; border-left:5px solid #138a4b; border-radius:14px; background:#e9f8ef; color:#096636; }
+  .welfare-health.warning { border-color:#f0a000; background:#fff7dd; color:#8a5600; }
+  .welfare-table-wrap { overflow-x:auto; }
+  .welfare-table { width:100%; min-width:1150px; border-collapse:collapse; }
+  .welfare-table th, .welfare-table td { padding:12px 10px; border-bottom:1px solid #e1e5ee; text-align:left; vertical-align:top; }
+  .welfare-table th { background:#e9def7; font-size:.78rem; text-transform:uppercase; }
+  .welfare-status { display:inline-block; padding:5px 10px; border-radius:999px; font-size:.76rem; font-weight:700; }
+  .welfare-status.requested { background:#fff1c7; color:#8a5600; }
+  .welfare-status.reviewed { background:#dcecff; color:#135da0; }
+  .welfare-status.approved { background:#e5ddff; color:#5c2aaa; }
+  .welfare-status.paid { background:#dcf5e7; color:#08733c; }
+  .welfare-status.rejected { background:#fee2e2; color:#b91c1c; }
+  .welfare-inline { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px; }
+  .welfare-inline input, .welfare-inline select { min-width:115px; max-width:155px; }
+  .welfare-meta { margin-top:6px; color:#667085; font-size:.78rem; }
+  @media (max-width:900px) { .welfare-grid { grid-template-columns:1fr; } }
+  @media (max-width:650px) { .welfare-hero { align-items:flex-start; flex-direction:column; } .welfare-form { grid-template-columns:1fr; } .welfare-field.wide { grid-column:span 1; } }
+</style>
 
-  <div class="col-md-2">
-    <div class="alert alert-success">
-      <strong>Fund Balance</strong><br>
-      {{ balance|kwacha }}
-    </div>
+<section class="welfare-hero">
+  <div>
+    <h2>❤️ Welfare Management Centre</h2>
+    <p>Protect the welfare fund while supporting members through approved needs.</p>
   </div>
-
-  <div class="col-md-2">
-    <div class="alert alert-primary">
-      <strong>Total Contributions</strong><br>
-      {{ total_contributions|kwacha }}
-    </div>
-  </div>
-
-  <div class="col-md-2">
-    <div class="alert alert-warning">
-      <strong>Pending Claims</strong><br>
-      {{ pending_claims }}
-    </div>
-  </div>
-
-  <div class="col-md-2">
-    <div class="alert alert-info">
-      <strong>Approved</strong><br>
-      {{ approved_claims }}
-    </div>
-  </div>
-
-  <div class="col-md-2">
-    <div class="alert alert-secondary">
-      <strong>Paid Claims</strong><br>
-      {{ paid_claims }}
-    </div>
-  </div>
-
-  <div class="col-md-2">
-    <div class="alert alert-dark">
-      <strong>This Month</strong><br>
-      {{ this_month_contributions|kwacha }}
-    </div>
-  </div>
-
-</div>
-<div class="panel mb-4">
-
-<h2>
-<i class="fa-solid fa-heart-pulse text-danger"></i>
-Welfare Health
-</h2>
-
-{% if balance > approved_not_paid %}
-<div class="alert alert-success">
-<strong>Healthy</strong><br>
-The welfare fund currently has sufficient resources to support approved claims.
-</div>
-{% else %}
-<div class="alert alert-warning">
-<strong>Attention Required</strong><br>
-Approved claims are approaching the available welfare balance.
-</div>
-{% endif %}
-
-</div>
-<div class="panel mb-4">
-
-<h2>
-<i class="fa-solid fa-brain text-primary"></i>
-<h3>
-    <i class="fa-solid fa-heart text-danger"></i>
-    Welfare Intelligence Advisor
-</h3>
-
-<p class="text-muted-small">
-    Powered by {{ settings.product_name }}
-</p>
-</h2>
-
-{% if pending_claims > 0 %}
-<div class="alert alert-warning">
-{{ pending_claims }} claim(s) are waiting for committee review.
-</div>
-{% else %}
-<div class="alert alert-success">
-There are no pending welfare claims.
-</div>
-{% endif %}
-
-{% if balance <= 0 %}
-<div class="alert alert-danger">
-The welfare fund has no available balance.
-</div>
-{% endif %}
-
-{% if this_month_contributions > this_month_claims_paid %}
-<div class="alert alert-info">
-This month's contributions currently exceed this month's welfare payments.
-</div>
-{% endif %}
-
-</div>
-<section class="kpi-grid">
-  <div class="kpi"><span>Total Welfare Contributions</span><strong>{{ total_contributions|kwacha }}</strong><em>Separate from monthly savings</em></div>
-  <div class="kpi"><span>Welfare Support Paid</span><strong>{{ total_paid|kwacha }}</strong><em>Approved and paid claims</em></div>
-  <div class="kpi"><span>Approved Not Paid</span><strong>{{ approved_not_paid|kwacha }}</strong><em>Claims awaiting payment</em></div>
-  <div class="kpi accent"><span>Welfare Fund Balance</span><strong>{{ balance|kwacha }}</strong><em>Contributions less paid support</em></div>
+  <a class="welfare-btn" href="{{ url_for('export_welfare_csv') }}">⬇ Export CSV</a>
 </section>
 
-<section class="two-col">
+<section class="kpi-grid">
+  <div class="kpi"><span>Total Contributions</span><strong>{{ total_contributions|kwacha }}</strong><em>Member welfare receipts</em></div>
+  <div class="kpi"><span>Support Paid</span><strong>{{ total_paid|kwacha }}</strong><em>Completed welfare claims</em></div>
+  <div class="kpi"><span>Approved Not Paid</span><strong>{{ approved_not_paid|kwacha }}</strong><em>Committed for payment</em></div>
+  <div class="kpi accent"><span>Available Balance</span><strong>{{ available_balance|kwacha }}</strong><em>Fund balance less commitments</em></div>
+</section>
+
+<div class="welfare-health {% if available_balance <= 0 %}warning{% endif %}">
+  <strong>{% if available_balance > 0 %}Welfare fund available{% else %}Attention required{% endif %}</strong><br>
+  Fund balance: {{ balance|kwacha }} · Awaiting review/approval: {{ pending_claims }} · Approved claims: {{ approved_claims }}
+</div>
+
+<section class="welfare-grid">
   <div class="panel">
     <h2>Record Welfare Contribution</h2>
-    <form method="post" class="form-grid">
+    <p>Welfare receipts are maintained separately from monthly savings.</p>
+    <form method="post" action="{{ url_for('welfare') }}" class="welfare-form">
       <input type="hidden" name="action" value="contribution">
-      <label>Member
-        <select name="member_id" required>
-          {% for m in members %}<option value="{{ m.id }}">{{ m.member_no }} - {{ m.full_name }}</option>{% endfor %}
-        </select>
-      </label>
-      <label>Month
-        <input type="month" name="month" required>
-      </label>
-      <label>Amount
-        <input type="number" name="amount" min="0.01" step="0.01" required>
-      </label>
-      <label>Method
-        <select name="method">{% for p in payment_methods %}<option>{{ p }}</option>{% endfor %}</select>
-      </label>
-      <label>Reference
-        <input name="reference" placeholder="Receipt / transaction ref">
-      </label>
-      <label>Paid On
-        <input type="date" name="paid_on">
-      </label>
-      <button type="submit">Record Contribution</button>
+      <div class="welfare-field wide"><label>Member</label><select name="member_id" required><option value="">Select member</option>{% for member in members %}<option value="{{ member.id }}">{{ member.member_no }} - {{ member.full_name }}</option>{% endfor %}</select></div>
+      <div class="welfare-field"><label>Contribution Month</label><input type="month" name="month" required></div>
+      <div class="welfare-field"><label>Amount</label><input type="number" name="amount" min="0.01" step="0.01" placeholder="0.00" required></div>
+      <div class="welfare-field"><label>Payment Method</label><select name="method" required>{% for method in payment_methods %}<option value="{{ method }}">{{ method }}</option>{% endfor %}</select></div>
+      <div class="welfare-field"><label>Reference</label><input name="reference" maxlength="80" placeholder="Receipt or transaction reference"></div>
+      <div class="welfare-field"><label>Paid On</label><input type="date" name="paid_on" required></div>
+      <div class="welfare-field welfare-actions" style="align-self:end"><button class="welfare-btn success" type="submit">＋ Record Contribution</button></div>
     </form>
   </div>
-  <div class="panel mb-4">
-
-<h2>
-  <i class="fa-solid fa-list-check text-primary"></i>
-  Claims Awaiting Review
-  </h2>
-
-  {% for claim in claims if claim.status == 'Pending' %}
-
-  <div class="d-flex justify-content-between border-bottom py-2">
-
-  <div>
-
-  <strong>{{ claim.member.full_name }}</strong><br>
-
-  <small>{{ claim.category }}</small>
-
-  </div>
-
-  <div>
-
-  {{ claim.amount_requested|kwacha }}
-
-  </div>
-
-  </div>
-
-  {% else %}
-
-  <p class="text-muted">
-  No pending claims.
-  </p>
-
-  {% endfor %}
-
-</div>
 
   <div class="panel">
     <h2>Create Welfare Claim</h2>
-    <form method="post" class="form-grid">
+    <p>Record the member’s request for committee consideration.</p>
+    <form method="post" action="{{ url_for('welfare') }}" class="welfare-form">
       <input type="hidden" name="action" value="claim">
-      <label>Member
-        <select name="member_id" required>
-          {% for m in members %}<option value="{{ m.id }}">{{ m.member_no }} - {{ m.full_name }}</option>{% endfor %}
-        </select>
-      </label>
-      <label>Category
-        <input name="category" required placeholder="Funeral, Hospital, Emergency">
-      </label>
-      <label>Amount Requested
-        <input type="number" name="amount_requested" min="0.01" step="0.01" required>
-      </label>
-      <label>Requested On
-        <input type="date" name="requested_on">
-      </label>
-      <label class="wide">Reason / Notes
-        <input name="reason" placeholder="Example: Hospitalization support">
-      </label>
-      <button type="submit">Create Claim</button>
+      <div class="welfare-field wide"><label>Member</label><select name="member_id" required><option value="">Select member</option>{% for member in members %}<option value="{{ member.id }}">{{ member.member_no }} - {{ member.full_name }}</option>{% endfor %}</select></div>
+      <div class="welfare-field"><label>Category</label><select name="category" required><option value="">Select category</option>{% for category in welfare_categories %}<option value="{{ category }}">{{ category }}</option>{% endfor %}</select></div>
+      <div class="welfare-field"><label>Amount Requested</label><input type="number" name="amount_requested" min="0.01" step="0.01" placeholder="0.00" required></div>
+      <div class="welfare-field"><label>Requested On</label><input type="date" name="requested_on" required></div>
+      <div class="welfare-field wide"><label>Reason / Supporting Notes</label><input name="reason" maxlength="250" placeholder="Explain the member's welfare need" required></div>
+      <div class="welfare-field welfare-actions"><button class="welfare-btn primary" type="submit">＋ Create Claim</button></div>
     </form>
   </div>
 </section>
 
 <section class="panel">
   <div class="panel-head">
-    <div>
-      <h2>Welfare Claims Register</h2>
-      <p>Track claim review, approval, rejection and payment.</p>
-    </div>
-    <a class="btn" href="{{ url_for('export_welfare_csv') }}">Export CSV</a>
+    <div><h2>Welfare Claims Register</h2><p>Review, approve, reject and pay claims through a controlled workflow.</p></div>
   </div>
-
-  <form method="get" class="actions">
-    <input name="q" value="{{ q }}" placeholder="Search claims...">
-    <select name="status">
-      <option value="">All statuses</option>
-      {% for s in ['Requested','Reviewed','Approved','Paid','Rejected'] %}
-        <option value="{{ s }}" {% if status==s %}selected{% endif %}>{{ s }}</option>
-      {% endfor %}
-    </select>
-    <button type="submit">Filter</button>
+  <form method="get" class="welfare-actions" style="margin-bottom:16px">
+    <input name="q" value="{{ q }}" placeholder="Member, category or reason" style="min-width:280px;flex:1">
+    <select name="status" style="min-width:180px"><option value="">All statuses</option>{% for item in welfare_statuses %}<option value="{{ item }}" {% if status == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select>
+    <button class="welfare-btn primary" type="submit">🔍 Apply Filter</button>
+    <a class="welfare-btn" href="{{ url_for('welfare') }}">Clear</a>
   </form>
 
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr><th>Date</th><th>Member</th><th>Category</th><th>Requested</th><th>Approved</th><th>Status</th><th>Actions</th></tr>
-      </thead>
+  <div class="welfare-table-wrap">
+    <table class="welfare-table">
+      <thead><tr><th>Date</th><th>Member</th><th>Claim</th><th>Requested</th><th>Approved</th><th>Status</th><th>Workflow Actions</th></tr></thead>
       <tbody>
-        {% for c in claims %}
+      {% for claim in claims %}
         <tr>
-          <td>{{ c.requested_on }}</td>
-          <td><strong>{{ c.member.member_no }}</strong><br>{{ c.member.full_name }}</td>
-          <td>{{ c.category }}<br><small>{{ c.reason or '-' }}</small></td>
-          <td>{{ c.amount_requested|kwacha }}</td>
-          <td>{{ c.amount_approved|kwacha }}</td>
-          <td><span class="status">{{ c.status }}</span></td>
+          <td>{{ claim.requested_on.strftime('%d %b %Y') if claim.requested_on else '-' }}</td>
+          <td><strong>{{ claim.member.full_name }}</strong><br><small>{{ claim.member.member_no }}</small></td>
+          <td><strong>{{ claim.category }}</strong><br><small>{{ claim.reason }}</small>{% if claim.rejection_reason %}<br><small style="color:#b91c1c">Rejected: {{ claim.rejection_reason }}</small>{% endif %}</td>
+          <td>{{ claim.amount_requested|kwacha }}</td>
+          <td>{{ claim.amount_approved|kwacha }}</td>
+          <td><span class="welfare-status {{ claim.status|lower }}">{{ claim.status }}</span></td>
           <td>
-            {% if c.status == 'Requested' %}
-              <form method="post" action="{{ url_for('welfare_review', claim_id=c.id) }}" class="inline-form">
-                <button type="submit">Review</button>
-              </form>
+            {% if claim.status == 'Requested' %}
+            <form method="post" action="{{ url_for('welfare_review', claim_id=claim.id) }}" class="welfare-inline"><button class="welfare-btn small" type="submit">✓ Mark Reviewed</button></form>
             {% endif %}
-
-            {% if c.status in ['Requested', 'Reviewed'] %}
-              <form method="post" action="{{ url_for('welfare_approve', claim_id=c.id) }}" class="inline-form">
-                <input type="number" name="amount_approved" min="0.01" step="0.01" placeholder="Approved amount" value="{{ c.amount_requested }}" required>
-                <input name="approved_by" placeholder="Approved by">
-                <button type="submit">Approve</button>
-              </form>
-              <form method="post" action="{{ url_for('welfare_reject', claim_id=c.id) }}" class="inline-form" onsubmit="return confirm('Reject this welfare claim?');">
-                <input name="reason" placeholder="Rejection reason">
-                <button type="submit">Reject</button>
-              </form>
+            {% if claim.status == 'Reviewed' %}
+            <form method="post" action="{{ url_for('welfare_approve', claim_id=claim.id) }}" class="welfare-inline" onsubmit="return confirm('Approve this welfare claim?');">
+              <input type="number" name="amount_approved" min="0.01" step="0.01" max="{{ claim.amount_requested }}" value="{{ claim.amount_requested }}" required>
+              <button class="welfare-btn success small" type="submit">Approve</button>
+            </form>
             {% endif %}
-
-            {% if c.status == 'Approved' %}
-              <form method="post" action="{{ url_for('welfare_pay', claim_id=c.id) }}" class="inline-form">
-                <select name="method">{% for p in payment_methods %}<option>{{ p }}</option>{% endfor %}</select>
-                <input name="reference" placeholder="Payment ref">
-                <input type="date" name="paid_on">
-                <button type="submit">Mark Paid</button>
-              </form>
+            {% if claim.status == 'Approved' %}
+            <form method="post" action="{{ url_for('welfare_pay', claim_id=claim.id) }}" class="welfare-inline" onsubmit="return confirm('Record payment of {{ claim.amount_approved|kwacha }}?');">
+              <select name="method" required>{% for method in payment_methods %}<option value="{{ method }}">{{ method }}</option>{% endfor %}</select>
+              <input name="reference" maxlength="80" placeholder="Payment reference">
+              <input type="date" name="paid_on" required>
+              <button class="welfare-btn primary small" type="submit">Pay Claim</button>
+            </form>
             {% endif %}
-
-            {% if c.status in ['Paid', 'Rejected'] %}<small>No further action</small>{% endif %}
+            {% if claim.status in ['Requested', 'Reviewed', 'Approved'] %}
+            <form method="post" action="{{ url_for('welfare_reject', claim_id=claim.id) }}" class="welfare-inline" onsubmit="return confirm('Reject this welfare claim?');">
+              <input name="reason" maxlength="250" placeholder="Rejection reason" required>
+              <button class="welfare-btn danger small" type="submit">Reject</button>
+            </form>
+            {% endif %}
+            {% if claim.status in ['Paid', 'Rejected'] %}<small>No further action</small>{% endif %}
+            {% if claim.reviewed_by or claim.approved_by or claim.paid_by %}<div class="welfare-meta">{% if claim.reviewed_by %}Reviewed by {{ claim.reviewed_by }}{% endif %}{% if claim.approved_by %}<br>Approved by {{ claim.approved_by }}{% endif %}{% if claim.paid_by %}<br>Paid by {{ claim.paid_by }}{% endif %}</div>{% endif %}
           </td>
         </tr>
-        {% else %}
-        <tr><td colspan="7">No welfare claims found.</td></tr>
-        {% endfor %}
+      {% else %}<tr><td colspan="7">No welfare claims match the selected filters.</td></tr>{% endfor %}
       </tbody>
     </table>
   </div>
 </section>
 
 <section class="panel">
-  <h2>Recent Welfare Contributions</h2>
-  <div class="table-wrap">
-    <table>
+  <div class="panel-head"><div><h2>Recent Welfare Contributions</h2><p>Latest member receipts credited to the welfare fund.</p></div></div>
+  <div class="welfare-table-wrap">
+    <table class="welfare-table" style="min-width:800px">
       <thead><tr><th>Date</th><th>Member</th><th>Month</th><th>Method</th><th>Reference</th><th>Amount</th></tr></thead>
-      <tbody>
-        {% for w in contributions %}
-        <tr>
-          <td>{{ w.paid_on }}</td>
-          <td>{{ w.member.member_no }} - {{ w.member.full_name }}</td>
-          <td>{{ w.month }}</td>
-          <td>{{ w.method }}</td>
-          <td>{{ w.reference or '-' }}</td>
-          <td>{{ w.amount|kwacha }}</td>
-        </tr>
-        {% else %}
-        <tr><td colspan="6">No welfare contributions recorded.</td></tr>
-        {% endfor %}
-      </tbody>
+      <tbody>{% for contribution in contributions %}<tr><td>{{ contribution.paid_on.strftime('%d %b %Y') if contribution.paid_on else '-' }}</td><td>{{ contribution.member.member_no }} - {{ contribution.member.full_name }}</td><td>{{ contribution.month }}</td><td>{{ contribution.method }}</td><td>{{ contribution.reference or '-' }}</td><td>{{ contribution.amount|kwacha }}</td></tr>{% else %}<tr><td colspan="6">No welfare contributions recorded.</td></tr>{% endfor %}</tbody>
     </table>
   </div>
 </section>
-{% if pagination %}
-<div class="actions">
 
-  {% if pagination.page > 1 %}
-    <a class="btn" href="{{ url_for('welfare', page=1, q=q, status=status) }}">« First</a>
-  {% endif %}
-
-  {% if pagination.has_prev %}
-    <a class="btn" href="{{ url_for('welfare', page=pagination.prev_num, q=q, status=status) }}">← Previous</a>
-  {% endif %}
-
-  <span class="badge">
-    Page {{ pagination.page }} of {{ pagination.pages }}
-  </span>
-
-  {% if pagination.has_next %}
-    <a class="btn" href="{{ url_for('welfare', page=pagination.next_num, q=q, status=status) }}">Next →</a>
-  {% endif %}
-
-  {% if pagination.page < pagination.pages %}
-    <a class="btn" href="{{ url_for('welfare', page=pagination.pages, q=q, status=status) }}">Last »</a>
-  {% endif %}
-
+{% if pagination and pagination.pages > 0 %}
+<div class="welfare-actions">
+  {% if pagination.has_prev %}<a class="welfare-btn" href="{{ url_for('welfare', page=pagination.prev_num, q=q, status=status) }}">← Previous</a>{% endif %}
+  <span class="badge">Page {{ pagination.page }} of {{ pagination.pages }}</span>
+  {% if pagination.has_next %}<a class="welfare-btn" href="{{ url_for('welfare', page=pagination.next_num, q=q, status=status) }}">Next →</a>{% endif %}
 </div>
 {% endif %}
 
+<script>
+  const today = new Date().toISOString().slice(0, 10);
+  const month = today.slice(0, 7);
+  document.querySelectorAll('input[type="date"]').forEach(function (field) { if (!field.value) field.value = today; field.max = today; });
+  document.querySelectorAll('input[type="month"]').forEach(function (field) { if (!field.value) field.value = month; field.max = month; });
+</script>
 {% endblock %}

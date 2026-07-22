@@ -4227,8 +4227,8 @@ def executive_dashboard():
         Loan.status.in_(['Disbursed', 'Partially Paid'])
     ).count()
 
-    pending_welfare_claims = WelfareClaim.query.filter_by(
-        status='Pending'
+    pending_welfare_claims = WelfareClaim.query.filter(
+        WelfareClaim.status.in_(['Requested', 'Reviewed'])
     ).count()
 
     recent_journals = JournalEntry.query.order_by(
@@ -9241,7 +9241,7 @@ def fine_payment(fine_id):
             commit=False
         )
 
-        remaining = money(fine.amount - fine.total_paid)
+        remaining = money(fine.balance - payment.amount)
         fine.status = 'Paid' if remaining <= 0 else 'Partially Paid'
         db.session.commit()
     except Exception:
@@ -9325,59 +9325,127 @@ def welfare():
     if request.method == 'POST':
         action = request.form.get('action')
         if action == 'contribution':
-            c = WelfareContribution(
-                member_id=int(request.form['member_id']),
-                month=request.form['month'],
-                amount=money(request.form['amount']),
-                method=request.form['method'],
-                reference=request.form.get('reference'),
-                paid_on=parse_date(request.form.get('paid_on'))
-            )
-            db.session.add(c)
-            db.session.flush()
+            try:
+                member = Member.query.get_or_404(int(request.form.get('member_id', 0)))
+                month = request.form.get('month', '').strip()
+                amount = money(request.form.get('amount'))
+                method = request.form.get('method', '').strip()
+                reference = request.form.get('reference', '').strip() or None
+                paid_on = parse_date(request.form.get('paid_on'))
 
-            post_to_cash_book(
-                entry_date=c.paid_on,
-                entry_type='In',
-                category='Welfare Contribution',
-                amount=c.amount,
-                description=f'{c.member.member_no} - {c.member.full_name}',
-                method=c.method,
-                reference=c.reference,
-                source_type='WelfareContribution',
-                source_id=c.id
-            )
-            post_journal(
-                entry_date=c.paid_on,
-                description=f'Welfare contribution - {c.member.member_no} - {c.member.full_name}',
-                debit_account_code=cash_account(c.method),
-                credit_account_code='2010',
-                amount=c.amount,
-                source_type='WelfareContribution',
-                source_id=c.id
-            )
+                if not re.fullmatch(r'\d{4}-(0[1-9]|1[0-2])', month):
+                    flash('Select a valid contribution month.', 'error')
+                    return redirect(url_for('welfare'))
+                if month > date.today().strftime('%Y-%m'):
+                    flash('Contribution month cannot be in the future.', 'error')
+                    return redirect(url_for('welfare'))
+                if amount <= 0:
+                    flash('Contribution amount must be greater than zero.', 'error')
+                    return redirect(url_for('welfare'))
+                if method not in PAYMENT_METHODS:
+                    flash('Select a valid payment method.', 'error')
+                    return redirect(url_for('welfare'))
+                if paid_on > date.today():
+                    flash('Payment date cannot be in the future.', 'error')
+                    return redirect(url_for('welfare'))
+                if reference and WelfareContribution.query.filter_by(
+                    method=method, reference=reference
+                ).first():
+                    flash('A welfare contribution with this payment method and reference already exists.', 'error')
+                    return redirect(url_for('welfare'))
 
-            db.session.commit()
+                c = WelfareContribution(
+                    member_id=member.id,
+                    month=month,
+                    amount=amount,
+                    method=method,
+                    reference=reference,
+                    paid_on=paid_on
+                )
+                db.session.add(c)
+                db.session.flush()
 
-            log_audit(
-                'RECORD_WELFARE_CONTRIBUTION',
-                'WelfareContribution',
-                c.id,
-                f'{c.member.full_name} paid welfare contribution {kwacha(c.amount)} for {c.month}'
-            )
+                post_to_cash_book(
+                    entry_date=c.paid_on,
+                    entry_type='In',
+                    category='Welfare Contribution',
+                    amount=c.amount,
+                    description=f'{member.member_no} - {member.full_name}',
+                    method=c.method,
+                    reference=c.reference,
+                    source_type='WelfareContribution',
+                    source_id=c.id
+                )
+                post_journal(
+                    entry_date=c.paid_on,
+                    description=f'Welfare contribution - {member.member_no} - {member.full_name}',
+                    reference=c.reference,
+                    debit_account_code=cash_account(c.method),
+                    credit_account_code='2010',
+                    amount=c.amount,
+                    source_type='WelfareContribution',
+                    source_id=c.id,
+                    commit=False
+                )
+                db.session.commit()
 
-            flash('Welfare contribution recorded.')
+                log_audit(
+                    'RECORD_WELFARE_CONTRIBUTION', 'WelfareContribution', c.id,
+                    f'{member.full_name} paid welfare contribution {kwacha(c.amount)} '
+                    f'for {c.month} via {c.method}'
+                )
+                flash('Welfare contribution recorded successfully.', 'success')
+            except (TypeError, ValueError, InvalidOperation):
+                db.session.rollback()
+                flash('Enter valid welfare contribution details.', 'error')
+            except Exception:
+                db.session.rollback()
+                app.logger.exception('Failed to record welfare contribution')
+                flash('The welfare contribution could not be recorded.', 'error')
         elif action == 'claim':
-            claim = WelfareClaim(
-                member_id=int(request.form['member_id']),
-                category=request.form['category'],
-                amount_requested=money(request.form['amount_requested']),
-                reason=request.form.get('reason'),
-                requested_on=parse_date(request.form.get('requested_on'))
-            )
-            db.session.add(claim); db.session.commit()
-            log_audit('CREATE_WELFARE_CLAIM', 'WelfareClaim', claim.id, f'{claim.member.full_name} requested {kwacha(claim.amount_requested)} for {claim.category}')
-            flash('Welfare claim request recorded.')
+            try:
+                member = Member.query.get_or_404(int(request.form.get('member_id', 0)))
+                category = request.form.get('category', '').strip()
+                amount_requested = money(request.form.get('amount_requested'))
+                reason = request.form.get('reason', '').strip()
+                requested_on = parse_date(request.form.get('requested_on'))
+
+                if category not in WELFARE_CATEGORIES:
+                    flash('Select a valid welfare claim category.', 'error')
+                    return redirect(url_for('welfare'))
+                if amount_requested <= 0:
+                    flash('Requested amount must be greater than zero.', 'error')
+                    return redirect(url_for('welfare'))
+                if requested_on > date.today():
+                    flash('Request date cannot be in the future.', 'error')
+                    return redirect(url_for('welfare'))
+                if not reason:
+                    flash('A reason or supporting note is required.', 'error')
+                    return redirect(url_for('welfare'))
+
+                claim = WelfareClaim(
+                    member_id=member.id,
+                    category=category,
+                    amount_requested=amount_requested,
+                    reason=reason,
+                    requested_on=requested_on,
+                    status='Requested'
+                )
+                db.session.add(claim)
+                db.session.commit()
+                log_audit(
+                    'CREATE_WELFARE_CLAIM', 'WelfareClaim', claim.id,
+                    f'{member.full_name} requested {kwacha(claim.amount_requested)} '
+                    f'for {claim.category}. Reason: {claim.reason}'
+                )
+                flash('Welfare claim request recorded successfully.', 'success')
+            except (TypeError, ValueError, InvalidOperation):
+                db.session.rollback()
+                flash('Enter valid welfare claim details.', 'error')
+            except Exception:
+                db.session.rollback()
+                app.logger.exception('Failed to create welfare claim')
+                flash('The welfare claim could not be recorded.', 'error')
         return redirect(url_for('welfare'))
 
     q = request.args.get('q','').strip()
@@ -9412,7 +9480,9 @@ def welfare():
     approved_not_paid = money(db.session.query(db.func.coalesce(db.func.sum(WelfareClaim.amount_approved), 0)).filter(WelfareClaim.status == 'Approved').scalar())
     balance = money(total_contributions - total_paid)
     
-    pending_claims = WelfareClaim.query.filter_by(status='Pending').count()
+    pending_claims = WelfareClaim.query.filter(
+        WelfareClaim.status.in_(['Requested', 'Reviewed'])
+    ).count()
     approved_claims = WelfareClaim.query.filter_by(status='Approved').count()
     paid_claims = WelfareClaim.query.filter_by(status='Paid').count()
 
@@ -9426,9 +9496,14 @@ def welfare():
 
     this_month_claims_paid = money(
         db.session.query(db.func.coalesce(db.func.sum(WelfareClaim.amount_approved), 0))
-        .filter(WelfareClaim.status == 'Paid')
+        .filter(
+            WelfareClaim.status == 'Paid',
+            db.extract('year', WelfareClaim.paid_on) == date.today().year,
+            db.extract('month', WelfareClaim.paid_on) == date.today().month
+        )
         .scalar()
     )
+    available_balance = money(balance - approved_not_paid)
     
     welfare_service = WelfareIntelligenceService(
         balance=balance,
@@ -9454,6 +9529,7 @@ def welfare():
         total_contributions=total_contributions,
         total_paid=total_paid,
         approved_not_paid=approved_not_paid,
+        available_balance=available_balance,
         balance=balance,
         pending_claims=pending_claims,
         approved_claims=approved_claims,
@@ -9486,17 +9562,48 @@ def welfare_review(claim_id):
 @role_required('welfare')
 def welfare_approve(claim_id):
     claim = WelfareClaim.query.get_or_404(claim_id)
-    if claim.status not in ['Requested', 'Reviewed']:
-        flash('Only requested or reviewed claims can be approved.', 'error')
+    if claim.status != 'Reviewed':
+        flash('A welfare claim must be reviewed before it can be approved.', 'error')
     else:
-        user = session.get('user') or {}
-        claim.status = 'Approved'
-        claim.amount_approved = money(request.form.get('amount_approved') or claim.amount_requested)
-        claim.approved_by = request.form.get('approved_by') or user.get('full_name') or 'Management Committee'
-        claim.approved_on = date.today()
-        db.session.commit()
-        log_audit('WELFARE_CLAIM_APPROVED', 'WelfareClaim', claim.id, f'{claim.member.full_name} welfare claim approved for {kwacha(claim.amount_approved)} by {claim.approved_by}')
-        flash('Welfare claim approved. It is ready for payment.')
+        try:
+            approved_amount = money(request.form.get('amount_approved') or claim.amount_requested)
+        except (TypeError, ValueError, InvalidOperation):
+            flash('Enter a valid approved amount.', 'error')
+            return redirect(url_for('welfare'))
+
+        total_contributions = money(db.session.query(
+            db.func.coalesce(db.func.sum(WelfareContribution.amount), 0)
+        ).scalar())
+        total_paid = money(db.session.query(
+            db.func.coalesce(db.func.sum(WelfareClaim.amount_approved), 0)
+        ).filter(WelfareClaim.status == 'Paid').scalar())
+        reserved = money(db.session.query(
+            db.func.coalesce(db.func.sum(WelfareClaim.amount_approved), 0)
+        ).filter(WelfareClaim.status == 'Approved').scalar())
+        available = money(total_contributions - total_paid - reserved)
+
+        if approved_amount <= 0:
+            flash('Approved amount must be greater than zero.', 'error')
+        elif approved_amount > claim.amount_requested:
+            flash('Approved amount cannot exceed the amount requested.', 'error')
+        elif approved_amount > available:
+            flash(
+                f'Approval exceeds the available uncommitted welfare balance of {kwacha(available)}.',
+                'error'
+            )
+        else:
+            user = session.get('user') or {}
+            claim.status = 'Approved'
+            claim.amount_approved = approved_amount
+            claim.approved_by = user.get('full_name') or user.get('username') or 'Management Committee'
+            claim.approved_on = date.today()
+            db.session.commit()
+            log_audit(
+                'WELFARE_CLAIM_APPROVED', 'WelfareClaim', claim.id,
+                f'{claim.member.full_name} welfare claim approved for '
+                f'{kwacha(claim.amount_approved)} by {claim.approved_by}'
+            )
+            flash('Welfare claim approved. It is ready for payment.', 'success')
     return redirect(url_for('welfare'))
 
 @app.route('/welfare/claims/<int:claim_id>/pay', methods=['POST'])
@@ -9507,37 +9614,76 @@ def welfare_pay(claim_id):
     if claim.status != 'Approved':
         flash('Only approved welfare claims can be paid.', 'error')
     else:
+        method = request.form.get('method', '').strip()
+        reference = request.form.get('reference', '').strip() or None
+        try:
+            paid_on = parse_date(request.form.get('paid_on'))
+        except (TypeError, ValueError):
+            flash('Enter a valid payment date.', 'error')
+            return redirect(url_for('welfare'))
+
+        total_contributions = money(db.session.query(
+            db.func.coalesce(db.func.sum(WelfareContribution.amount), 0)
+        ).scalar())
+        total_paid = money(db.session.query(
+            db.func.coalesce(db.func.sum(WelfareClaim.amount_approved), 0)
+        ).filter(WelfareClaim.status == 'Paid').scalar())
+        fund_balance = money(total_contributions - total_paid)
+
+        if method not in PAYMENT_METHODS:
+            flash('Select a valid payment method.', 'error')
+            return redirect(url_for('welfare'))
+        if paid_on > date.today():
+            flash('Payment date cannot be in the future.', 'error')
+            return redirect(url_for('welfare'))
+        if claim.amount_approved <= 0:
+            flash('The claim has no approved amount to pay.', 'error')
+            return redirect(url_for('welfare'))
+        if claim.amount_approved > fund_balance:
+            flash(f'Insufficient welfare fund balance. Available: {kwacha(fund_balance)}.', 'error')
+            return redirect(url_for('welfare'))
+
         user = session.get('user') or {}
         claim.status = 'Paid'
-        claim.paid_by = user.get('full_name') or user.get('username')
-        claim.paid_on = parse_date(request.form.get('paid_on'))
-        claim.payment_method = request.form.get('method')
-        claim.reference = request.form.get('reference')
+        claim.paid_by = user.get('full_name') or user.get('username') or 'System'
+        claim.paid_on = paid_on
+        claim.payment_method = method
+        claim.reference = reference
 
-        post_to_cash_book(
-            entry_date=claim.paid_on,
-            entry_type='Out',
-            category='Welfare Claim Payment',
-            amount=claim.amount_approved,
-            description=f'{claim.member.member_no} - {claim.member.full_name}',
-            method=claim.payment_method,
-            reference=claim.reference,
-            source_type='WelfareClaim',
-            source_id=claim.id
-        )
-        post_journal(
-            entry_date=claim.paid_on,
-            description=f'Welfare claim payment - {claim.member.member_no} - {claim.member.full_name}',
-            debit_account_code='5030',
-            credit_account_code=cash_account(claim.payment_method),
-            amount=claim.amount_approved,
-            source_type='WelfareClaim',
-            source_id=claim.id
-        )
-
-        db.session.commit()
+        try:
+            post_to_cash_book(
+                entry_date=claim.paid_on,
+                entry_type='Out',
+                category='Welfare Claim Payment',
+                amount=claim.amount_approved,
+                description=f'{claim.member.member_no} - {claim.member.full_name}',
+                method=claim.payment_method,
+                reference=claim.reference,
+                source_type='WelfareClaim',
+                source_id=claim.id
+            )
+            # Welfare contributions are held as a designated fund liability.
+            # Paying approved support reduces that fund rather than creating
+            # an unrelated operating expense.
+            post_journal(
+                entry_date=claim.paid_on,
+                description=f'Welfare claim payment - {claim.member.member_no} - {claim.member.full_name}',
+                reference=claim.reference,
+                debit_account_code='2010',
+                credit_account_code=cash_account(claim.payment_method),
+                amount=claim.amount_approved,
+                source_type='WelfareClaim',
+                source_id=claim.id,
+                commit=False
+            )
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            app.logger.exception('Failed to pay welfare claim')
+            flash('The welfare claim payment could not be recorded.', 'error')
+            return redirect(url_for('welfare'))
         log_audit('WELFARE_CLAIM_PAID', 'WelfareClaim', claim.id, f'{claim.member.full_name} welfare claim paid {kwacha(claim.amount_approved)} via {claim.payment_method}')
-        flash('Welfare claim paid successfully.')
+        flash('Welfare claim paid successfully.', 'success')
     return redirect(url_for('welfare'))
 
 @app.route('/welfare/claims/<int:claim_id>/reject', methods=['POST'])
@@ -9545,11 +9691,14 @@ def welfare_pay(claim_id):
 @role_required('welfare')
 def welfare_reject(claim_id):
     claim = WelfareClaim.query.get_or_404(claim_id)
-    if claim.status in ['Paid']:
-        flash('Paid welfare claims cannot be rejected.', 'error')
+    reason = request.form.get('reason', '').strip()
+    if claim.status not in ['Requested', 'Reviewed', 'Approved']:
+        flash('Only an unpaid active claim can be rejected.', 'error')
+    elif not reason:
+        flash('A rejection reason is required.', 'error')
     else:
         claim.status = 'Rejected'
-        claim.rejection_reason = request.form.get('reason') or 'Not specified'
+        claim.rejection_reason = reason
         db.session.commit()
         log_audit('WELFARE_CLAIM_REJECTED', 'WelfareClaim', claim.id, f'{claim.member.full_name} welfare claim rejected. Reason: {claim.rejection_reason}')
         flash('Welfare claim rejected.')
