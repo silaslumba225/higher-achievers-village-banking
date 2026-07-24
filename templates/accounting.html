@@ -150,401 +150,2183 @@
     }
   }
 </style>
-<section class="panel">
+<style>
+  .accounting-executive-hero {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #312e81, #5b21b6 55%, #7c3aed);
+    color: #fff;
+    border-radius: 24px;
+    padding: 30px;
+    margin-bottom: 24px;
+    box-shadow: 0 16px 38px rgba(76, 29, 149, 0.23);
+  }
 
-<h2>💼 Financial Intelligence Centre</h2>
+  .accounting-executive-hero::before {
+    content: "";
+    position: absolute;
+    width: 230px;
+    height: 230px;
+    right: -65px;
+    top: -95px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+  }
 
-<div class="accounting-kpis">
+  .accounting-executive-hero::after {
+    content: "";
+    position: absolute;
+    width: 150px;
+    height: 150px;
+    right: 130px;
+    bottom: -100px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+  }
 
-    <div class="accounting-kpi">
-        <span>Cash Position</span>
-        <strong>{{ cash_total|kwacha }}</strong>
-        <em>Cash • Bank • Mobile Money</em>
+  .accounting-hero-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 22px;
+    flex-wrap: wrap;
+  }
+
+  .accounting-hero-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .accounting-hero-icon {
+    width: 58px;
+    height: 58px;
+    flex: 0 0 58px;
+    display: grid;
+    place-items: center;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.18);
+    font-size: 25px;
+  }
+
+  .accounting-executive-hero h2 {
+    margin: 0 0 8px;
+    color: #fff;
+    font-size: 29px;
+    font-weight: 800;
+  }
+
+  .accounting-executive-hero p {
+    max-width: 760px;
+    margin: 0;
+    color: rgba(255, 255, 255, 0.86);
+    line-height: 1.6;
+  }
+
+  .accounting-hero-badge {
+    position: relative;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 15px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.94);
+    color: #5b21b6;
+    font-size: 13px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  .executive-finance-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .executive-finance-card {
+    position: relative;
+    overflow: hidden;
+    min-height: 168px;
+    padding: 21px;
+    border-radius: 21px;
+    color: #fff;
+    box-shadow: 0 13px 29px rgba(16, 24, 40, 0.14);
+  }
+
+  .executive-finance-card::after {
+    content: "";
+    position: absolute;
+    width: 115px;
+    height: 115px;
+    right: -35px;
+    bottom: -42px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .finance-card-blue {
+    background: linear-gradient(135deg, #2563eb, #1e40af);
+  }
+
+  .finance-card-green {
+    background: linear-gradient(135deg, #16a34a, #087a34);
+  }
+
+  .finance-card-orange {
+    background: linear-gradient(135deg, #f97316, #c2410c);
+  }
+
+  .finance-card-purple {
+    background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  }
+
+  .finance-card-red {
+    background: linear-gradient(135deg, #dc2626, #991b1b);
+  }
+
+  .executive-finance-icon {
+    width: 46px;
+    height: 46px;
+    display: grid;
+    place-items: center;
+    margin-bottom: 16px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.2);
+    font-size: 20px;
+  }
+
+  .executive-finance-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.88;
+  }
+
+  .executive-finance-value {
+    position: relative;
+    z-index: 2;
+    display: block;
+    margin-top: 8px;
+    font-size: 27px;
+    line-height: 1.2;
+    font-weight: 800;
+  }
+
+  .executive-finance-note {
+    position: relative;
+    z-index: 2;
+    display: block;
+    margin-top: 8px;
+    color: rgba(255, 255, 255, 0.84);
+    font-size: 13px;
+  }
+
+  .accounting-dashboard-grid {
+    display: grid;
+    grid-template-columns: minmax(320px, 0.8fr) minmax(0, 1.4fr);
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+
+  .accounting-modern-panel {
+    background: #fff;
+    border: 1px solid #e4e7ec;
+    border-radius: 22px;
+    padding: 24px;
+    box-shadow: 0 10px 28px rgba(16, 24, 40, 0.07);
+  }
+
+  .accounting-section-title {
+    display: flex;
+    align-items: flex-start;
+    gap: 13px;
+    margin-bottom: 20px;
+  }
+
+  .accounting-section-title-icon {
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    background: #f1eafe;
+    color: #6d28d9;
+    font-size: 20px;
+  }
+
+  .accounting-section-title h3 {
+    margin: 0 0 5px;
+    color: #101828;
+    font-size: 20px;
+    font-weight: 800;
+  }
+
+  .accounting-section-title p {
+    margin: 0;
+    color: #667085;
+    line-height: 1.5;
+  }
+
+  .financial-health-score {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  .financial-health-score strong {
+    color: #101828;
+    font-size: 52px;
+    line-height: 1;
+  }
+
+  .financial-health-score span {
+    margin-bottom: 5px;
+    color: #667085;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .financial-health-track {
+    height: 16px;
+    overflow: hidden;
+    margin-bottom: 16px;
+    border-radius: 999px;
+    background: #eef2f6;
+  }
+
+  .financial-health-fill {
+    height: 100%;
+    min-width: 3px;
+    border-radius: 999px;
+    transition: width 0.35s ease;
+  }
+
+  .health-green {
+    background: linear-gradient(90deg, #16a34a, #22c55e);
+  }
+
+  .health-blue {
+    background: linear-gradient(90deg, #2563eb, #60a5fa);
+  }
+
+  .health-yellow {
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+  }
+
+  .health-orange {
+    background: linear-gradient(90deg, #f97316, #fb923c);
+  }
+
+  .health-red {
+    background: linear-gradient(90deg, #dc2626, #ef4444);
+  }
+
+  .financial-health-status {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 13px 15px;
+    border-radius: 14px;
+    background: #f9fafb;
+    border: 1px solid #eaecf0;
+    color: #344054;
+  }
+
+  .financial-health-status i {
+    color: #7c3aed;
+  }
+
+  .financial-health-status strong {
+    font-weight: 800;
+  }
+
+  .financial-health-guidance {
+    margin-top: 14px;
+    padding: 14px 15px;
+    border-left: 4px solid #7c3aed;
+    border-radius: 0 13px 13px 0;
+    background: #faf7ff;
+    color: #475467;
+    line-height: 1.5;
+  }
+
+  .ai-advisor-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .ai-powered-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #f1eafe;
+    color: #6d28d9;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .ai-insights-grid {
+    display: grid;
+    gap: 13px;
+  }
+
+  .ai-insight-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px;
+    border: 1px solid #e4e7ec;
+    border-radius: 16px;
+    background: #fff;
+  }
+
+  .ai-insight-icon {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    display: grid;
+    place-items: center;
+    border-radius: 13px;
+    font-size: 18px;
+  }
+
+  .ai-level-success .ai-insight-icon {
+    background: #dcfae6;
+    color: #067647;
+  }
+
+  .ai-level-warning .ai-insight-icon {
+    background: #fff4e5;
+    color: #b54708;
+  }
+
+  .ai-level-danger .ai-insight-icon {
+    background: #fee4e2;
+    color: #b42318;
+  }
+
+  .ai-level-info .ai-insight-icon {
+    background: #eaf2ff;
+    color: #155eef;
+  }
+
+  .ai-level-primary .ai-insight-icon {
+    background: #f1eafe;
+    color: #6d28d9;
+  }
+
+  .ai-level-secondary .ai-insight-icon {
+    background: #f2f4f7;
+    color: #475467;
+  }
+
+  .ai-insight-content {
+    min-width: 0;
+  }
+
+  .ai-insight-content strong {
+    display: block;
+    margin-bottom: 5px;
+    color: #101828;
+    font-size: 15px;
+  }
+
+  .ai-insight-content p {
+    margin: 0;
+    color: #667085;
+    line-height: 1.55;
+  }
+
+  .ai-empty-state {
+    padding: 25px 16px;
+    border: 1px dashed #d0d5dd;
+    border-radius: 16px;
+    text-align: center;
+    color: #667085;
+  }
+
+  @media (max-width: 1100px) {
+    .executive-finance-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .accounting-dashboard-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 650px) {
+    .executive-finance-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .accounting-executive-hero {
+      padding: 23px;
+    }
+
+    .accounting-hero-heading {
+      flex-direction: column;
+    }
+
+    .executive-finance-value {
+      font-size: 24px;
+    }
+  }
+</style>
+<style>
+  .accounting-section-panel {
+    background: #fff;
+    border: 1px solid #e4e7ec;
+    border-radius: 22px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 10px 28px rgba(16, 24, 40, 0.07);
+  }
+
+  .position-grid,
+  .ratio-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .position-card,
+  .ratio-card {
+    position: relative;
+    overflow: hidden;
+    min-height: 158px;
+    padding: 20px;
+    border: 1px solid #eaecf0;
+    border-radius: 19px;
+    background: #fff;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .position-card:hover,
+  .ratio-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 13px 28px rgba(16, 24, 40, 0.1);
+  }
+
+  .position-icon,
+  .ratio-icon {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    margin-bottom: 15px;
+    border-radius: 14px;
+    font-size: 19px;
+  }
+
+  .position-card span,
+  .ratio-card span {
+    display: block;
+    color: #667085;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .position-card strong,
+  .ratio-card strong {
+    display: block;
+    margin-top: 8px;
+    color: #101828;
+    font-size: 24px;
+    line-height: 1.25;
+  }
+
+  .position-card em,
+  .ratio-card em {
+    display: block;
+    margin-top: 8px;
+    color: #667085;
+    font-size: 13px;
+    font-style: normal;
+    line-height: 1.45;
+  }
+
+  .soft-blue {
+    background: #eaf2ff;
+    color: #155eef;
+  }
+
+  .soft-red {
+    background: #fee4e2;
+    color: #b42318;
+  }
+
+  .soft-green {
+    background: #dcfae6;
+    color: #067647;
+  }
+
+  .soft-purple {
+    background: #f1eafe;
+    color: #6d28d9;
+  }
+
+  .soft-orange {
+    background: #fff4e5;
+    color: #b54708;
+  }
+
+  .soft-teal {
+    background: #e6fffb;
+    color: #0f766e;
+  }
+
+  .integrity-layout {
+    display: grid;
+    grid-template-columns: minmax(260px, 0.55fr) minmax(0, 1.45fr);
+    gap: 18px;
+  }
+
+  .integrity-score-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 240px;
+    padding: 25px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #0f766e, #134e4a);
+    color: #fff;
+    text-align: center;
+    box-shadow: 0 13px 30px rgba(15, 118, 110, 0.2);
+  }
+
+  .integrity-score-icon {
+    width: 54px;
+    height: 54px;
+    display: grid;
+    place-items: center;
+    margin: 0 auto 14px;
+    border-radius: 17px;
+    background: rgba(255, 255, 255, 0.18);
+    font-size: 24px;
+  }
+
+  .integrity-score-card span {
+    font-size: 13px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.9;
+  }
+
+  .integrity-score-card strong {
+    display: block;
+    margin-top: 8px;
+    font-size: 48px;
+    line-height: 1;
+  }
+
+  .integrity-score-card p {
+    margin: 12px 0 0;
+    color: rgba(255, 255, 255, 0.84);
+    line-height: 1.5;
+  }
+
+  .integrity-checks {
+    display: grid;
+    gap: 12px;
+  }
+
+  .integrity-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 15px;
+    border: 1px solid #e4e7ec;
+    border-radius: 15px;
+    background: #fff;
+  }
+
+  .integrity-check-icon {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: #dcfae6;
+    color: #067647;
+  }
+
+  .integrity-check p {
+    margin: 4px 0 0;
+    color: #475467;
+    line-height: 1.5;
+  }
+
+  .module-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .executive-module-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .executive-module-card {
+    min-height: 190px;
+    display: flex;
+    flex-direction: column;
+    padding: 21px;
+    border: 1px solid #e4e7ec;
+    border-radius: 19px;
+    background: #fff;
+    color: #1d2939;
+    text-decoration: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .executive-module-card:hover {
+    color: #1d2939;
+    transform: translateY(-4px);
+    box-shadow: 0 15px 30px rgba(16, 24, 40, 0.11);
+  }
+
+  .executive-module-icon {
+    width: 50px;
+    height: 50px;
+    display: grid;
+    place-items: center;
+    margin-bottom: 16px;
+    border-radius: 15px;
+    font-size: 21px;
+  }
+
+  .executive-module-card h4 {
+    margin: 0 0 7px;
+    color: #101828;
+    font-size: 16px;
+    font-weight: 800;
+  }
+
+  .executive-module-card p {
+    margin: 0;
+    color: #667085;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .executive-module-link {
+    margin-top: auto;
+    padding-top: 15px;
+    color: #6d28d9;
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  @media (max-width: 1100px) {
+    .position-grid,
+    .ratio-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .executive-module-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 800px) {
+    .integrity-layout {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 650px) {
+    .position-grid,
+    .ratio-grid,
+    .executive-module-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+<style>
+  .accounting-operational-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+
+  .accounting-data-panel {
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid #e4e7ec;
+    border-radius: 22px;
+    box-shadow: 0 10px 28px rgba(16, 24, 40, 0.07);
+  }
+
+  .accounting-data-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 15px;
+    padding: 22px 23px;
+    border-bottom: 1px solid #eaecf0;
+    background: linear-gradient(135deg, #faf7ff, #f8fafc);
+  }
+
+  .accounting-data-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 13px;
+  }
+
+  .accounting-data-icon {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    background: #f1eafe;
+    color: #6d28d9;
+    font-size: 19px;
+  }
+
+  .accounting-data-header h3 {
+    margin: 0 0 5px;
+    color: #101828;
+    font-size: 19px;
+    font-weight: 800;
+  }
+
+  .accounting-data-header p {
+    margin: 0;
+    color: #667085;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .accounting-record-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 11px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid #e4e7ec;
+    color: #475467;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  .executive-table-wrap {
+    overflow-x: auto;
+  }
+
+  .executive-accounting-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+  }
+
+  .executive-accounting-table thead {
+    background: #f8fafc;
+  }
+
+  .executive-accounting-table th {
+    padding: 13px 16px;
+    border-bottom: 1px solid #e4e7ec;
+    color: #475467;
+    font-size: 11px;
+    font-weight: 800;
+    text-align: left;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+
+  .executive-accounting-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #f0f1f3;
+    color: #344054;
+    font-size: 13px;
+    vertical-align: middle;
+  }
+
+  .executive-accounting-table tbody tr {
+    transition: background 0.15s ease;
+  }
+
+  .executive-accounting-table tbody tr:hover {
+    background: #faf7ff;
+  }
+
+  .executive-accounting-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .account-code-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 9px;
+    background: #f2f4f7;
+    color: #344054;
+    font-weight: 800;
+    font-family: Consolas, monospace;
+  }
+
+  .account-type-badge,
+  .normal-balance-badge,
+  .journal-source-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  .account-type-asset {
+    background: #eaf2ff;
+    color: #155eef;
+  }
+
+  .account-type-liability {
+    background: #fee4e2;
+    color: #b42318;
+  }
+
+  .account-type-equity {
+    background: #f1eafe;
+    color: #6d28d9;
+  }
+
+  .account-type-income {
+    background: #dcfae6;
+    color: #067647;
+  }
+
+  .account-type-expense {
+    background: #fff4e5;
+    color: #b54708;
+  }
+
+  .normal-debit {
+    background: #eef4ff;
+    color: #3538cd;
+  }
+
+  .normal-credit {
+    background: #ecfdf3;
+    color: #027a48;
+  }
+
+  .journal-source-badge {
+    background: #f2f4f7;
+    color: #475467;
+  }
+
+  .accounting-empty-state {
+    padding: 35px 20px !important;
+    color: #667085 !important;
+    text-align: center;
+  }
+
+  .accounting-empty-state i {
+    display: block;
+    margin-bottom: 9px;
+    color: #98a2b3;
+    font-size: 25px;
+  }
+
+  .ledger-control-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .ledger-control-card {
+    min-height: 140px;
+    padding: 19px;
+    background: #fff;
+    border: 1px solid #e4e7ec;
+    border-radius: 18px;
+    box-shadow: 0 8px 22px rgba(16, 24, 40, 0.06);
+  }
+
+  .ledger-control-card span {
+    display: block;
+    color: #667085;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .ledger-control-card strong {
+    display: block;
+    margin-top: 10px;
+    color: #101828;
+    font-size: 22px;
+  }
+
+  .ledger-control-card em {
+    display: block;
+    margin-top: 8px;
+    color: #667085;
+    font-size: 12px;
+    font-style: normal;
+    line-height: 1.45;
+  }
+
+  .ledger-control-status {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 11px;
+    border-radius: 999px;
+    font-size: 13px !important;
+  }
+
+  .ledger-status-balanced {
+    background: #dcfae6;
+    color: #067647 !important;
+  }
+
+  .ledger-status-review {
+    background: #fee4e2;
+    color: #b42318 !important;
+  }
+
+  .accounting-action-tile {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+    margin-bottom: 24px;
+    border: 1px solid #d9e2ff;
+    border-radius: 19px;
+    background: linear-gradient(135deg, #f8faff, #f5f3ff);
+    color: #1d2939;
+    text-decoration: none;
+    transition: 0.2s ease;
+  }
+
+  .accounting-action-tile:hover {
+    color: #1d2939;
+    transform: translateY(-3px);
+    box-shadow: 0 13px 28px rgba(59, 51, 154, 0.12);
+  }
+
+  .accounting-action-tile-icon {
+    width: 50px;
+    height: 50px;
+    flex: 0 0 50px;
+    display: grid;
+    place-items: center;
+    border-radius: 15px;
+    background: #eaf2ff;
+    color: #155eef;
+    font-size: 21px;
+  }
+
+  .accounting-action-tile h3 {
+    margin: 0 0 5px;
+    font-size: 16px;
+    font-weight: 800;
+  }
+
+  .accounting-action-tile p {
+    margin: 0;
+    color: #667085;
+    font-size: 13px;
+  }
+
+  .accounting-action-arrow {
+    margin-left: auto;
+    color: #6d28d9;
+    font-size: 23px;
+  }
+
+  .accounting-form-panel {
+    background: #fff;
+    border: 1px solid #e4e7ec;
+    border-radius: 22px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 10px 28px rgba(16, 24, 40, 0.07);
+  }
+
+  .accounting-form-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 13px;
+    padding-bottom: 18px;
+    margin-bottom: 21px;
+    border-bottom: 1px solid #eaecf0;
+  }
+
+  .accounting-form-header-icon {
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    background: #f1eafe;
+    color: #6d28d9;
+    font-size: 20px;
+  }
+
+  .accounting-form-header h3 {
+    margin: 0 0 5px;
+    color: #101828;
+    font-size: 20px;
+    font-weight: 800;
+  }
+
+  .accounting-form-header p {
+    margin: 0;
+    color: #667085;
+    line-height: 1.5;
+  }
+
+  .executive-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+
+  .executive-form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    color: #344054;
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  .executive-form-field input,
+  .executive-form-field select {
+    width: 100%;
+    min-height: 46px;
+    padding: 10px 13px;
+    border: 1px solid #d0d5dd;
+    border-radius: 12px;
+    background: #fff;
+    color: #101828;
+    font-size: 14px;
+    outline: none;
+    transition: border 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .executive-form-field input:focus,
+  .executive-form-field select:focus {
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.12);
+  }
+
+  .executive-form-span-2 {
+    grid-column: span 2;
+  }
+
+  .executive-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    grid-column: span 2;
+    padding-top: 3px;
+  }
+
+  .executive-submit-button {
+    min-height: 46px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 20px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #6d28d9, #4c1d95);
+    color: #fff;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 8px 18px rgba(109, 40, 217, 0.2);
+  }
+
+  .executive-submit-button:hover {
+    transform: translateY(-1px);
+  }
+
+  .accounting-control-tile {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 22px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #7f1d1d, #b42318);
+    color: #fff;
+    text-decoration: none;
+    box-shadow: 0 13px 29px rgba(180, 35, 24, 0.2);
+    transition: 0.2s ease;
+  }
+
+  .accounting-control-tile:hover {
+    color: #fff;
+    transform: translateY(-3px);
+  }
+
+  .accounting-control-icon {
+    width: 52px;
+    height: 52px;
+    flex: 0 0 52px;
+    display: grid;
+    place-items: center;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.18);
+    font-size: 22px;
+  }
+
+  .accounting-control-tile h3 {
+    margin: 0 0 5px;
+    color: #fff;
+    font-size: 17px;
+    font-weight: 800;
+  }
+
+  .accounting-control-tile p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.83);
+    font-size: 13px;
+  }
+
+  .accounting-control-arrow {
+    margin-left: auto;
+    font-size: 24px;
+  }
+
+  @media (max-width: 1100px) {
+    .accounting-operational-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .ledger-control-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 700px) {
+    .executive-form-grid,
+    .ledger-control-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .executive-form-span-2,
+    .executive-form-actions {
+      grid-column: span 1;
+    }
+
+    .executive-form-actions {
+      justify-content: stretch;
+    }
+
+    .executive-submit-button {
+      width: 100%;
+    }
+
+    .accounting-data-header {
+      flex-direction: column;
+    }
+  }
+</style>
+
+
+<!-- ========================================================= -->
+<!-- Executive Accounting Hero -->
+<!-- ========================================================= -->
+
+<section class="accounting-executive-hero">
+
+  <div class="accounting-hero-content">
+
+    <div class="accounting-hero-heading">
+
+      <div class="accounting-hero-icon">
+        <i class="fa-solid fa-chart-line"></i>
+      </div>
+
+      <div>
+        <h2>Financial Intelligence Centre</h2>
+
+        <p>
+          Monitor cash resources, financial performance, ledger health and
+          executive accounting insights from one central dashboard.
+        </p>
+      </div>
+
     </div>
 
-    <div class="accounting-kpi">
-        <span>Income</span>
-        <strong>{{ income_total|kwacha }}</strong>
-        <em>Total Income</em>
-    </div>
+    <span class="accounting-hero-badge">
+      <i class="fa-solid fa-shield-halved"></i>
+      Financial Management
+    </span>
 
-    <div class="accounting-kpi">
-        <span>Expenses</span>
-        <strong>{{ expense_total|kwacha }}</strong>
-        <em>Total Expenses</em>
-    </div>
-
-    <div class="accounting-kpi">
-        <span>Net Surplus</span>
-        <strong>{{ net_surplus|kwacha }}</strong>
-        <em>Income − Expenses</em>
-    </div>
-
-</div>
+  </div>
 
 </section>
-<section class="panel">
 
-  <h2>❤️ Financial Health</h2>
+<!-- ========================================================= -->
+<!-- Executive Financial KPIs -->
+<!-- ========================================================= -->
 
-  <h1>{{ financial_health_score }}%</h1>
+<section class="executive-finance-grid">
 
-  <div class="progress" style="height:18px;">
+  <div class="executive-finance-card finance-card-blue">
 
-  <div class="progress-bar bg-{{ financial_health_colour }}"
-      style="width:{{ financial_health_score }}%;">
+    <div class="executive-finance-icon">
+      <i class="fa-solid fa-wallet"></i>
+    </div>
+
+    <span class="executive-finance-label">
+      Cash Position
+    </span>
+
+    <strong class="executive-finance-value">
+      {{ cash_total|kwacha }}
+    </strong>
+
+    <span class="executive-finance-note">
+      Cash • Bank • Mobile Money
+    </span>
+
   </div>
 
+  <div class="executive-finance-card finance-card-green">
+
+    <div class="executive-finance-icon">
+      <i class="fa-solid fa-arrow-trend-up"></i>
+    </div>
+
+    <span class="executive-finance-label">
+      Total Income
+    </span>
+
+    <strong class="executive-finance-value">
+      {{ income_total|kwacha }}
+    </strong>
+
+    <span class="executive-finance-note">
+      Income recognised in the ledger
+    </span>
+
   </div>
 
-  <p style="margin-top:12px;">
+  <div class="executive-finance-card finance-card-orange">
 
-  <strong>{{ financial_health_status }}</strong>
+    <div class="executive-finance-icon">
+      <i class="fa-solid fa-receipt"></i>
+    </div>
 
-  </p>
+    <span class="executive-finance-label">
+      Total Expenses
+    </span>
+
+    <strong class="executive-finance-value">
+      {{ expense_total|kwacha }}
+    </strong>
+
+    <span class="executive-finance-note">
+      Operating and administration costs
+    </span>
+
+  </div>
+
+  <div class="executive-finance-card
+    {% if net_surplus < 0 %}
+      finance-card-red
+    {% else %}
+      finance-card-purple
+    {% endif %}
+  ">
+
+    <div class="executive-finance-icon">
+
+      {% if net_surplus < 0 %}
+        <i class="fa-solid fa-arrow-trend-down"></i>
+      {% else %}
+        <i class="fa-solid fa-chart-pie"></i>
+      {% endif %}
+
+    </div>
+
+    <span class="executive-finance-label">
+      Net Surplus
+    </span>
+
+    <strong class="executive-finance-value">
+      {{ net_surplus|kwacha }}
+    </strong>
+
+    <span class="executive-finance-note">
+      Income less expenses
+    </span>
+
+  </div>
+
+</section>
+
+<!-- ========================================================= -->
+<!-- Financial Health and AI Advisor -->
+<!-- ========================================================= -->
+
+<section class="accounting-dashboard-grid">
+
+  <section class="accounting-modern-panel">
+
+    <div class="accounting-section-title">
+
+      <div class="accounting-section-title-icon">
+        <i class="fa-solid fa-heart-pulse"></i>
+      </div>
+
+      <div>
+        <h3>Financial Health</h3>
+        <p>Overall financial strength and operating condition.</p>
+      </div>
+
+    </div>
+
+    <div class="financial-health-score">
+
+      <strong>
+        {{ financial_health_score }}%
+      </strong>
+
+      <span>
+        Health score
+      </span>
+
+    </div>
+
+    <div
+      class="financial-health-track"
+      role="progressbar"
+      aria-valuenow="{{ financial_health_score }}"
+      aria-valuemin="0"
+      aria-valuemax="100"
+    >
+
+      <div
+        class="financial-health-fill health-{{ financial_health_colour }}"
+        style="width: {{ financial_health_score }}%;"
+      ></div>
+
+    </div>
+
+    <div class="financial-health-status">
+
+      {% if financial_health_score >= 80 %}
+
+        <i class="fa-solid fa-circle-check"></i>
+
+      {% elif financial_health_score >= 60 %}
+
+        <i class="fa-solid fa-circle-info"></i>
+
+      {% else %}
+
+        <i class="fa-solid fa-triangle-exclamation"></i>
+
+      {% endif %}
+
+      <div>
+        <small style="display:block; color:#667085;">
+          Current status
+        </small>
+
+        <strong>
+          {{ financial_health_status }}
+        </strong>
+      </div>
+
+    </div>
+
+    <div class="financial-health-guidance">
+
+      {% if financial_health_score >= 80 %}
+
+        Financial indicators are strong. Continue monitoring cash reserves,
+        income collection and expense controls.
+
+      {% elif financial_health_score >= 60 %}
+
+        Financial performance is moderate. Review income collection, operating
+        expenses and short-term liquidity.
+
+      {% else %}
+
+        Financial indicators require management attention. Strengthen income
+        collection, control expenditure and review liquidity risks.
+
+      {% endif %}
+
+    </div>
 
   </section>
 
-  <section class="panel">
+  <section class="accounting-modern-panel">
 
-<h2>🤖 Executive AI Advisor</h2>
-<p class="muted">
-    Powered by {{ settings.product_name }}
-</p>
-{% for item in financial_assistant %}
+    <div class="ai-advisor-heading">
 
-<div class="alert alert-{{ item.level }}">
+      <div class="accounting-section-title" style="margin-bottom:0;">
 
-<strong>
+        <div class="accounting-section-title-icon">
+          <i class="fa-solid fa-robot"></i>
+        </div>
 
-<i class="fa-solid {{ item.icon }}"></i>
+        <div>
+          <h3>Executive AI Advisor</h3>
 
-{{ item.title }}
+          <p>
+            Automated observations based on the current accounting position.
+          </p>
+        </div>
 
-</strong>
+      </div>
 
-<br>
+      <span class="ai-powered-badge">
+        <i class="fa-solid fa-wand-magic-sparkles"></i>
+        Powered by {{ settings.product_name }}
+      </span>
 
-{{ item.message }}
+    </div>
 
-</div>
+    <div class="ai-insights-grid">
 
-{% endfor %}
+      {% for item in financial_assistant %}
+
+        <article class="ai-insight-card ai-level-{{ item.level }}">
+
+          <div class="ai-insight-icon">
+            <i class="fa-solid {{ item.icon }}"></i>
+          </div>
+
+          <div class="ai-insight-content">
+
+            <strong>
+              {{ item.title }}
+            </strong>
+
+            <p>
+              {{ item.message }}
+            </p>
+
+          </div>
+
+        </article>
+
+      {% else %}
+
+        <div class="ai-empty-state">
+
+          <i
+            class="fa-solid fa-circle-check"
+            style="display:block; margin-bottom:8px; font-size:25px;"
+          ></i>
+
+          No financial alerts or recommendations are currently available.
+
+        </div>
+
+      {% endfor %}
+
+    </div>
+
+  </section>
 
 </section>
-
 <!-- ========================================================= -->
 <!-- Financial Position -->
 <!-- ========================================================= -->
 
-<section class="panel">
+<section class="accounting-section-panel">
 
-    <h2>🏦 Financial Position</h2>
+  <div class="accounting-section-title">
 
-    <div class="accounting-kpis">
+    <div class="accounting-section-title-icon">
+      <i class="fa-solid fa-building-columns"></i>
+    </div>
 
-        <div class="accounting-kpi">
-            <span>Total Assets</span>
-            <strong>{{ asset_total|kwacha }}</strong>
-            <em>Assets owned by the organisation</em>
-        </div>
+    <div>
+      <h3>Financial Position</h3>
+      <p>
+        Review the organisation’s assets, liabilities and overall net worth.
+      </p>
+    </div>
 
-        <div class="accounting-kpi">
-            <span>Total Liabilities</span>
-            <strong>{{ liability_total|kwacha }}</strong>
-            <em>Current obligations</em>
-        </div>
+  </div>
 
-        <div class="accounting-kpi">
-            <span>Net Worth</span>
-            <strong>{{ net_worth|kwacha }}</strong>
-            <em>Assets less liabilities</em>
-        </div>
+  <div class="position-grid">
 
-        <div class="accounting-kpi">
-            <span>Asset Cover</span>
-            <strong class="text-{{ asset_cover_colour }}">
-                {{ asset_cover }}
-            </strong>
-            <em>Financial strength</em>
-        </div>
+    <div class="position-card">
+
+      <div class="position-icon soft-blue">
+        <i class="fa-solid fa-coins"></i>
+      </div>
+
+      <span>Total Assets</span>
+
+      <strong>
+        {{ asset_total|kwacha }}
+      </strong>
+
+      <em>
+        Resources controlled by the organisation
+      </em>
 
     </div>
 
-</section>
+    <div class="position-card">
 
+      <div class="position-icon soft-red">
+        <i class="fa-solid fa-file-invoice-dollar"></i>
+      </div>
+
+      <span>Total Liabilities</span>
+
+      <strong>
+        {{ liability_total|kwacha }}
+      </strong>
+
+      <em>
+        Current and outstanding financial obligations
+      </em>
+
+    </div>
+
+    <div class="position-card">
+
+      <div class="position-icon soft-green">
+        <i class="fa-solid fa-scale-balanced"></i>
+      </div>
+
+      <span>Net Worth</span>
+
+      <strong>
+        {{ net_worth|kwacha }}
+      </strong>
+
+      <em>
+        Total assets less total liabilities
+      </em>
+
+    </div>
+
+    <div class="position-card">
+
+      <div class="position-icon soft-purple">
+        <i class="fa-solid fa-shield-halved"></i>
+      </div>
+
+      <span>Asset Cover</span>
+
+      <strong class="text-{{ asset_cover_colour }}">
+        {{ asset_cover }}
+      </strong>
+
+      <em>
+        Ability of assets to support financial obligations
+      </em>
+
+    </div>
+
+  </div>
+
+</section>
 <!-- ========================================================= -->
 <!-- Accounting Integrity -->
 <!-- ========================================================= -->
 
-<section class="panel">
+<section class="accounting-section-panel">
 
-    <h2>⚖️ Accounting Integrity</h2>
+  <div class="accounting-section-title">
 
-    <div class="row">
-
-        <div class="col-md-3">
-
-            <div class="accounting-kpi">
-
-                <span>Integrity Score</span>
-
-                <strong>{{ integrity_score }}%</strong>
-
-                <em>Financial records consistency</em>
-
-            </div>
-
-        </div>
-
-        <div class="col-md-9">
-
-            <ul class="list-group">
-
-                {% for check in integrity_checks %}
-
-                <li class="list-group-item">
-
-                    ✅ {{ check }}
-
-                </li>
-
-                {% endfor %}
-
-            </ul>
-
-        </div>
-
-    </div>
-
-</section>
-
-<!-- ========================================================= -->
-<!-- Liquidity & Financial Ratios -->
-<!-- ========================================================= -->
-
-<section class="panel">
-
-    <h2>💧 Liquidity & Financial Ratios</h2>
-
-    <div class="accounting-kpis">
-
-        <div class="accounting-kpi">
-
-            <span>Cash Reserve</span>
-
-            <strong>{{ cash_months }}</strong>
-
-            <em>Months of operating expenses covered</em>
-
-        </div>
-
-        <div class="accounting-kpi">
-
-            <span>Liquidity</span>
-
-            <strong class="text-{{ liquidity_colour }}">
-                {{ liquidity_status }}
-            </strong>
-
-            <em>Ability to meet short-term obligations</em>
-
-        </div>
-
-        <div class="accounting-kpi">
-
-            <span>Surplus Margin</span>
-
-            <strong>{{ surplus_margin }}%</strong>
-
-            <em>Net surplus as a percentage of income</em>
-
-        </div>
-
-        <div class="accounting-kpi">
-
-            <span>Ledger Status</span>
-
-            {% if total_debits == total_credits %}
-
-                <strong class="text-success">
-
-                    Balanced
-
-                </strong>
-
-            {% else %}
- 
-                <strong class="text-danger">
-
-                    Out of Balance
-
-                </strong>
-
-            {% endif %}
-
-            <em>General Ledger health</em>
-
-        </div>
-
-    </div>
-
-</section>
-
-<section>
-  <h3 style="margin-bottom: 12px;">Accounting Modules</h3>
-
-  <div class="module-grid">
-
-    <a class="module-tile" href="{{ url_for('cash_book') }}">
-      <div class="module-icon bg-green">📗</div>
-      <div>
-        <h3>Cash Book</h3>
-        <p>View and manage all cash, bank and mobile money transactions.</p>
-      </div>
-      <div class="module-arrow">›</div>
-    </a>
-
-    <a class="module-tile" href="{{ url_for('trial_balance') }}">
-      <div class="module-icon bg-purple">⚖️</div>
-      <div>
-        <h3>Trial Balance</h3>
-        <p>Review debit and credit balances from the General Ledger.</p>
-      </div>
-      <div class="module-arrow">›</div>
-    </a>
-
-    <a class="module-tile" href="#recent-journals">
-      <div class="module-icon bg-blue">📘</div>
-      <div>
-        <h3>Journal Entries</h3>
-        <p>Review recent accounting journals and ledger postings.</p>
-      </div>
-      <div class="module-arrow">›</div>
-    </a>
-
-    <a class="module-tile" href="{{ url_for('income_statement') }}">
-      <div class="module-icon bg-orange">📈</div>
-      <div>
-        <h3>Income Statement</h3>
-        <p>View income, expenses and current year surplus.</p>
-      </div>
-      <div class="module-arrow">›</div>
-    </a>
-
-    <a class="module-tile" href="{{ url_for('balance_sheet') }}">
-      <div class="module-icon bg-teal">◔</div>
-      <div>
-        <h3>Balance Sheet</h3>
-        <p>View assets, liabilities, equity and accumulated surplus.</p>
-      </div>
-      <div class="module-arrow">›</div>
-    </a>
-
-    <a class="module-tile" href="{{ url_for('cash_flow_statement') }}">
-      <div class="module-icon bg-red">📊</div>
-      <div>
-        <h3>Cash Flow Statement</h3>
-        <p>Review cash inflows, outflows and net cash movement.</p>
-      </div>
-      <div class="module-arrow">›</div>
-    </a>
-
-    <a class="module-tile" href="{{ url_for('bank_reconciliation') }}">
-      <div class="module-icon bg-purple">🏦</div>
-      <div>
-        <h3>Bank Reconciliation</h3>
-        <p>Reconcile bank statement transactions with the Cash Book.</p>
-      </div>
-      <div class="module-arrow">›</div>
-    </a>
-
-    <a class="module-tile" href="{{ url_for('year_end_closing') }}">
-      <div class="module-icon bg-brown">🗓️</div>
-      <div>
-        <h3>Year-End Closing</h3>
-        <p>Close income and expenses into accumulated surplus.</p>
-      </div>
-      <div class="module-arrow">›</div>
-    </a>
-
-    <a class="module-tile" href="#chart-of-accounts">
-      <div class="module-icon bg-navy">🗂️</div>
-      <div>
-        <h3>Chart of Accounts</h3>
-        <p>Manage ledger accounts and account classifications.</p>
-      </div>
-      <div class="module-arrow">›</div>
-    </a>
-
-  </div>
-</section>
-
-<section class="accounting-kpis">
-  <div class="accounting-kpi">
-    <span>Total Debits</span>
-    <strong>{{ total_debits|default(0)|kwacha }}</strong>
-    <em>Posted debit entries</em>
-  </div>
-
-  <div class="accounting-kpi">
-    <span>Total Credits</span>
-    <strong>{{ total_credits|default(0)|kwacha }}</strong>
-    <em>Posted credit entries</em>
-  </div>
-
-  <div class="accounting-kpi">
-    <span>Difference</span>
-    <strong>{{ difference|default(0)|kwacha }}</strong>
-    <em>Debits less credits</em>
-  </div>
-
-  <div class="accounting-kpi">
-    <span>Accounting Status</span>
-    {% if difference|default(0) == 0 %}
-      <strong class="good-text">Balanced</strong>
-    {% else %}
-      <strong class="bad-text">Review</strong>
-    {% endif %}
-    <em>General Ledger control check</em>
-  </div>
-</section>
-
-<a class="module-tile"
-   href="{{ url_for('ledger_inquiry') }}">
-
-    <div class="module-icon bg-blue">
-        📒
+    <div class="accounting-section-title-icon">
+      <i class="fa-solid fa-shield"></i>
     </div>
 
     <div>
+      <h3>Accounting Integrity</h3>
+      <p>
+        Monitor ledger consistency, control checks and record reliability.
+      </p>
+    </div>
 
-        <h3>Ledger Inquiry</h3>
+  </div>
 
+  <div class="integrity-layout">
+
+    <div class="integrity-score-card">
+
+      <div class="integrity-score-icon">
+        <i class="fa-solid fa-check-double"></i>
+      </div>
+
+      <span>Integrity Score</span>
+
+      <strong>
+        {{ integrity_score }}%
+      </strong>
+
+      <p>
+        Overall consistency and reliability of the accounting records.
+      </p>
+
+    </div>
+
+    <div class="integrity-checks">
+
+      {% for check in integrity_checks %}
+
+        <div class="integrity-check">
+
+          <div class="integrity-check-icon">
+            <i class="fa-solid fa-check"></i>
+          </div>
+
+          <div>
+            <strong>Control Check Passed</strong>
+
+            <p>
+              {{ check }}
+            </p>
+          </div>
+
+        </div>
+
+      {% else %}
+
+        <div class="integrity-check">
+
+          <div class="integrity-check-icon">
+            <i class="fa-solid fa-circle-info"></i>
+          </div>
+
+          <div>
+            <strong>No integrity results available</strong>
+
+            <p>
+              Accounting integrity checks have not yet returned any results.
+            </p>
+          </div>
+
+        </div>
+
+      {% endfor %}
+
+    </div>
+
+  </div>
+
+</section>
+<!-- ========================================================= -->
+<!-- Liquidity and Financial Ratios -->
+<!-- ========================================================= -->
+
+<section class="accounting-section-panel">
+
+  <div class="accounting-section-title">
+
+    <div class="accounting-section-title-icon">
+      <i class="fa-solid fa-droplet"></i>
+    </div>
+
+    <div>
+      <h3>Liquidity & Financial Ratios</h3>
+      <p>
+        Assess cash resilience, operating performance and ledger stability.
+      </p>
+    </div>
+
+  </div>
+
+  <div class="ratio-grid">
+
+    <div class="ratio-card">
+
+      <div class="ratio-icon soft-blue">
+        <i class="fa-solid fa-calendar-days"></i>
+      </div>
+
+      <span>Cash Reserve</span>
+
+      <strong>
+        {{ cash_months }}
+      </strong>
+
+      <em>
+        Months of operating expenses currently covered
+      </em>
+
+    </div>
+
+    <div class="ratio-card">
+
+      <div class="ratio-icon soft-teal">
+        <i class="fa-solid fa-water"></i>
+      </div>
+
+      <span>Liquidity</span>
+
+      <strong class="text-{{ liquidity_colour }}">
+        {{ liquidity_status }}
+      </strong>
+
+      <em>
+        Ability to meet short-term financial obligations
+      </em>
+
+    </div>
+
+    <div class="ratio-card">
+
+      <div class="ratio-icon soft-purple">
+        <i class="fa-solid fa-percent"></i>
+      </div>
+
+      <span>Surplus Margin</span>
+
+      <strong>
+        {{ surplus_margin }}%
+      </strong>
+
+      <em>
+        Net surplus expressed as a percentage of income
+      </em>
+
+    </div>
+
+    <div class="ratio-card">
+
+      <div class="ratio-icon
+        {% if total_debits == total_credits %}
+          soft-green
+        {% else %}
+          soft-red
+        {% endif %}
+      ">
+
+        {% if total_debits == total_credits %}
+          <i class="fa-solid fa-scale-balanced"></i>
+        {% else %}
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        {% endif %}
+
+      </div>
+
+      <span>Ledger Status</span>
+
+      {% if total_debits == total_credits %}
+
+        <strong class="text-success">
+          Balanced
+        </strong>
+
+      {% else %}
+
+        <strong class="text-danger">
+          Out of Balance
+        </strong>
+
+      {% endif %}
+
+      <em>
+        General Ledger debit and credit control status
+      </em>
+
+    </div>
+
+  </div>
+
+</section>
+
+<!-- ========================================================= -->
+<!-- Accounting Modules -->
+<!-- ========================================================= -->
+
+<section class="accounting-section-panel">
+
+  <div class="module-section-header">
+
+    <div class="accounting-section-title" style="margin-bottom:0;">
+
+      <div class="accounting-section-title-icon">
+        <i class="fa-solid fa-grid-2"></i>
+      </div>
+
+      <div>
+        <h3>Accounting Modules</h3>
         <p>
-            Investigate every debit and credit posting.
+          Access the main accounting registers, statements and controls.
         </p>
+      </div>
 
     </div>
 
-    <div class="module-arrow">
-        ›
-    </div>
+  </div>
+
+  <div class="executive-module-grid">
+
+    <a
+      class="executive-module-card"
+      href="{{ url_for('cash_book') }}"
+    >
+
+      <div class="executive-module-icon soft-green">
+        <i class="fa-solid fa-book"></i>
+      </div>
+
+      <h4>Cash Book</h4>
+
+      <p>
+        View and manage cash, bank and mobile-money transactions.
+      </p>
+
+      <div class="executive-module-link">
+        Open Cash Book →
+      </div>
+
+    </a>
+
+    <a
+      class="executive-module-card"
+      href="{{ url_for('trial_balance') }}"
+    >
+
+      <div class="executive-module-icon soft-purple">
+        <i class="fa-solid fa-scale-balanced"></i>
+      </div>
+
+      <h4>Trial Balance</h4>
+
+      <p>
+        Review debit and credit balances from the General Ledger.
+      </p>
+
+      <div class="executive-module-link">
+        View Trial Balance →
+      </div>
+
+    </a>
+
+    <a
+      class="executive-module-card"
+      href="#recent-journals"
+    >
+
+      <div class="executive-module-icon soft-blue">
+        <i class="fa-solid fa-book-open"></i>
+      </div>
+
+      <h4>Journal Entries</h4>
+
+      <p>
+        Review recent journal postings and accounting adjustments.
+      </p>
+
+      <div class="executive-module-link">
+        View Journals →
+      </div>
+
+    </a>
+
+    <a
+      class="executive-module-card"
+      href="{{ url_for('income_statement') }}"
+    >
+
+      <div class="executive-module-icon soft-orange">
+        <i class="fa-solid fa-chart-line"></i>
+      </div>
+
+      <h4>Income Statement</h4>
+
+      <p>
+        Review income, expenses and the current operating surplus.
+      </p>
+
+      <div class="executive-module-link">
+        Open Statement →
+      </div>
+
+    </a>
+
+    <a
+      class="executive-module-card"
+      href="{{ url_for('balance_sheet') }}"
+    >
+
+      <div class="executive-module-icon soft-teal">
+        <i class="fa-solid fa-chart-pie"></i>
+      </div>
+
+      <h4>Balance Sheet</h4>
+
+      <p>
+        Review assets, liabilities, equity and accumulated surplus.
+      </p>
+
+      <div class="executive-module-link">
+        Open Balance Sheet →
+      </div>
+
+    </a>
+
+    <a
+      class="executive-module-card"
+      href="{{ url_for('cash_flow_statement') }}"
+    >
+
+      <div class="executive-module-icon soft-red">
+        <i class="fa-solid fa-chart-column"></i>
+      </div>
+
+      <h4>Cash Flow Statement</h4>
+
+      <p>
+        Review cash inflows, outflows and the net cash movement.
+      </p>
+
+      <div class="executive-module-link">
+        View Cash Flow →
+      </div>
+
+    </a>
+
+    <a
+      class="executive-module-card"
+      href="{{ url_for('bank_reconciliation') }}"
+    >
+
+      <div class="executive-module-icon soft-purple">
+        <i class="fa-solid fa-building-columns"></i>
+      </div>
+
+      <h4>Bank Reconciliation</h4>
+
+      <p>
+        Reconcile bank statement activity with Cash Book transactions.
+      </p>
+
+      <div class="executive-module-link">
+        Start Reconciliation →
+      </div>
+
+    </a>
+
+    <a
+      class="executive-module-card"
+      href="{{ url_for('year_end_closing') }}"
+    >
+
+      <div class="executive-module-icon soft-orange">
+        <i class="fa-solid fa-calendar-check"></i>
+      </div>
+
+      <h4>Year-End Closing</h4>
+
+      <p>
+        Close income and expense accounts into accumulated surplus.
+      </p>
+
+      <div class="executive-module-link">
+        Open Year-End →
+      </div>
+
+    </a>
+
+    <a
+      class="executive-module-card"
+      href="#chart-of-accounts"
+    >
+
+      <div class="executive-module-icon soft-blue">
+        <i class="fa-solid fa-folder-tree"></i>
+      </div>
+
+      <h4>Chart of Accounts</h4>
+
+      <p>
+        Review ledger accounts and their accounting classifications.
+      </p>
+
+      <div class="executive-module-link">
+        View Accounts →
+      </div>
+
+    </a>
+
+  </div>
+
+</section>
+
+<!-- ========================================================= -->
+<!-- Ledger Control Summary -->
+<!-- ========================================================= -->
+
+<section class="ledger-control-grid">
+
+  <div class="ledger-control-card">
+
+    <span>Total Debits</span>
+
+    <strong>
+      {{ total_debits|default(0)|kwacha }}
+    </strong>
+
+    <em>
+      Total debit postings recorded in the General Ledger.
+    </em>
+
+  </div>
+
+  <div class="ledger-control-card">
+
+    <span>Total Credits</span>
+
+    <strong>
+      {{ total_credits|default(0)|kwacha }}
+    </strong>
+
+    <em>
+      Total credit postings recorded in the General Ledger.
+    </em>
+
+  </div>
+
+  <div class="ledger-control-card">
+
+    <span>Ledger Difference</span>
+
+    <strong>
+      {{ difference|default(0)|kwacha }}
+    </strong>
+
+    <em>
+      Difference between posted debits and posted credits.
+    </em>
+
+  </div>
+
+  <div class="ledger-control-card">
+
+    <span>Accounting Status</span>
+
+    {% if difference|default(0) == 0 %}
+
+      <strong class="ledger-control-status ledger-status-balanced">
+        <i class="fa-solid fa-circle-check"></i>
+        Balanced
+      </strong>
+
+    {% else %}
+
+      <strong class="ledger-control-status ledger-status-review">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        Review Required
+      </strong>
+
+    {% endif %}
+
+    <em>
+      General Ledger control and balancing assessment.
+    </em>
+
+  </div>
+
+</section>
+
+<a
+  class="accounting-action-tile"
+  href="{{ url_for('ledger_inquiry') }}"
+>
+
+  <div class="accounting-action-tile-icon">
+    <i class="fa-solid fa-magnifying-glass-chart"></i>
+  </div>
+
+  <div>
+    <h3>Ledger Inquiry</h3>
+
+    <p>
+      Investigate individual debit and credit postings and trace their source.
+    </p>
+  </div>
+
+  <div class="accounting-action-arrow">
+    <i class="fa-solid fa-arrow-right"></i>
+  </div>
 
 </a>
 
-<section class="accounting-bottom-grid">
+<!-- ========================================================= -->
+<!-- Chart of Accounts and Recent Journals -->
+<!-- ========================================================= -->
 
-  <section class="panel" id="chart-of-accounts">
-    <div class="panel-head">
-      <div>
-        <h2>Chart of Accounts</h2>
-        <p>Ledger accounts used for financial reporting.</p>
+<section class="accounting-operational-grid">
+
+  <section class="accounting-data-panel" id="chart-of-accounts">
+
+    <div class="accounting-data-header">
+
+      <div class="accounting-data-heading">
+
+        <div class="accounting-data-icon">
+          <i class="fa-solid fa-folder-tree"></i>
+        </div>
+
+        <div>
+          <h3>Chart of Accounts</h3>
+
+          <p>
+            Ledger accounts used for transaction processing and reporting.
+          </p>
+        </div>
+
       </div>
+
+      <span class="accounting-record-badge">
+        <i class="fa-solid fa-list"></i>
+        Ledger Accounts
+      </span>
+
     </div>
 
-    <div class="table-wrap">
-      <table>
+    <div class="executive-table-wrap">
+
+      <table class="executive-accounting-table">
+
         <thead>
           <tr>
             <th>Code</th>
@@ -553,34 +2335,104 @@
             <th>Normal Balance</th>
           </tr>
         </thead>
+
         <tbody>
+
           {% for account in account %}
-          <tr>
-            <td><strong>{{ account.code }}</strong></td>
-            <td>{{ account.name }}</td>
-            <td>{{ account.account_type }}</td>
-            <td>{{ account.normal_balance }}</td>
-          </tr>
+
+            <tr>
+
+              <td>
+                <span class="account-code-badge">
+                  {{ account.code }}
+                </span>
+              </td>
+
+              <td>
+                <strong>
+                  {{ account.name }}
+                </strong>
+              </td>
+
+              <td>
+                <span class="
+                  account-type-badge
+                  account-type-{{ account.account_type|lower }}
+                ">
+                  {{ account.account_type }}
+                </span>
+              </td>
+
+              <td>
+
+                {% if account.normal_balance|lower == 'debit' %}
+
+                  <span class="normal-balance-badge normal-debit">
+                    Debit
+                  </span>
+
+                {% else %}
+
+                  <span class="normal-balance-badge normal-credit">
+                    Credit
+                  </span>
+
+                {% endif %}
+
+              </td>
+
+            </tr>
+
           {% else %}
-          <tr>
-            <td colspan="4">No accounts found.</td>
-          </tr>
+
+            <tr>
+              <td colspan="4" class="accounting-empty-state">
+                <i class="fa-solid fa-folder-open"></i>
+                No ledger accounts have been created.
+              </td>
+            </tr>
+
           {% endfor %}
+
         </tbody>
+
       </table>
+
     </div>
+
   </section>
 
-  <section class="panel" id="recent-journals">
-    <div class="panel-head">
-      <div>
-        <h2>Recent Journal Entries</h2>
-        <p>Latest postings to the General Ledger.</p>
+  <section class="accounting-data-panel" id="recent-journals">
+
+    <div class="accounting-data-header">
+
+      <div class="accounting-data-heading">
+
+        <div class="accounting-data-icon">
+          <i class="fa-solid fa-book-open"></i>
+        </div>
+
+        <div>
+          <h3>Recent Journal Entries</h3>
+
+          <p>
+            Latest accounting postings recorded in the General Ledger.
+          </p>
+        </div>
+
       </div>
+
+      <span class="accounting-record-badge">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+        Recent Activity
+      </span>
+
     </div>
 
-    <div class="table-wrap">
-      <table>
+    <div class="executive-table-wrap">
+
+      <table class="executive-accounting-table">
+
         <thead>
           <tr>
             <th>Date</th>
@@ -589,203 +2441,306 @@
             <th>Reference</th>
           </tr>
         </thead>
+
         <tbody>
+
           {% for journal in recent_journals|default([]) %}
-          <tr>
-            <td>{{ journal.entry_date }}</td>
-            <td>{{ journal.description }}</td>
-            <td>{{ journal.source_type or '-' }}</td>
-            <td>{{ journal.source_id or '-' }}</td>
-          </tr>
+
+            <tr>
+
+              <td>
+                {{ journal.entry_date }}
+              </td>
+
+              <td>
+                <strong>
+                  {{ journal.description }}
+                </strong>
+              </td>
+
+              <td>
+
+                <span class="journal-source-badge">
+                  {{ journal.source_type or 'Manual Journal' }}
+                </span>
+
+              </td>
+
+              <td>
+                {{ journal.source_id or '-' }}
+              </td>
+
+            </tr>
+
           {% else %}
-          <tr>
-            <td colspan="4">No recent journal entries.</td>
-          </tr>
+
+            <tr>
+              <td colspan="4" class="accounting-empty-state">
+                <i class="fa-solid fa-book"></i>
+                No recent journal entries are available.
+              </td>
+            </tr>
+
           {% endfor %}
+
         </tbody>
+
       </table>
+
     </div>
+
   </section>
 
-</section>
+<!-- ========================================================= -->
+<!-- Create Ledger Account -->
+<!-- ========================================================= -->
 
-<section class="panel" style="margin-top: 18px;">
-  <div class="panel-head">
-    <div>
-      <h2>Create Account</h2>
-      <p>Add a new ledger account to the Chart of Accounts.</p>
+<section class="accounting-form-panel">
+
+  <div class="accounting-form-header">
+
+    <div class="accounting-form-header-icon">
+      <i class="fa-solid fa-folder-plus"></i>
     </div>
+
+    <div>
+      <h3>Create Ledger Account</h3>
+
+      <p>
+        Add a new account to the organisation’s Chart of Accounts.
+      </p>
+    </div>
+
   </div>
 
-  <form method="post" class="form-grid">
+  <form method="post" class="executive-form-grid">
+
     <input type="hidden" name="action" value="account">
-    <label>Account Code
-      <input name="code" placeholder="Example: 5050" required>
+
+    <label class="executive-form-field">
+
+      Account Code
+
+      <input
+        name="code"
+        placeholder="Example: 5050"
+        required
+      >
+
     </label>
 
-    <label>Account Name
-      <input name="name" placeholder="Example: Office Supplies" required>
+    <label class="executive-form-field">
+
+      Account Name
+
+      <input
+        name="name"
+        placeholder="Example: Office Supplies"
+        required
+      >
+
     </label>
 
-    <label>Account Type
+    <label class="executive-form-field">
+
+      Account Type
+
       <select name="account_type" required>
+        <option value="">Select account type...</option>
         <option>Asset</option>
         <option>Liability</option>
         <option>Equity</option>
         <option>Income</option>
         <option>Expense</option>
       </select>
+
     </label>
 
-    <label>Normal Balance
+    <label class="executive-form-field">
+
+      Normal Balance
+
       <select name="normal_balance" required>
+        <option value="">Select normal balance...</option>
         <option>Debit</option>
         <option>Credit</option>
       </select>
+
     </label>
 
-    <button class="btn primary" type="submit">Create Account</button>
+    <div class="executive-form-actions">
+
+      <button
+        class="executive-submit-button"
+        type="submit"
+      >
+        <i class="fa-solid fa-plus"></i>
+        Create Account
+      </button>
+
+    </div>
+
   </form>
-</section>
-<section class="panel" id="manual-journal">
-
-<div class="panel-head">
-
-<div>
-  
-
-
-<h2>Manual Journal Entry</h2>
-
-<p>
-Pass correcting journals, year-end adjustments and audit adjustments.
-</p>
-
-</div>
-
-</div>
-
-<form method="post" class="form-grid">
-
-<input type="hidden" name="action" value="journal">
-
-<label>
-
-Journal Date
-
-<input
-type="date"
-name="entry_date"
-required>
-
-</label>
-
-<label>
-
-Reference
-
-<input
-name="reference"
-placeholder="JV-001">
-
-</label>
-
-<label style="grid-column:span 2">
-
-Description
-
-<input
-name="description"
-required>
-
-</label>
-
-<label>
-
-Debit Account
-
-<select
-name="debit_account_id"
-required>
-
-<option value="">
-Select...
-</option>
-
-{% for a in accounts %}
-
-<option value="{{ a.id }}">
-
-{{ a.code }} - {{ a.name }}
-
-</option>
-
-{% endfor %}
-
-</select>
-
-</label>
-
-<label>
-
-Credit Account
-
-<select
-name="credit_account_id"
-required>
-
-<option value="">
-Select...
-</option>
-
-{% for a in accounts %}
-
-<option value="{{ a.id }}">
-
-{{ a.code }} - {{ a.name }}
-
-</option>
-
-{% endfor %}
-
-</select>
-
-</label>
-
-<label>
-
-Amount
-
-<input
-type="number"
-step="0.01"
-name="amount"
-required>
-
-</label>
-
-<div style="align-self:end">
-
-<button
-class="btn primary"
-type="submit">
-
-Post Journal
-
-</button>
-
-</div>
-
-</form>
 
 </section>
-<a class="module-tile" href="{{ url_for('accounting_control_centre') }}">
-  <div class="module-icon bg-red">🛡️</div>
+
+<!-- ========================================================= -->
+<!-- Manual Journal Entry -->
+<!-- ========================================================= -->
+
+<section class="accounting-form-panel" id="manual-journal">
+
+  <div class="accounting-form-header">
+
+    <div class="accounting-form-header-icon">
+      <i class="fa-solid fa-pen-to-square"></i>
+    </div>
+
+    <div>
+      <h3>Manual Journal Entry</h3>
+
+      <p>
+        Record correcting journals, audit adjustments and year-end entries.
+      </p>
+    </div>
+
+  </div>
+
+  <form method="post" class="executive-form-grid">
+
+    <input type="hidden" name="action" value="journal">
+
+    <label class="executive-form-field">
+
+      Journal Date
+
+      <input
+        type="date"
+        name="entry_date"
+        required
+      >
+
+    </label>
+
+    <label class="executive-form-field">
+
+      Reference
+
+      <input
+        name="reference"
+        placeholder="Example: JV-001"
+      >
+
+    </label>
+
+    <label class="executive-form-field executive-form-span-2">
+
+      Journal Description
+
+      <input
+        name="description"
+        placeholder="Describe the purpose of the journal entry"
+        required
+      >
+
+    </label>
+
+    <label class="executive-form-field">
+
+      Debit Account
+
+      <select name="debit_account_id" required>
+
+        <option value="">
+          Select debit account...
+        </option>
+
+        {% for a in accounts %}
+
+          <option value="{{ a.id }}">
+            {{ a.code }} - {{ a.name }}
+          </option>
+
+        {% endfor %}
+
+      </select>
+
+    </label>
+
+    <label class="executive-form-field">
+
+      Credit Account
+
+      <select name="credit_account_id" required>
+
+        <option value="">
+          Select credit account...
+        </option>
+
+        {% for a in accounts %}
+
+          <option value="{{ a.id }}">
+            {{ a.code }} - {{ a.name }}
+          </option>
+
+        {% endfor %}
+
+      </select>
+
+    </label>
+
+    <label class="executive-form-field">
+
+      Amount
+
+      <input
+        type="number"
+        step="0.01"
+        min="0.01"
+        name="amount"
+        placeholder="0.00"
+        required
+      >
+
+    </label>
+
+    <div class="executive-form-actions">
+
+      <button
+        class="executive-submit-button"
+        type="submit"
+      >
+        <i class="fa-solid fa-book"></i>
+        Post Journal
+      </button>
+
+    </div>
+
+  </form>
+
+</section>
+
+<a
+  class="accounting-control-tile"
+  href="{{ url_for('accounting_control_centre') }}"
+>
+
+  <div class="accounting-control-icon">
+    <i class="fa-solid fa-shield-halved"></i>
+  </div>
+
   <div>
     <h3>Accounting Control Centre</h3>
-    <p>Monitor journal health, posting integrity and accounting controls.</p>
+
+    <p>
+      Monitor journal health, posting integrity and accounting controls.
+    </p>
   </div>
-  <div class="module-arrow">›</div>
+
+  <div class="accounting-control-arrow">
+    <i class="fa-solid fa-arrow-right"></i>
+  </div>
+
 </a>
 
 {% endblock %}

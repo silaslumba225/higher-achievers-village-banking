@@ -17,6 +17,7 @@ import shutil
 import json
 import requests
 import re
+from urllib.parse import quote
 from pypdf import PdfReader
 from pathlib import Path
 from werkzeug.utils import secure_filename
@@ -483,6 +484,35 @@ def format_zambian_phone(phone):
         return '+260' + phone[1:]
 
     return '+260' + phone
+
+
+def sms_configuration_status(setting=None):
+    setting = setting or get_settings()
+    provider = (setting.sms_provider or '').strip().lower()
+    configured_provider = provider in {"africa's talking", 'africas talking', 'africastalking'}
+    missing = []
+    if not configured_provider:
+        missing.append("SMS Provider must be Africa's Talking")
+    if not (setting.sms_username or '').strip():
+        missing.append('SMS Username')
+    if not (setting.sms_api_key or '').strip():
+        missing.append('SMS API Key')
+    return not missing, missing
+
+
+def build_whatsapp_url(phone, message):
+    formatted = format_zambian_phone(phone)
+    digits = re.sub(r'\D', '', formatted)
+    if not digits:
+        return None
+    return f'https://wa.me/{digits}?text={quote(message or "")}'
+
+
+@app.template_filter('whatsapp_url')
+def whatsapp_url_filter(log):
+    if not log:
+        return None
+    return build_whatsapp_url(log.phone, log.message)
 def allowed_logo_file(filename):
     return (
         '.' in filename
@@ -545,15 +575,18 @@ def delete_logo_file(filename):
 
 def send_sms_via_africas_talking(phone, message):
     setting = get_settings()
+    ready, missing = sms_configuration_status(setting)
+    if not ready:
+        return False, 'SMS configuration incomplete: ' + ', '.join(missing)
 
-    username = setting.sms_username
-    api_key = setting.sms_api_key
-    sender_id = setting.sms_sender_id
-
-    if not username or not api_key:
-        return False, "Africa's Talking username or API key is missing."
-
+    username = (setting.sms_username or '').strip()
+    api_key = (setting.sms_api_key or '').strip()
+    sender_id = (setting.sms_sender_id or '').strip()
     formatted_phone = format_zambian_phone(phone)
+    if not re.fullmatch(r'\+260\d{9}', formatted_phone):
+        return False, f'Invalid Zambian mobile number: {phone}'
+    if not message or not str(message).strip():
+        return False, 'Message cannot be blank.'
 
     payload = {
         'username': username,
@@ -564,16 +597,19 @@ def send_sms_via_africas_talking(phone, message):
     if sender_id and sender_id.strip():
         payload['from'] = sender_id.strip()
 
-    response = requests.post(
-        'https://api.africastalking.com/version1/messaging',
-        headers={
-            'apiKey': api_key,
-            'Accept': 'application/json',
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        data=payload,
-        timeout=20
-    )
+    try:
+        response = requests.post(
+            'https://api.africastalking.com/version1/messaging',
+            headers={
+                'apiKey': api_key,
+                'Accept': 'application/json',
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            data=payload,
+            timeout=20
+        )
+    except requests.RequestException as exc:
+        return False, f'SMS provider connection failed: {exc}'
 
     if response.status_code not in [200, 201]:
         return False, response.text
@@ -3691,10 +3727,7 @@ def login():
                 f'{user.full_name} logged in'
             )
 
-            flash(
-                'Welcome back. You are logged in securely.'
-            )
-
+           
             return redirect(url_for('startup'))
 
         flash(
@@ -3859,9 +3892,11 @@ def settings():
             or 'Manual'
         )
 
-        setting.sms_api_key = request.form.get('sms_api_key')
-        setting.sms_sender_id = request.form.get('sms_sender_id')
-        setting.sms_username = request.form.get('sms_username')
+        submitted_sms_api_key = (request.form.get('sms_api_key') or '').strip()
+        if submitted_sms_api_key:
+            setting.sms_api_key = submitted_sms_api_key
+        setting.sms_sender_id = (request.form.get('sms_sender_id') or '').strip()
+        setting.sms_username = (request.form.get('sms_username') or '').strip()
 
         setting.whatsapp_enabled = (
             'whatsapp_enabled' in request.form
@@ -14250,9 +14285,14 @@ def export_accounting_csv():
 def notifications():
     members = Member.query.order_by(Member.member_no).all()
     q = request.args.get('q', '').strip()
+    channel_filter = request.args.get('channel', '').strip()
+    status_filter = request.args.get('status', '').strip()
+    type_filter = request.args.get('notification_type', '').strip()
 
-    setting = SystemSetting.query.first()
+    setting = get_settings()
     organization_name = setting.organisation_name if setting and setting.organisation_name else CLIENT_NAME
+    sms_ready, sms_missing = sms_configuration_status(setting)
+    whatsapp_ready = bool(setting.whatsapp_enabled)
 
     templates = {
         'Contribution Reminder': f'Dear {{name}}, your monthly contribution is due. Please pay through bank transfer, mobile money, or cash. {organization_name}.',
@@ -14264,15 +14304,46 @@ def notifications():
     }
 
     if request.method == 'POST':
-        notification_type = request.form.get('notification_type') or 'General Notice'
-        channel = request.form.get('channel') or 'SMS'
-        subject = request.form.get('subject') or notification_type
-        message = request.form.get('message') or ''
+        notification_type = (request.form.get('notification_type') or 'General Notice').strip()
+        channel = (request.form.get('channel') or 'SMS').strip()
+        subject = (request.form.get('subject') or notification_type).strip()
+        message = (request.form.get('message') or '').strip()
         recipient_mode = request.form.get('recipient_mode') or 'selected'
         selected_ids = request.form.getlist('member_ids')
 
+        if setting and setting.enable_notifications is False:
+            flash('Notifications are disabled in System Settings. Enable them before processing messages.', 'error')
+            return redirect(url_for('notifications'))
+
+        if channel not in {'SMS', 'WhatsApp'}:
+            flash('Please choose a valid notification channel.', 'error')
+            return redirect(url_for('notifications'))
+
+        if channel == 'SMS' and not sms_ready:
+            flash('SMS is not ready: ' + ', '.join(sms_missing) + '. Update System Settings first.', 'error')
+            return redirect(url_for('notifications'))
+
+        if channel == 'WhatsApp' and not whatsapp_ready:
+            flash('WhatsApp is disabled in System Settings. Enable it before preparing WhatsApp messages.', 'error')
+            return redirect(url_for('notifications'))
+
+        if notification_type not in templates:
+            flash('Please choose a valid notification type.', 'error')
+            return redirect(url_for('notifications'))
+
+        if not message:
+            flash('Please enter a message before processing notifications.', 'error')
+            return redirect(url_for('notifications'))
+
+        if len(message) > 1600:
+            flash('The message is too long. Please keep it within 1,600 characters.', 'error')
+            return redirect(url_for('notifications'))
+
         if recipient_mode == 'all':
-            recipients = members
+            recipients = [
+                member for member in members
+                if (member.status or 'Active').lower() == 'active'
+            ]
         else:
             ids = [int(x) for x in selected_ids if x.isdigit()]
             recipients = Member.query.filter(Member.id.in_(ids)).all() if ids else []
@@ -14281,12 +14352,29 @@ def notifications():
             flash('Please select at least one recipient or choose all members.', 'error')
             return redirect(url_for('notifications'))
 
+        eligible_recipients = []
+        skipped_recipients = []
+
+        for member in recipients:
+            is_active = (member.status or 'Active').lower() == 'active'
+            has_phone = bool((member.phone or '').strip())
+            if is_active and has_phone:
+                eligible_recipients.append(member)
+            else:
+                skipped_recipients.append(member)
+
+        if not eligible_recipients:
+            flash('None of the selected recipients is an active member with a phone number.', 'error')
+            return redirect(url_for('notifications'))
+
         created = 0
         sent = 0
         failed = 0
+        prepared = 0
+        failed_names = []
         user = session.get('user') or {}
 
-        for m in recipients:
+        for m in eligible_recipients:
             personalized = (
                 message
                 .replace('{name}', m.full_name)
@@ -14295,6 +14383,8 @@ def notifications():
             )
 
             status = 'Prepared'
+            provider_reference = None
+            sent_at = None
 
             if channel == 'SMS':
                 ok, provider_response = send_sms_via_africas_talking(
@@ -14305,10 +14395,15 @@ def notifications():
                 if ok:
                     status = 'Sent'
                     sent += 1
+                    sent_at = datetime.utcnow()
                 else:
                     status = 'Failed'
                     failed += 1
-            flash(f'SMS failed for {m.full_name}: {provider_response}', 'error')
+                    failed_names.append(m.full_name)
+
+                provider_reference = str(provider_response or '')[:120]
+            else:
+                prepared += 1
 
             n = NotificationLog(
                 channel=channel,
@@ -14319,7 +14414,9 @@ def notifications():
                 subject=subject,
                 message=personalized,
                 status=status,
-                created_by=user.get('username')
+                created_by=user.get('username'),
+                sent_at=sent_at,
+                provider_reference=provider_reference
             )
 
             db.session.add(n)
@@ -14331,10 +14428,33 @@ def notifications():
             'SEND_NOTIFICATIONS',
             'NotificationLog',
             None,
-            f'{created} {channel} notification(s). Sent: {sent}, Failed: {failed}'
+            (
+                f'{created} {channel} notification(s). Sent: {sent}, '
+                f'Prepared: {prepared}, Failed: {failed}, '
+                f'Skipped: {len(skipped_recipients)}'
+            )
         )
 
-        flash(f'{created} notification(s) processed. Sent: {sent}, Failed: {failed}.')
+        if channel == 'SMS':
+            if sent:
+                flash(f'{sent} SMS notification(s) sent successfully.', 'success')
+            if failed:
+                names = ', '.join(failed_names[:4])
+                suffix = ' and others' if len(failed_names) > 4 else ''
+                flash(f'{failed} SMS notification(s) failed: {names}{suffix}. Check SMS settings and the notification history.', 'error')
+        else:
+            flash(
+                f'{prepared} WhatsApp notification(s) prepared and logged. '
+                'Use the saved messages for controlled manual delivery.',
+                'success'
+            )
+
+        if skipped_recipients:
+            flash(
+                f'{len(skipped_recipients)} recipient(s) were skipped because they are inactive or have no phone number.',
+                'warning'
+            )
+
         return redirect(url_for('notifications'))
 
     query = NotificationLog.query
@@ -14348,8 +14468,17 @@ def notifications():
             (NotificationLog.notification_type.contains(q))
         )
 
+    if channel_filter in {'SMS', 'WhatsApp'}:
+        query = query.filter(NotificationLog.channel == channel_filter)
+
+    if status_filter in {'Sent', 'Failed', 'Prepared'}:
+        query = query.filter(NotificationLog.status == status_filter)
+
+    if type_filter in templates:
+        query = query.filter(NotificationLog.notification_type == type_filter)
+
     page = request.args.get('page', 1, type=int)
-    per_page = 10
+    per_page = 15
 
     pagination = query.order_by(
         NotificationLog.created_at.desc(),
@@ -14361,6 +14490,15 @@ def notifications():
     )
 
     logs = pagination.items
+    total_notifications = NotificationLog.query.count()
+    sent_notifications = NotificationLog.query.filter_by(status='Sent').count()
+    failed_notifications = NotificationLog.query.filter_by(status='Failed').count()
+    prepared_notifications = NotificationLog.query.filter_by(status='Prepared').count()
+    active_recipients = sum(
+        1 for member in members
+        if (member.status or 'Active').lower() == 'active'
+        and bool((member.phone or '').strip())
+    )
 
     return render_template(
         'notifications.html',
@@ -14368,25 +14506,63 @@ def notifications():
         logs=logs,
         pagination=pagination,
         q=q,
-        templates=templates
+        templates=templates,
+        channel_filter=channel_filter,
+        status_filter=status_filter,
+        type_filter=type_filter,
+        notifications_enabled=setting.enable_notifications is not False,
+        sms_ready=sms_ready,
+        sms_missing=sms_missing,
+        whatsapp_ready=whatsapp_ready,
+        active_recipients=active_recipients,
+        notification_summary={
+            'total': total_notifications,
+            'sent': sent_notifications,
+            'failed': failed_notifications,
+            'prepared': prepared_notifications,
+        }
     )
 
 @app.route('/sms-test', methods=['GET', 'POST'])
 @login_required
 @role_required('settings')
 def sms_test():
+    setting = get_settings()
+    sms_ready, sms_missing = sms_configuration_status(setting)
     if request.method == 'POST':
-        phone = request.form.get('phone')
-        message = request.form.get('message')
-
+        phone = (request.form.get('phone') or '').strip()
+        message = (request.form.get('message') or '').strip()
         ok, response = send_sms_via_africas_talking(phone, message)
-
+        log_audit('TEST_SMS', 'SystemSetting', setting.id, f'Test SMS to {phone}: {"successful" if ok else "failed"}')
         if ok:
-            flash(f'SMS sent successfully. {response}')
+            flash('Test SMS sent successfully.', 'success')
         else:
             flash(f'SMS failed: {response}', 'error')
+    return render_template('sms_test.html', sms_ready=sms_ready, sms_missing=sms_missing)
 
-    return render_template('sms_test.html')
+
+@app.post('/notifications/<int:notification_id>/retry')
+@login_required
+@role_required('notifications')
+def retry_notification(notification_id):
+    notification = NotificationLog.query.get_or_404(notification_id)
+    if notification.channel != 'SMS':
+        flash('Only failed SMS notifications can be retried.', 'error')
+        return redirect(url_for('notifications'))
+    if notification.status != 'Failed':
+        flash('This SMS is not marked as failed.', 'warning')
+        return redirect(url_for('notifications'))
+    ok, provider_response = send_sms_via_africas_talking(notification.phone, notification.message)
+    notification.provider_reference = str(provider_response or '')[:120]
+    if ok:
+        notification.status = 'Sent'
+        notification.sent_at = datetime.utcnow()
+        flash('SMS resent successfully.', 'success')
+    else:
+        flash(f'SMS retry failed: {provider_response}', 'error')
+    db.session.commit()
+    log_audit('RETRY_NOTIFICATION', 'NotificationLog', notification.id, f'Retry status: {notification.status}')
+    return redirect(request.referrer or url_for('notifications'))
 
 @app.route('/export/notifications.csv')
 @login_required
