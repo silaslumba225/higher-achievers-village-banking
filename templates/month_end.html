@@ -1,127 +1,757 @@
 {% extends 'base.html' %}
-{% block page_title %}Month-End Processing{% endblock %}
-{% block subtitle %}Apply configured compounded interest to member savings and loan balances{% endblock %}
+
+{% block page_title %}Month-End Processing Centre{% endblock %}
+{% block subtitle %}Process monthly interest, review completed runs and maintain period integrity{% endblock %}
 
 {% block content %}
-<section class="panel">
-  <div class="panel-head">
+
+<link
+  href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+  rel="stylesheet"
+>
+
+<link
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+  rel="stylesheet"
+>
+
+<style>
+  .month-end-hero {
+    background: linear-gradient(135deg, #155eef, #0f3fa8);
+    color: #fff;
+    border-radius: 24px;
+    padding: 28px;
+    margin-bottom: 24px;
+    box-shadow: 0 14px 32px rgba(16, 24, 40, 0.16);
+  }
+
+  .month-end-hero h2 {
+    margin: 0 0 8px;
+    font-size: 28px;
+    font-weight: 800;
+  }
+
+  .month-end-hero p {
+    margin: 0;
+    max-width: 760px;
+    color: rgba(255, 255, 255, 0.88);
+  }
+
+  .month-end-kpi {
+    height: 100%;
+    border: 0;
+    border-radius: 22px;
+    color: #fff;
+    box-shadow: 0 12px 28px rgba(16, 24, 40, 0.14);
+  }
+
+  .month-end-kpi .card-body {
+    padding: 22px;
+  }
+
+  .month-end-kpi .kpi-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    margin-bottom: 14px;
+    background: rgba(255, 255, 255, 0.2);
+    font-size: 21px;
+  }
+
+  .month-end-kpi span {
+    display: block;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.9;
+  }
+
+  .month-end-kpi strong {
+    display: block;
+    margin-top: 7px;
+    font-size: 26px;
+    line-height: 1.2;
+  }
+
+  .month-end-kpi small {
+    display: block;
+    margin-top: 7px;
+    color: rgba(255, 255, 255, 0.84);
+  }
+
+  .grad-blue {
+    background: linear-gradient(135deg, #155eef, #0f3fa8);
+  }
+
+  .grad-green {
+    background: linear-gradient(135deg, #16a34a, #087a34);
+  }
+
+  .grad-orange {
+    background: linear-gradient(135deg, #f97316, #c2410c);
+  }
+
+  .grad-purple {
+    background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  }
+
+  .month-end-panel {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 24px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 10px 28px rgba(16, 24, 40, 0.07);
+  }
+
+  .panel-title {
+    display: flex;
+    align-items: flex-start;
+    gap: 13px;
+    margin-bottom: 20px;
+  }
+
+  .panel-title-icon {
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    background: #eaf2ff;
+    color: #155eef;
+    font-size: 20px;
+  }
+
+  .panel-title h3 {
+    margin: 0 0 5px;
+    font-size: 20px;
+    font-weight: 800;
+    color: #101828;
+  }
+
+  .panel-title p {
+    margin: 0;
+    color: #667085;
+  }
+
+  .process-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 0.75fr);
+    gap: 22px;
+    align-items: stretch;
+  }
+
+  .process-checklist {
+    border-radius: 18px;
+    padding: 20px;
+    background: #f8faff;
+    border: 1px solid #dce8ff;
+  }
+
+  .process-checklist h4 {
+    margin: 0 0 14px;
+    color: #1d2939;
+    font-size: 16px;
+    font-weight: 800;
+  }
+
+  .process-checklist ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .process-checklist li {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 11px;
+    color: #475467;
+  }
+
+  .process-checklist li:last-child {
+    margin-bottom: 0;
+  }
+
+  .process-checklist i {
+    margin-top: 3px;
+    color: #16a34a;
+  }
+
+  .month-end-form {
+    border-radius: 18px;
+    padding: 20px;
+    border: 1px solid #eaecf0;
+    background: #fff;
+  }
+
+  .month-end-form label {
+    display: block;
+    margin-bottom: 8px;
+    color: #344054;
+    font-weight: 700;
+  }
+
+  .month-end-form input[type="month"] {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid #d0d5dd;
+    border-radius: 12px;
+    font-size: 16px;
+    margin-bottom: 15px;
+  }
+
+  .month-end-form input[type="month"]:focus {
+    border-color: #155eef;
+    box-shadow: 0 0 0 4px rgba(21, 94, 239, 0.12);
+    outline: none;
+  }
+
+  .process-button {
+    width: 100%;
+    border: 0;
+    border-radius: 13px;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #155eef, #0f3fa8);
+    color: #fff;
+    font-weight: 800;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .process-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 9px 20px rgba(21, 94, 239, 0.24);
+  }
+
+  .control-note {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    padding: 13px;
+    border-radius: 13px;
+    background: #fffaeb;
+    border: 1px solid #fedf89;
+    color: #854a0e;
+    font-size: 13px;
+  }
+
+  .control-note i {
+    margin-top: 3px;
+  }
+
+  .table-modern {
+    margin: 0;
+  }
+
+  .table-modern thead th {
+    background: #f8fafc;
+    color: #667085;
+    border-bottom: 1px solid #e4e7ec;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+
+  .table-modern th,
+  .table-modern td {
+    padding: 13px;
+    vertical-align: middle;
+    border-bottom: 1px solid #eef2f6;
+  }
+
+  .table-modern tbody tr:hover {
+    background: #f9fbff;
+  }
+
+  .month-badge {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 6px 10px;
+    background: #eaf2ff;
+    color: #155eef;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .pagination-panel {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid #eaecf0;
+  }
+
+  .page-status {
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: #f2f4f7;
+    color: #475467;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .pagination-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .empty-state {
+    padding: 30px 15px !important;
+    text-align: center;
+    color: #667085;
+  }
+
+  .empty-state i {
+    display: block;
+    margin-bottom: 10px;
+    color: #98a2b3;
+    font-size: 25px;
+  }
+
+  @media (max-width: 992px) {
+    .process-layout {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<div class="month-end-hero">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
     <div>
-      <h2>Run Month-End Interest</h2>
-      <p>This applies the configured compound interest rates to savings balances and outstanding loan balances.</p>
+      <h2>
+        <i class="fa-solid fa-calendar-check me-2"></i>
+        Month-End Processing Centre
+      </h2>
+
+      <p>
+        Apply configured compound interest to member savings and outstanding
+        loan balances, review completed processing and monitor reversals.
+      </p>
+    </div>
+
+    <span class="badge rounded-pill bg-light text-primary px-3 py-2">
+      <i class="fa-solid fa-shield-halved me-1"></i>
+      Controlled Accounting Process
+    </span>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+
+  <div class="col-md-6 col-xl-3">
+    <div class="card month-end-kpi grad-blue">
+      <div class="card-body">
+        <div class="kpi-icon">
+          <i class="fa-solid fa-calendar-days"></i>
+        </div>
+
+        <span>Selected Month</span>
+        <strong>{{ selected_month }}</strong>
+        <small>Period ready for review or processing</small>
+      </div>
     </div>
   </div>
 
-  <form method="post" class="form-grid">
-    <label>Month
-      <input type="month" name="month" value="{{ selected_month }}" required>
-    </label>
+  <div class="col-md-6 col-xl-3">
+    <div class="card month-end-kpi grad-green">
+      <div class="card-body">
+        <div class="kpi-icon">
+          <i class="fa-solid fa-list-check"></i>
+        </div>
 
-    <button type="submit" class="primary" onclick="return confirm('Process month-end interest for this month? This cannot be run twice for the same month.');">
-      Process Month-End
-    </button>
-  </form>
-</section>
+        <span>Runs Displayed</span>
+        <strong>{{ processes|length }}</strong>
+        <small>Processing records on this page</small>
+      </div>
+    </div>
+  </div>
 
-<section class="panel">
-  <h2>Processing History</h2>
+  <div class="col-md-6 col-xl-3">
+    <div class="card month-end-kpi grad-orange">
+      <div class="card-body">
+        <div class="kpi-icon">
+          <i class="fa-solid fa-piggy-bank"></i>
+        </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Month</th>
-        <th>Members Processed</th>
-        <th>Loans Processed</th>
-        <th>Savings Interest</th>
-        <th>Loan Interest</th>
-        <th>Processed By</th>
-        <th>Processed On</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for p in processes %}
-      <tr>
-        <td>{{ p.month }}</td>
-        <td>{{ p.members_processed or 0 }}</td>
-        <td>{{ p.loans_processed or 0 }}</td>
-        <td>{{ p.savings_interest_total|kwacha }}</td>
-        <td>{{ p.loan_interest_total|kwacha }}</td>
-        <td>{{ p.processed_by or '-' }}</td>
-        <td>{{ p.processed_on }}</td>
-        <td>
-          <a class="btn small" href="{{ url_for('month_end_details', month=p.month) }}">View Details</a>
-        </td>
-      </tr>
-      {% else %}
-      <tr>
-        <td colspan="8">No month-end processing has been recorded yet.</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</section>
-{% if pagination %}
-<div class="actions">
-  {% if pagination.has_prev %}
-    <a class="btn" href="{{ url_for('month_end', page=pagination.prev_num, month=selected_month) }}">← Previous</a>
-  {% endif %}
+        <span>Latest Savings Interest</span>
 
-  <span class="badge">
-    Page {{ pagination.page }} of {{ pagination.pages or 1 }}
-  </span>
+        {% if processes %}
+          <strong>{{ processes[0].savings_interest_total|kwacha }}</strong>
+          <small>From the latest displayed run</small>
+        {% else %}
+          <strong>{{ 0|kwacha }}</strong>
+          <small>No processing recorded yet</small>
+        {% endif %}
+      </div>
+    </div>
+  </div>
 
-  {% if pagination.has_next %}
-    <a class="btn" href="{{ url_for('month_end', page=pagination.next_num, month=selected_month) }}">Next →</a>
-  {% endif %}
-</div>
-{% endif %}
-<section class="panel">
-  <h2>Recent Reversal History</h2>
+  <div class="col-md-6 col-xl-3">
+    <div class="card month-end-kpi grad-purple">
+      <div class="card-body">
+        <div class="kpi-icon">
+          <i class="fa-solid fa-hand-holding-dollar"></i>
+        </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Date/Time</th>
-        <th>User</th>
-        <th>Details</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for log in reversal_logs %}
-      <tr>
-        <td>{{ log.created_at }}</td>
-        <td>{{ log.full_name or log.username or '-' }}</td>
-        <td>{{ log.details or '-' }}</td>
-      </tr>
-      {% else %}
-      <tr>
-        <td colspan="3">No month-end reversals recorded yet.</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</section>
-{% if reversal_pagination %}
-<div class="actions">
-  {% if reversal_pagination.page > 1 %}
-    <a class="btn" href="{{ url_for('month_end', page=pagination.page, month=selected_month, reversal_page=1) }}">« First Reversals</a>
-  {% endif %}
+        <span>Latest Loan Interest</span>
 
-  {% if reversal_pagination.has_prev %}
-    <a class="btn" href="{{ url_for('month_end', page=pagination.page, month=selected_month, reversal_page=reversal_pagination.prev_num) }}">← Previous Reversals</a>
-  {% endif %}
-
-  <span class="badge">Reversal Page {{ reversal_pagination.page }} of {{ reversal_pagination.pages or 1 }}</span>
-
-  {% if reversal_pagination.has_next %}
-    <a class="btn" href="{{ url_for('month_end', page=pagination.page, month=selected_month, reversal_page=reversal_pagination.next_num) }}">Next Reversals →</a>
-  {% endif %}
-
-  {% if reversal_pagination.page < reversal_pagination.pages %}
-    <a class="btn" href="{{ url_for('month_end', page=pagination.page, month=selected_month, reversal_page=reversal_pagination.pages) }}">Last Reversals »</a>
-  {% endif %}
-</div>
-{% endif %}
+        {% if processes %}
+          <strong>{{ processes[0].loan_interest_total|kwacha }}</strong>
+          <small>From the latest displayed run</small>
+        {% else %}
+          <strong>{{ 0|kwacha }}</strong>
+          <small>No processing recorded yet</small>
+        {% endif %}
+      </div>
+    </div>
+  </div>
 
 </div>
+
+<section class="month-end-panel">
+
+  <div class="panel-title">
+    <div class="panel-title-icon">
+      <i class="fa-solid fa-gears"></i>
+    </div>
+
+    <div>
+      <h3>Run Month-End Processing</h3>
+      <p>
+        Select the accounting month and apply the configured interest rates.
+      </p>
+    </div>
+  </div>
+
+  <div class="process-layout">
+
+    <div class="process-checklist">
+      <h4>This controlled process will:</h4>
+
+      <ul>
+        <li>
+          <i class="fa-solid fa-circle-check"></i>
+          <span>Calculate compound interest on qualifying member savings.</span>
+        </li>
+
+        <li>
+          <i class="fa-solid fa-circle-check"></i>
+          <span>Calculate interest on outstanding loan balances.</span>
+        </li>
+
+        <li>
+          <i class="fa-solid fa-circle-check"></i>
+          <span>Update the applicable member and loan records.</span>
+        </li>
+
+        <li>
+          <i class="fa-solid fa-circle-check"></i>
+          <span>Record the processing outcome for audit and reporting.</span>
+        </li>
+
+        <li>
+          <i class="fa-solid fa-circle-check"></i>
+          <span>Prevent duplicate processing for the same month.</span>
+        </li>
+      </ul>
+    </div>
+
+    <form method="post" class="month-end-form">
+
+      <label for="month">
+        <i class="fa-regular fa-calendar me-1"></i>
+        Accounting Month
+      </label>
+
+      <input
+        id="month"
+        type="month"
+        name="month"
+        value="{{ selected_month }}"
+        required
+      >
+
+      <button
+        type="submit"
+        class="process-button"
+        onclick="return confirm(
+          'Process month-end interest for this month? This cannot be run twice for the same month.'
+        );"
+      >
+        <i class="fa-solid fa-play me-1"></i>
+        Process Month-End
+      </button>
+
+      <div class="control-note">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+
+        <span>
+          Confirm that all contributions, loan repayments and corrections for
+          the selected month have been entered before processing.
+        </span>
+      </div>
+
+    </form>
+
+  </div>
+
+</section>
+
+<section class="month-end-panel">
+
+  <div class="panel-title">
+    <div class="panel-title-icon">
+      <i class="fa-solid fa-clock-rotate-left"></i>
+    </div>
+
+    <div>
+      <h3>Month-End Processing History</h3>
+      <p>
+        Review completed monthly interest runs and open their detailed results.
+      </p>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-modern align-middle">
+
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th>Members</th>
+          <th>Loans</th>
+          <th>Savings Interest</th>
+          <th>Loan Interest</th>
+          <th>Processed By</th>
+          <th>Processed On</th>
+          <th class="text-end">Action</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for p in processes %}
+        <tr>
+          <td>
+            <span class="month-badge">
+              {{ p.month }}
+            </span>
+          </td>
+
+          <td>{{ p.members_processed or 0 }}</td>
+          <td>{{ p.loans_processed or 0 }}</td>
+
+          <td>
+            <strong>{{ p.savings_interest_total|kwacha }}</strong>
+          </td>
+
+          <td>
+            <strong>{{ p.loan_interest_total|kwacha }}</strong>
+          </td>
+
+          <td>{{ p.processed_by or '-' }}</td>
+          <td>{{ p.processed_on }}</td>
+
+          <td class="text-end">
+            <a
+              class="btn btn-sm btn-outline-primary"
+              href="{{ url_for('month_end_details', month=p.month) }}"
+            >
+              <i class="fa-regular fa-eye me-1"></i>
+              View Details
+            </a>
+          </td>
+        </tr>
+
+        {% else %}
+        <tr>
+          <td colspan="8" class="empty-state">
+            <i class="fa-regular fa-calendar-xmark"></i>
+            No month-end processing has been recorded yet.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+
+    </table>
+  </div>
+
+  {% if pagination %}
+  <div class="pagination-panel">
+
+    <span class="page-status">
+      Page {{ pagination.page }} of {{ pagination.pages or 1 }}
+    </span>
+
+    <div class="pagination-actions">
+
+      {% if pagination.has_prev %}
+      <a
+        class="btn btn-outline-secondary"
+        href="{{ url_for(
+          'month_end',
+          page=pagination.prev_num,
+          month=selected_month
+        ) }}"
+      >
+        <i class="fa-solid fa-arrow-left me-1"></i>
+        Previous
+      </a>
+      {% endif %}
+
+      {% if pagination.has_next %}
+      <a
+        class="btn btn-outline-secondary"
+        href="{{ url_for(
+          'month_end',
+          page=pagination.next_num,
+          month=selected_month
+        ) }}"
+      >
+        Next
+        <i class="fa-solid fa-arrow-right ms-1"></i>
+      </a>
+      {% endif %}
+
+    </div>
+
+  </div>
+  {% endif %}
+
+</section>
+
+<section class="month-end-panel">
+
+  <div class="panel-title">
+    <div class="panel-title-icon">
+      <i class="fa-solid fa-rotate-left"></i>
+    </div>
+
+    <div>
+      <h3>Recent Reversal History</h3>
+      <p>
+        Monitor reversals made to previously completed month-end processing.
+      </p>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-modern align-middle">
+
+      <thead>
+        <tr>
+          <th>Date and Time</th>
+          <th>User</th>
+          <th>Reversal Details</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for log in reversal_logs %}
+        <tr>
+          <td>{{ log.created_at }}</td>
+
+          <td>
+            <strong>
+              {{ log.full_name or log.username or '-' }}
+            </strong>
+          </td>
+
+          <td>{{ log.details or '-' }}</td>
+        </tr>
+
+        {% else %}
+        <tr>
+          <td colspan="3" class="empty-state">
+            <i class="fa-solid fa-shield-circle-check"></i>
+            No month-end reversals have been recorded.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+
+    </table>
+  </div>
+
+  {% if reversal_pagination %}
+  <div class="pagination-panel">
+
+    <span class="page-status">
+      Reversal page {{ reversal_pagination.page }}
+      of {{ reversal_pagination.pages or 1 }}
+    </span>
+
+    <div class="pagination-actions">
+
+      {% if reversal_pagination.page > 1 %}
+      <a
+        class="btn btn-outline-secondary"
+        href="{{ url_for(
+          'month_end',
+          page=pagination.page if pagination else 1,
+          month=selected_month,
+          reversal_page=1
+        ) }}"
+      >
+        « First
+      </a>
+      {% endif %}
+
+      {% if reversal_pagination.has_prev %}
+      <a
+        class="btn btn-outline-secondary"
+        href="{{ url_for(
+          'month_end',
+          page=pagination.page if pagination else 1,
+          month=selected_month,
+          reversal_page=reversal_pagination.prev_num
+        ) }}"
+      >
+        ← Previous
+      </a>
+      {% endif %}
+
+      {% if reversal_pagination.has_next %}
+      <a
+        class="btn btn-outline-secondary"
+        href="{{ url_for(
+          'month_end',
+          page=pagination.page if pagination else 1,
+          month=selected_month,
+          reversal_page=reversal_pagination.next_num
+        ) }}"
+      >
+        Next →
+      </a>
+      {% endif %}
+
+      {% if reversal_pagination.page < reversal_pagination.pages %}
+      <a
+        class="btn btn-outline-secondary"
+        href="{{ url_for(
+          'month_end',
+          page=pagination.page if pagination else 1,
+          month=selected_month,
+          reversal_page=reversal_pagination.pages
+        ) }}"
+      >
+        Last »
+      </a>
+      {% endif %}
+
+    </div>
+
+  </div>
+  {% endif %}
+
+</section>
+
 {% endblock %}

@@ -1,24 +1,40 @@
 {% extends 'base.html' %}
-{% block page_title %}SMS Test{% endblock %}
+{% block page_title %}SMS Connection Test{% endblock %}
+{% block subtitle %}Verify Africa's Talking before operational messaging{% endblock %}
 
 {% block content %}
-<section class="panel">
-  <h2>Test Africa's Talking SMS</h2>
+<style>
+  .sms-test-shell { max-width: 820px; margin: 0 auto; display:grid; gap:18px; }
+  .sms-test-card { background:var(--card-color); border-radius:18px; padding:24px; box-shadow:0 8px 24px rgba(38,31,74,.07); }
+  .sms-readiness { padding:14px 16px; border-radius:12px; font-weight:700; }
+  .sms-ready { background:#dcfce7; color:#166534; border:1px solid #86efac; }
+  .sms-not-ready { background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; }
+  .sms-test-card input, .sms-test-card textarea { width:100%; box-sizing:border-box; border:1px solid #d7deea; border-radius:10px; padding:11px 13px; background:#fffdf3; }
+  .sms-test-card label { display:block; font-weight:700; margin-bottom:15px; }
+  .sms-test-card label span { display:block; margin-bottom:7px; }
+</style>
+<div class="sms-test-shell">
+  <section class="sms-test-card">
+    <h2>📱 Africa's Talking SMS Test</h2>
+    <p>Send one controlled test message before using bulk member notifications.</p>
+    <div class="sms-readiness {{ 'sms-ready' if sms_ready else 'sms-not-ready' }}">
+      {% if sms_ready %}
+        SMS configuration is ready.
+      {% else %}
+        Setup required: {{ sms_missing|join(', ') }}.
+      {% endif %}
+    </div>
+  </section>
 
-  <form method="post" class="form-grid">
-
-    <label>Phone Number
+  <form method="post" class="sms-test-card">
+    <label><span>Test Phone Number</span>
       <input name="phone" placeholder="097xxxxxxx or +26097xxxxxxx" required>
     </label>
-
-    <label class="wide">Message
-    <textarea name="message" rows="5" required>Greetings from {{ settings.organisation_name }} using {{ settings.product_name }}.</textarea>
-  </label>
-
-    <button type="submit" class="primary">
-      Send Test SMS
-    </button>
-
+    <label><span>Test Message</span>
+      <textarea name="message" rows="5" maxlength="1600" required>Greetings from {{ settings.organisation_name or client_name }} using {{ product_name }}.</textarea>
+    </label>
+    <button type="submit" class="primary" {% if not sms_ready %}disabled{% endif %}>Send Test SMS</button>
+    <a class="btn" href="{{ url_for('settings') }}">Open SMS Settings</a>
   </form>
-</section>
+</div>
 {% endblock %}

@@ -370,141 +370,163 @@
   </div>
 </div>
 
-    <nav>
+ <nav>
 
-      {% if user_can('dashboard') %}
-      <a href="{{ url_for('executive_dashboard') }}">
-        ▣ Dashboard
-      </a>
-      {% endif %}
-      {% if user_can('settings') %}
-      <a href="{{ url_for('administration') }}">
-        ⚙️ Administration
-      </a>
-      {% endif %}
-      <a href="{{ url_for('about') }}">
-          <i class="fas fa-circle-info"></i>
-          About SL Village Banking Pro
-      </a>
+  {% if user_can('dashboard') %}
+  <a href="{{ url_for('executive_dashboard') }}">
+    ▣ Dashboard
+  </a>
+  {% endif %}
 
-      {% if user_can('members') %}
-      <a href="{{ url_for('members') }}">
-        👥 Members
-      </a>
-      {% endif %}
 
-      {% if user_can('contributions') %}
-      <a href="{{ url_for('contributions') }}">
-        💰 Contributions
-      </a>
-      {% endif %}
+  {% if user_can('settings') %}
+  <a href="{{ url_for('administration') }}">
+    ⚙️ Administration
+  </a>
+  {% endif %}
 
-      {% if user_can('loans') %}
-      <a href="{{ url_for('loans') }}">
-        🏦 Loans & Repayments
-      </a>
-      {% endif %}
 
-      {% if user_can('distributions') %}
-      <a href="{{ url_for('distributions') }}">
-        📤 Distributions
-      </a>
-      {% endif %}
+  {% if user_can('members') %}
+  <a href="{{ url_for('members') }}">
+    👥 Members
+  </a>
+  {% endif %}
 
-      {% if user_can('meetings') %}
-      <a href="{{ url_for('meetings') }}">
-        📅 Meetings
-      </a>
-      {% endif %}
 
-      {% if user_can('reports') %}
-      <a href="{{ url_for('reports') }}">
-        📈 Reports
-      </a>
-      {% endif %}
+  {% if user_can('contributions') %}
+  <a href="{{ url_for('contributions') }}">
+    💰 Contributions
+  </a>
+  {% endif %}
 
-      {% if user_can('statements') %}
-      <a href="{{ url_for('statements') }}">
-        📄 Member Statements
-      </a>
-      {% endif %}
 
-      {% if user_can('shareout') %}
-      <a href="{{ url_for('shareout_control_centre') }}">
-        🧮 Share-Out
-      </a>
-      {% endif %}
+  {% if user_can('loans') %}
+  <a href="{{ url_for('loans') }}">
+    🏦 Loans &amp; Repayments
+  </a>
+  {% endif %}
 
-      {% if user_can('fines') %}
-      <a href="{{ url_for('fines') }}">
-        ⚠️ Fines & Penalties
-      </a>
-      {% endif %}
 
-      {% if user_can('welfare') %}
-      <a href="{{ url_for('welfare') }}">
-        🤝 Welfare Fund
-      </a>
-      {% endif %}
+  {% if user_can('distributions') %}
+  <a href="{{ url_for('distributions') }}">
+    📤 Distributions
+  </a>
+  {% endif %}
 
-      {% if user_can('attendance') %}
-      <a href="{{ url_for('attendance') }}">
-        ✅ Attendance Register
-      </a>
-      {% endif %}
 
-      {% if user_can('notifications') %}
-      <a href="{{ url_for('notifications') }}">
-        📱 SMS & WhatsApp
-      </a>
-      {% endif %}
+  {% if user_can('meetings') %}
+  <a href="{{ url_for('meetings') }}">
+    📅 Meetings
+  </a>
+  {% endif %}
 
-      {% if user_can('accounting') %}
-      <a href="{{ url_for('accounting') }}">
-        📚 Accounting
-      </a>
 
-       <a href="{{ url_for('opening_balances') }}">
-          📥 Opening Balances
-       </a>
-       <a href="{{ url_for('financial_year_control_centre') }}">
-          📅 Financial Year End
-        </a>
+  {% if user_can('reports') %}
+  <a href="{{ url_for('reports') }}">
+    📈 Reports
+  </a>
+  {% endif %}
 
-      <a href="{{ url_for('month_end') }}">
-        🧮 Month-End Processing
-      </a>
-      {% endif %}
 
-      {% if user_can('audit') %}
-      <a href="{{ url_for('audit_trail') }}">
-        📝 Audit Trail
-      </a>
-      {% endif %}
+  {% if user_can('statements') %}
+  <a href="{{ url_for('statements') }}">
+    📄 Member Statements
+  </a>
+  {% endif %}
 
-      {% if user_can('backups') %}
-      <a href="{{ url_for('backups') }}">
-        💾 Backup & Restore
-      </a>
-      {% endif %}
 
-      {% if user_can('users') %}
-      <a href="{{ url_for('users') }}">
-        🔐 Users & Roles
-      </a>
-      {% endif %}
+  {% if user_can('shareout') %}
+  <a href="{{ url_for('shareout_control_centre') }}">
+    🧮 Share-Out
+  </a>
+  {% endif %}
 
-      {% if user_can('settings') %}
-      <a href="{{ url_for('settings') }}">
-        🎨 Branding & Theme Centre
-      </a>
-     
-      <a href="{{ url_for('logo_management') }}">
+
+  {% if user_can('fines') %}
+  <a href="{{ url_for('fines') }}">
+    ⚠️ Fines &amp; Penalties
+  </a>
+  {% endif %}
+
+
+  {% if user_can('welfare') %}
+  <a href="{{ url_for('welfare') }}">
+    🤝 Welfare Fund
+  </a>
+  {% endif %}
+
+
+  {% if user_can('attendance') %}
+  <a href="{{ url_for('attendance') }}">
+    ✅ Attendance Register
+  </a>
+  {% endif %}
+
+
+  {% if user_can('notifications') %}
+  <a href="{{ url_for('notifications') }}">
+    📱 SMS &amp; WhatsApp
+  </a>
+  {% endif %}
+
+
+  {% if user_can('accounting') %}
+  <a href="{{ url_for('accounting') }}">
+    📚 Accounting
+  </a>
+
+  <a href="{{ url_for('opening_balances') }}">
+    📥 Opening Balances
+  </a>
+
+  <a href="{{ url_for('financial_year_control_centre') }}">
+    📅 Financial Year End
+  </a>
+
+  <a href="{{ url_for('month_end') }}">
+    🧮 Month-End Processing
+  </a>
+  {% endif %}
+
+
+  {% if user_can('audit') %}
+  <a href="{{ url_for('audit_trail') }}">
+    📝 Audit Trail
+  </a>
+  {% endif %}
+
+
+  {% if user_can('backups') %}
+  <a href="{{ url_for('backups') }}">
+    💾 Backup &amp; Restore
+  </a>
+  {% endif %}
+
+
+  {% if user_can('users') %}
+  <a href="{{ url_for('users') }}">
+    🔐 Users &amp; Roles
+  </a>
+  {% endif %}
+
+
+  {% if user_can('settings') %}
+  <a href="{{ url_for('settings') }}">
+    🎨 Branding &amp; Theme Centre
+  </a>
+
+  <a href="{{ url_for('logo_management') }}">
     🖼️ Logo Management
-      </a>
-       {% endif %}
-    </nav>
+  </a>
+  {% endif %}
 
+
+  <a href="{{ url_for('about') }}">
+    ℹ️ About SL Village Banking Pro
+  </a>
+
+</nav>
+    
     <div class="sidebar-footer">
     <div class="footer-label">
         Developed and supported by

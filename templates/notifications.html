@@ -1,51 +1,276 @@
 {% extends 'base.html' %}
 
 {% block page_title %}SMS & WhatsApp Notifications{% endblock %}
-{% block subtitle %}Prepare member reminders and communication logs{% endblock %}
+{% block subtitle %}Prepare, send and track controlled member communications{% endblock %}
 
 {% block content %}
 
-<section class="panel">
-  <div class="panel-head">
+<style>
+  .notify-shell { display: grid; gap: 24px; }
+  .notify-hero {
+    background: linear-gradient(120deg, #6f42c1 0%, #0d6efd 58%, #198754 100%);
+    border-radius: 18px; color: #fff; padding: 28px;
+    display: flex; justify-content: space-between; align-items: center; gap: 24px;
+    box-shadow: 0 14px 32px rgba(40, 32, 92, .13);
+  }
+  .notify-hero h2 { color: #fff; font-size: 1.85rem; margin: 0 0 8px; }
+  .notify-hero p { margin: 0; color: rgba(255,255,255,.88); max-width: 720px; }
+  .notify-hero .btn { background: #fff; color: #172b4d; border-color: #fff; white-space: nowrap; }
+  .notify-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .notify-metric {
+    background: var(--card-color); border-radius: 16px; padding: 18px;
+    display: flex; align-items: center; gap: 14px; box-shadow: 0 8px 24px rgba(38, 31, 74, .07);
+  }
+  .metric-icon {
+    width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center;
+    font-size: 1.25rem; flex: 0 0 auto;
+  }
+  .metric-icon.blue { background: #dbeafe; color: #0d6efd; }
+  .metric-icon.green { background: #dff3e8; color: #087443; }
+  .metric-icon.red { background: #fee2e2; color: #c62828; }
+  .metric-icon.purple { background: #eee5ff; color: #6f42c1; }
+  .metric-label { color: #64748b; font-size: .82rem; margin-bottom: 3px; }
+  .metric-value { font-size: 1.35rem; font-weight: 800; color: #111827; }
+  .notify-card {
+    background: var(--card-color); border-radius: 18px; padding: 24px;
+    box-shadow: 0 8px 24px rgba(38, 31, 74, .07);
+  }
+  .notify-card-head {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 18px; margin-bottom: 20px;
+  }
+  .notify-card h2 { margin: 0 0 5px; font-size: 1.25rem; }
+  .notify-card p { margin: 0; color: #64748b; }
+  .channel-guide {
+    border-radius: 14px; padding: 16px 18px; background: #f8fafc;
+    border: 1px solid #e2e8f0; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  }
+  .guide-item { display: flex; gap: 11px; line-height: 1.45; }
+  .guide-item strong { display: block; color: #172b4d; }
+  .guide-item small { color: #64748b; }
+  .disabled-notice {
+    background: #fef3f2; border: 1px solid #fecdca; color: #b42318;
+    padding: 14px 16px; border-radius: 12px; font-weight: 700;
+  }
+  .readiness-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px; }
+  .readiness-card { border:1px solid #e2e8f0; border-radius:12px; padding:13px 15px; background:#fff; }
+  .readiness-card strong { display:block; margin-bottom:4px; }
+  .row-actions { display:flex; gap:7px; flex-wrap:wrap; margin-top:8px; }
+  .mini-action { display:inline-flex; align-items:center; border:1px solid #cbd5e1; border-radius:7px; padding:5px 8px; background:#fff; color:#334155; font-size:.74rem; text-decoration:none; cursor:pointer; }
+  .mini-action.whatsapp { background:#dcfce7; border-color:#86efac; color:#166534; }
+  .mini-action.retry { background:#fff7ed; border-color:#fdba74; color:#9a3412; }
+  .compose-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px; }
+  .compose-grid .wide { grid-column: 1 / -1; }
+  .field-label { display: block; font-weight: 700; font-size: .83rem; margin-bottom: 7px; color: #253858; }
+  .notify-card input[type="text"], .notify-card select, .notify-card textarea {
+    width: 100%; box-sizing: border-box; border: 1px solid #d7deea; border-radius: 10px;
+    padding: 11px 13px; background: #fffdf3; color: #172b4d;
+  }
+  .notify-card textarea { min-height: 130px; resize: vertical; }
+  .message-tools {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    flex-wrap: wrap; margin-top: 8px;
+  }
+  .token-list { display: flex; gap: 6px; flex-wrap: wrap; }
+  .token-btn {
+    border: 1px solid #cad5e5; border-radius: 20px; background: #f8fafc;
+    color: #334155; padding: 5px 10px; font-size: .75rem; cursor: pointer;
+  }
+  .message-count { color: #64748b; font-size: .78rem; }
+  .recipient-mode {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 20px 0 14px;
+  }
+  .mode-option {
+    border: 1px solid #d7deea; border-radius: 12px; padding: 13px;
+    display: flex; gap: 9px; align-items: flex-start; cursor: pointer;
+  }
+  .mode-option:has(input:checked) { border-color: var(--button-color); background: #f2f7ff; }
+  .mode-option strong { display: block; color: #172b4d; }
+  .mode-option small { display: block; color: #64748b; margin-top: 2px; }
+  .member-tools {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    flex-wrap: wrap; margin-bottom: 12px;
+  }
+  .member-tools input { max-width: 360px; }
+  .compact-btn {
+    border: 1px solid #cbd5e1; background: #fff; border-radius: 8px;
+    padding: 7px 10px; cursor: pointer; color: #334155;
+  }
+  .member-count { font-weight: 800; color: #6f42c1; }
+  .member-table-wrap { max-height: 390px; overflow: auto; border: 1px solid #e2e8f0; border-radius: 12px; }
+  .member-table-wrap table { margin: 0; }
+  .member-table-wrap thead th { position: sticky; top: 0; z-index: 1; }
+  .member-unavailable { opacity: .55; }
+  .status-pill {
+    display: inline-flex; align-items: center; border-radius: 999px; padding: 5px 10px;
+    font-size: .74rem; font-weight: 800;
+  }
+  .status-sent { background: #dcfce7; color: #087443; }
+  .status-failed { background: #fee2e2; color: #b42318; }
+  .status-prepared { background: #ede9fe; color: #6d28d9; }
+  .status-neutral { background: #e2e8f0; color: #475569; }
+  .compose-actions {
+    display: flex; justify-content: flex-end; align-items: center; gap: 12px;
+    margin-top: 18px; padding-top: 18px; border-top: 1px solid #e2e8f0;
+  }
+  .compose-actions .primary { min-width: 210px; }
+  .history-filters {
+    display: grid; grid-template-columns: minmax(240px, 2fr) repeat(3, minmax(140px, 1fr)) auto;
+    gap: 10px; align-items: end; margin-bottom: 18px;
+  }
+  .history-message { max-width: 380px; line-height: 1.4; color: #475569; }
+  .history-meta { font-size: .76rem; color: #64748b; margin-top: 3px; }
+  .pagination-row {
+    display: flex; justify-content: center; align-items: center; gap: 8px;
+    flex-wrap: wrap; margin-top: 18px;
+  }
+  .empty-state { text-align: center; padding: 42px 20px; color: #64748b; }
+  @media (max-width: 1050px) {
+    .notify-metrics { grid-template-columns: repeat(2, 1fr); }
+    .history-filters { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 720px) {
+    .notify-hero, .notify-card-head { flex-direction: column; align-items: stretch; }
+    .notify-metrics, .compose-grid, .channel-guide, .recipient-mode, .readiness-grid { grid-template-columns: 1fr; }
+    .compose-grid .wide { grid-column: auto; }
+    .history-filters { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="notify-shell">
+  <section class="notify-hero">
     <div>
-      <h2>Prepare Notifications</h2>
-      <p>Create SMS or WhatsApp messages for selected members.</p>
+      <h2>✉ SMS & WhatsApp Notifications Centre</h2>
+      <p>Send configured SMS messages, prepare WhatsApp communications and maintain a complete member communication register.</p>
+    </div>
+    <a class="btn" href="{{ url_for('export_notifications_csv') }}">⇩ Export History CSV</a>
+  </section>
+
+  <section class="notify-metrics">
+    <div class="notify-metric">
+      <div class="metric-icon blue">👥</div>
+      <div><div class="metric-label">Reachable Active Members</div><div class="metric-value">{{ active_recipients }}</div></div>
+    </div>
+    <div class="notify-metric">
+      <div class="metric-icon green">✓</div>
+      <div><div class="metric-label">Sent</div><div class="metric-value">{{ notification_summary.sent }}</div></div>
+    </div>
+    <div class="notify-metric">
+      <div class="metric-icon purple">⌛</div>
+      <div><div class="metric-label">Prepared</div><div class="metric-value">{{ notification_summary.prepared }}</div></div>
+    </div>
+    <div class="notify-metric">
+      <div class="metric-icon red">!</div>
+      <div><div class="metric-label">Failed</div><div class="metric-value">{{ notification_summary.failed }}</div></div>
+    </div>
+  </section>
+
+  <section class="notify-card">
+    <div class="notify-card-head">
+      <div>
+        <h2>Channel Control</h2>
+        <p>Choose the correct delivery workflow before processing member messages.</p>
+      </div>
+      <span class="status-pill {{ 'status-sent' if notifications_enabled else 'status-failed' }}">
+        {{ 'Notifications Enabled' if notifications_enabled else 'Notifications Disabled' }}
+      </span>
     </div>
 
-    <a class="btn" href="{{ url_for('export_notifications_csv') }}">
-      Export CSV
-    </a>
-  </div>
+    {% if not notifications_enabled %}
+      <div class="disabled-notice">Notifications are disabled in System Settings. An administrator must enable them before messages can be processed.</div>
+    {% endif %}
 
-  <form method="post">
-    <input type="hidden" name="recipient_mode" value="selected">
+    <div class="readiness-grid">
+      <div class="readiness-card">
+        <strong>📱 SMS: {{ 'Ready' if sms_ready else 'Setup required' }}</strong>
+        <small>{% if sms_ready %}Africa's Talking credentials are configured.{% else %}{{ sms_missing|join(', ') }}{% endif %}</small>
+      </div>
+      <div class="readiness-card">
+        <strong>💬 WhatsApp: {{ 'Enabled' if whatsapp_ready else 'Disabled' }}</strong>
+        <small>{% if whatsapp_ready %}Prepared messages can be opened directly in WhatsApp.{% else %}Enable WhatsApp in System Settings first.{% endif %}</small>
+      </div>
+    </div>
 
-    <div class="form-grid">
-      <label>Channel
-        <select name="channel">
-          <option>SMS</option>
-          <option>WhatsApp</option>
+    <div class="channel-guide" style="margin-top:16px;">
+      <div class="guide-item">
+        <span>📱</span>
+        <div><strong>SMS sends immediately</strong><small>Each personalized message is submitted to the configured Africa’s Talking account and recorded as Sent or Failed.</small></div>
+      </div>
+      <div class="guide-item">
+        <span>💬</span>
+        <div><strong>WhatsApp prepares a controlled record</strong><small>The system personalizes and logs the message as Prepared for manual delivery; it does not claim that WhatsApp delivered it.</small></div>
+      </div>
+    </div>
+  </section>
+
+  <form method="post" id="notificationForm" class="notify-card">
+    <div class="notify-card-head">
+      <div>
+        <h2>Compose Notification</h2>
+        <p>Templates support member-specific placeholders and can be edited before processing.</p>
+      </div>
+      <span class="status-pill status-neutral"><span id="selectedSummary">0 selected</span></span>
+    </div>
+
+    <div class="compose-grid">
+      <label>
+        <span class="field-label">Channel</span>
+        <select name="channel" id="channel" required>
+          <option value="SMS" {% if not sms_ready %}disabled{% endif %}>SMS — send now{% if not sms_ready %} (setup required){% endif %}</option>
+          <option value="WhatsApp" {% if not whatsapp_ready %}disabled{% endif %}>WhatsApp — prepare and open{% if not whatsapp_ready %} (disabled){% endif %}</option>
         </select>
       </label>
 
-      <label>Notification Type
-        <select name="notification_type">
-          {% for key, text in templates.items() %}
+      <label>
+        <span class="field-label">Notification Type</span>
+        <select name="notification_type" id="notificationType" required>
+          {% for key in templates %}
             <option value="{{ key }}">{{ key }}</option>
           {% endfor %}
         </select>
       </label>
 
-      <label class="wide">Message
-        <textarea name="message" placeholder="Type message here..."></textarea>
+      <label class="wide">
+        <span class="field-label">Subject / Register Description</span>
+        <input type="text" name="subject" id="subject" maxlength="160" placeholder="Purpose of this notification">
+      </label>
+
+      <label class="wide">
+        <span class="field-label">Message</span>
+        <textarea name="message" id="message" maxlength="1600" required placeholder="Enter the member notification..."></textarea>
+        <div class="message-tools">
+          <div class="token-list">
+            <button type="button" class="token-btn" data-token="{name}">+ Member name</button>
+            <button type="button" class="token-btn" data-token="{member_no}">+ Member number</button>
+            <button type="button" class="token-btn" data-token="{phone}">+ Phone</button>
+          </div>
+          <span class="message-count"><span id="characterCount">0</span>/1600 characters · approx. <span id="smsParts">0</span> SMS part(s)</span>
+        </div>
       </label>
     </div>
 
-    <section class="panel">
-      <h2>Members</h2>
-      <p>Select one or more members to receive this notification.</p>
+    <div class="recipient-mode">
+      <label class="mode-option">
+        <input type="radio" name="recipient_mode" value="selected" checked>
+        <span><strong>Selected members</strong><small>Process only the members checked below.</small></span>
+      </label>
+      <label class="mode-option">
+        <input type="radio" name="recipient_mode" value="all">
+        <span><strong>All reachable active members</strong><small>Process every active member who has a phone number.</small></span>
+      </label>
+    </div>
 
-      <div class="table-wrap">
+    <div id="memberSelector">
+      <div class="member-tools">
+        <input type="text" id="memberSearch" placeholder="Search member number, name, phone or group">
+        <div>
+          <button type="button" class="compact-btn" id="selectVisible">Select visible</button>
+          <button type="button" class="compact-btn" id="clearMembers">Clear</button>
+          <span class="member-count" id="memberCount">0 selected</span>
+        </div>
+      </div>
+
+      <div class="member-table-wrap">
         <table>
           <thead>
             <tr>
@@ -57,97 +282,266 @@
               <th>Status</th>
             </tr>
           </thead>
-
           <tbody>
             {% for m in members %}
-            <tr>
-              <td>
-                <input type="checkbox"
-                       name="member_ids"
-                       value="{{ m.id }}">
-              </td>
-              <td><strong>{{ m.member_no }}</strong></td>
-              <td>{{ m.full_name }}</td>
-              <td>{{ m.phone or '-' }}</td>
-              <td>{{ m.group_name or '-' }}</td>
-              <td>{{ m.status }}</td>
-            </tr>
+              {% set reachable = (m.status or 'Active')|lower == 'active' and m.phone %}
+              <tr class="member-row {{ '' if reachable else 'member-unavailable' }}"
+                  data-search="{{ (m.member_no ~ ' ' ~ m.full_name ~ ' ' ~ (m.phone or '') ~ ' ' ~ (m.group_name or ''))|lower }}">
+                <td>
+                  <input type="checkbox" class="member-checkbox" name="member_ids" value="{{ m.id }}"
+                         {% if not reachable %}disabled title="Inactive member or missing phone number"{% endif %}>
+                </td>
+                <td><strong>{{ m.member_no }}</strong></td>
+                <td>{{ m.full_name }}</td>
+                <td>{{ m.phone or 'Missing' }}</td>
+                <td>{{ m.group_name or '-' }}</td>
+                <td>
+                  <span class="status-pill {{ 'status-sent' if reachable else 'status-neutral' }}">
+                    {{ 'Reachable' if reachable else (m.status or 'Phone missing') }}
+                  </span>
+                </td>
+              </tr>
             {% else %}
-            <tr>
-              <td colspan="6">No members found.</td>
-            </tr>
+              <tr><td colspan="6">No members found.</td></tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
-    </section>
+    </div>
 
-    <div class="actions">
-      <button type="submit" class="primary">
-        Prepare Notifications
+    <div class="compose-actions">
+      <span id="actionHint" class="history-meta">SMS messages will be sent immediately.</span>
+      <button type="submit" class="primary" id="processButton" {% if not notifications_enabled %}disabled{% endif %}>
+        Send SMS Notifications
       </button>
     </div>
   </form>
-</section>
 
-<section class="panel">
-  <h2>Notification History</h2>
+  <section class="notify-card">
+    <div class="notify-card-head">
+      <div>
+        <h2>Notification History</h2>
+        <p>Review the delivery status and message recorded for every member.</p>
+      </div>
+      <span class="status-pill status-neutral">{{ notification_summary.total }} total record(s)</span>
+    </div>
 
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Member</th>
-          <th>Channel</th>
-          <th>Type</th>
-          <th>Status</th>
-          <th>Message</th>
-        </tr>
-      </thead>
+    <form method="get" class="history-filters">
+      <label>
+        <span class="field-label">Search</span>
+        <input type="text" name="q" value="{{ q }}" placeholder="Member, phone, type or message">
+      </label>
+      <label>
+        <span class="field-label">Channel</span>
+        <select name="channel">
+          <option value="">All channels</option>
+          <option value="SMS" {% if channel_filter == 'SMS' %}selected{% endif %}>SMS</option>
+          <option value="WhatsApp" {% if channel_filter == 'WhatsApp' %}selected{% endif %}>WhatsApp</option>
+        </select>
+      </label>
+      <label>
+        <span class="field-label">Status</span>
+        <select name="status">
+          <option value="">All statuses</option>
+          {% for value in ['Sent', 'Prepared', 'Failed'] %}
+            <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ value }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        <span class="field-label">Type</span>
+        <select name="notification_type">
+          <option value="">All types</option>
+          {% for key in templates %}
+            <option value="{{ key }}" {% if type_filter == key %}selected{% endif %}>{{ key }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <button type="submit" class="primary">Filter</button>
+    </form>
 
-      <tbody>
-        {% for n in logs %}
-        <tr>
-          <td>{{ n.created_at }}</td>
-          <td>{{ n.member.full_name if n.member else '-' }}</td>
-          <td>{{ n.channel }}</td>
-          <td>{{ n.notification_type }}</td>
-          <td><span class="status">{{ n.status }}</span></td>
-          <td>{{ n.message }}</td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="6">No notifications prepared yet.</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</section>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Member</th>
+            <th>Channel</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th>Message</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for n in logs %}
+            <tr>
+              <td>
+                {{ n.created_at.strftime('%Y-%m-%d') if n.created_at else '-' }}
+                <div class="history-meta">{{ n.created_at.strftime('%H:%M') if n.created_at else '' }}</div>
+              </td>
+              <td>
+                <strong>{{ n.member.full_name if n.member else '-' }}</strong>
+                <div class="history-meta">{{ n.member.member_no if n.member else n.phone or '' }}</div>
+              </td>
+              <td>{{ n.channel }}</td>
+              <td>{{ n.notification_type }}</td>
+              <td>
+                <span class="status-pill
+                  {% if n.status == 'Sent' %}status-sent
+                  {% elif n.status == 'Failed' %}status-failed
+                  {% elif n.status == 'Prepared' %}status-prepared
+                  {% else %}status-neutral{% endif %}">
+                  {{ n.status }}
+                </span>
+              </td>
+              <td class="history-message">
+                {{ n.message }}
+                {% if n.subject %}<div class="history-meta">Subject: {{ n.subject }}</div>{% endif %}
+                <div class="row-actions">
+                  {% if n.channel == 'WhatsApp' and (n|whatsapp_url) %}
+                    <a class="mini-action whatsapp" href="{{ n|whatsapp_url }}" target="_blank" rel="noopener">Open WhatsApp</a>
+                  {% endif %}
+                  {% if n.channel == 'SMS' and n.status == 'Failed' %}
+                    <form method="post" action="{{ url_for('retry_notification', notification_id=n.id) }}" onsubmit="return confirm('Retry this failed SMS now?');">
+                      <button class="mini-action retry" type="submit">Retry SMS</button>
+                    </form>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="6"><div class="empty-state">No notification records match the selected filters.</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
 
-{% if pagination %}
-<div class="actions">
-  {% if pagination.page > 1 %}
-    <a class="btn" href="{{ url_for('notifications', page=1, q=q) }}">« First</a>
-  {% endif %}
-
-  {% if pagination.has_prev %}
-    <a class="btn" href="{{ url_for('notifications', page=pagination.prev_num, q=q) }}">← Previous</a>
-  {% endif %}
-
-  <span class="badge">
-    Page {{ pagination.page }} of {{ pagination.pages }}
-  </span>
-
-  {% if pagination.has_next %}
-    <a class="btn" href="{{ url_for('notifications', page=pagination.next_num, q=q) }}">Next →</a>
-  {% endif %}
-
-  {% if pagination.page < pagination.pages %}
-    <a class="btn" href="{{ url_for('notifications', page=pagination.pages, q=q) }}">Last »</a>
-  {% endif %}
+    {% if pagination and pagination.pages > 1 %}
+      <div class="pagination-row">
+        {% if pagination.has_prev %}
+          <a class="btn" href="{{ url_for('notifications', page=pagination.prev_num, q=q, channel=channel_filter, status=status_filter, notification_type=type_filter) }}">← Previous</a>
+        {% endif %}
+        <span class="status-pill status-neutral">Page {{ pagination.page }} of {{ pagination.pages }}</span>
+        {% if pagination.has_next %}
+          <a class="btn" href="{{ url_for('notifications', page=pagination.next_num, q=q, channel=channel_filter, status=status_filter, notification_type=type_filter) }}">Next →</a>
+        {% endif %}
+      </div>
+    {% endif %}
+  </section>
 </div>
-{% endif %}
+
+<script>
+  const notificationTemplates = {{ templates|tojson }};
+  const typeSelect = document.getElementById('notificationType');
+  const channelSelect = document.getElementById('channel');
+  const subjectInput = document.getElementById('subject');
+  const messageInput = document.getElementById('message');
+  const form = document.getElementById('notificationForm');
+  const processButton = document.getElementById('processButton');
+  const actionHint = document.getElementById('actionHint');
+  const memberSelector = document.getElementById('memberSelector');
+  const memberSearch = document.getElementById('memberSearch');
+  const checkboxes = Array.from(document.querySelectorAll('.member-checkbox:not(:disabled)'));
+
+  function loadTemplate(force = false) {
+    const selectedType = typeSelect.value;
+    if (force || !messageInput.value.trim()) messageInput.value = notificationTemplates[selectedType] || '';
+    if (force || !subjectInput.value.trim()) subjectInput.value = selectedType;
+    updateMessageCount();
+  }
+
+  function updateMessageCount() {
+    const length = messageInput.value.length;
+    document.getElementById('characterCount').textContent = length;
+    document.getElementById('smsParts').textContent = length ? Math.ceil(length / 160) : 0;
+  }
+
+  function selectedCount() {
+    return checkboxes.filter(box => box.checked).length;
+  }
+
+  function updateSelection() {
+    const count = selectedCount();
+    const label = `${count} selected`;
+    document.getElementById('memberCount').textContent = label;
+    document.getElementById('selectedSummary').textContent = label;
+  }
+
+  function updateChannel() {
+    const isSms = channelSelect.value === 'SMS';
+    processButton.textContent = isSms ? 'Send SMS Notifications' : 'Prepare WhatsApp Notifications';
+    actionHint.textContent = isSms
+      ? 'SMS messages will be sent immediately.'
+      : 'WhatsApp messages will be personalized and logged as Prepared.';
+  }
+
+  function updateRecipientMode() {
+    const mode = document.querySelector('input[name="recipient_mode"]:checked').value;
+    memberSelector.style.display = mode === 'selected' ? 'block' : 'none';
+    document.getElementById('selectedSummary').textContent =
+      mode === 'all' ? '{{ active_recipients }} reachable members' : `${selectedCount()} selected`;
+  }
+
+  typeSelect.addEventListener('change', () => loadTemplate(true));
+  channelSelect.addEventListener('change', updateChannel);
+  messageInput.addEventListener('input', updateMessageCount);
+  document.querySelectorAll('.token-btn').forEach(button => {
+    button.addEventListener('click', () => {
+      const token = button.dataset.token;
+      const start = messageInput.selectionStart;
+      const end = messageInput.selectionEnd;
+      messageInput.value = messageInput.value.slice(0, start) + token + messageInput.value.slice(end);
+      messageInput.focus();
+      messageInput.setSelectionRange(start + token.length, start + token.length);
+      updateMessageCount();
+    });
+  });
+  checkboxes.forEach(box => box.addEventListener('change', updateSelection));
+  document.querySelectorAll('input[name="recipient_mode"]').forEach(radio => radio.addEventListener('change', updateRecipientMode));
+
+  memberSearch.addEventListener('input', () => {
+    const term = memberSearch.value.trim().toLowerCase();
+    document.querySelectorAll('.member-row').forEach(row => {
+      row.style.display = row.dataset.search.includes(term) ? '' : 'none';
+    });
+  });
+
+  document.getElementById('selectVisible').addEventListener('click', () => {
+    checkboxes.forEach(box => {
+      if (box.closest('tr').style.display !== 'none') box.checked = true;
+    });
+    updateSelection();
+  });
+
+  document.getElementById('clearMembers').addEventListener('click', () => {
+    checkboxes.forEach(box => box.checked = false);
+    updateSelection();
+  });
+
+  form.addEventListener('submit', event => {
+    const mode = document.querySelector('input[name="recipient_mode"]:checked').value;
+    if (mode === 'selected' && selectedCount() === 0) {
+      event.preventDefault();
+      window.alert('Please select at least one reachable member.');
+      return;
+    }
+    const action = channelSelect.value === 'SMS' ? 'send these SMS messages now' : 'prepare these WhatsApp messages';
+    if (!window.confirm(`Are you sure you want to ${action}?`)) {
+      event.preventDefault();
+      return;
+    }
+    processButton.disabled = true;
+    processButton.textContent = 'Processing...';
+  });
+
+  if (channelSelect.selectedOptions[0] && channelSelect.selectedOptions[0].disabled) {
+    const firstEnabled = Array.from(channelSelect.options).find(option => !option.disabled);
+    if (firstEnabled) channelSelect.value = firstEnabled.value;
+  }
+  loadTemplate(true);
+  updateChannel();
+  updateSelection();
+  updateRecipientMode();
+</script>
 
 {% endblock %}

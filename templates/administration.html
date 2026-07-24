@@ -1,897 +1,416 @@
 {% extends 'base.html' %}
 
-{% block page_title %}Administration{% endblock %}
+{% block page_title %}Administration Centre{% endblock %}
 
 {% block subtitle %}
 Configure, secure and maintain SL Village Banking Pro
 {% endblock %}
 
 {% block content %}
-
 <style>
-    .admin-section-title {
+    .admin-shell {
+        --admin-primary: #0d6efd;
+        --admin-dark: #12345b;
+        --admin-muted: #667085;
+        --admin-border: #e7ecf2;
+        --admin-surface: #f7f9fc;
+    }
+
+    .admin-hero {
+        position: relative;
+        overflow: hidden;
+        padding: 30px;
+        margin-bottom: 24px;
+        border-radius: 22px;
+        color: #fff;
+        background: linear-gradient(135deg, #12345b 0%, #0d6efd 58%, #20a87a 100%);
+        box-shadow: 0 16px 38px rgba(18, 52, 91, 0.20);
+    }
+
+    .admin-hero::after {
+        content: "";
+        position: absolute;
+        width: 240px;
+        height: 240px;
+        right: -70px;
+        top: -100px;
+        border-radius: 50%;
+        background: rgba(255,255,255,.10);
+    }
+
+    .admin-hero-content {
+        position: relative;
+        z-index: 1;
+    }
+
+    .admin-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 7px 12px;
+        margin-bottom: 13px;
+        border: 1px solid rgba(255,255,255,.28);
+        border-radius: 999px;
+        background: rgba(255,255,255,.12);
+        font-size: .78rem;
         font-weight: 750;
-        margin-bottom: 6px;
+        letter-spacing: .06em;
+        text-transform: uppercase;
     }
 
-    .admin-section-subtitle {
-        color: #6c757d;
+    .admin-hero h2 {
+        margin-bottom: 8px;
+        font-weight: 800;
+        letter-spacing: -.02em;
+    }
+
+    .admin-hero p {
+        max-width: 720px;
         margin-bottom: 0;
+        color: rgba(255,255,255,.88);
+        font-size: 1rem;
     }
 
-    .system-health-card {
-        border-radius: 14px;
+    .admin-hero-score {
+        min-width: 170px;
+        padding: 17px 18px;
+        border: 1px solid rgba(255,255,255,.25);
+        border-radius: 16px;
+        background: rgba(255,255,255,.13);
+        backdrop-filter: blur(6px);
+    }
+
+    .admin-hero-score strong {
+        display: block;
+        font-size: 1.75rem;
+        line-height: 1;
+    }
+
+    .admin-hero-score span {
+        display: block;
+        margin-top: 7px;
+        color: rgba(255,255,255,.82);
+        font-size: .82rem;
+    }
+
+    .admin-summary-card {
+        height: 100%;
+        padding: 18px;
+        border: 1px solid var(--admin-border);
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: 0 7px 20px rgba(18, 52, 91, .06);
+    }
+
+    .admin-summary-icon {
+        width: 42px;
+        height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 12px;
+        border-radius: 12px;
+        background: #eef5ff;
+        font-size: 20px;
+    }
+
+    .admin-summary-card strong {
+        display: block;
+        color: #1d2939;
+        font-size: 1.28rem;
+    }
+
+    .admin-summary-card small {
+        color: var(--admin-muted);
+    }
+
+    .admin-health {
+        margin: 24px 0;
+        border: 1px solid var(--admin-border);
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 8px 24px rgba(18, 52, 91, .06);
+    }
+
+    .admin-health-header {
+        padding: 20px 22px 14px;
+        border-bottom: 1px solid var(--admin-border);
+    }
+
+    .admin-health-body {
+        padding: 18px 22px 22px;
     }
 
     .health-item {
         display: flex;
         align-items: center;
-        gap: 10px;
-        min-height: 68px;
-        padding: 12px;
-        border-radius: 10px;
+        gap: 11px;
+        min-height: 74px;
+        padding: 13px;
         border: 1px solid transparent;
+        border-radius: 13px;
     }
 
-    .health-item span {
-        font-size: 20px;
-    }
-
+    .health-item .health-icon { font-size: 21px; }
     .health-item strong,
-    .health-item small {
-        display: block;
+    .health-item small { display: block; }
+    .health-item small { color: #667085; margin-top: 2px; }
+    .health-success { background: #effaf4; border-color: #ccebd8; }
+    .health-warning { background: #fff9ea; border-color: #f2dfa3; }
+    .health-danger { background: #fff1f2; border-color: #f1c7cc; }
+
+    .admin-group {
+        margin-bottom: 24px;
+        padding: 22px;
+        border: 1px solid var(--admin-border);
+        border-radius: 20px;
+        background: var(--admin-surface);
     }
 
-    .health-item small {
-        margin-top: 2px;
-        color: #6c757d;
+    .admin-group-heading {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        padding-bottom: 15px;
+        margin-bottom: 18px;
+        border-bottom: 1px solid #dde4ec;
     }
 
-    .health-success {
-        background: #f1fbf5;
-        border-color: #c9eed7;
+    .admin-group-heading h4 {
+        margin-bottom: 4px;
+        color: #1d2939;
+        font-weight: 800;
+        letter-spacing: -.01em;
     }
 
-    .health-warning {
-        background: #fff9e8;
-        border-color: #f2dfa0;
-    }
-
-    .health-danger {
-        background: #fff1f2;
-        border-color: #f1c1c6;
+    .admin-group-heading p {
+        margin: 0;
+        color: var(--admin-muted);
+        font-size: .92rem;
     }
 
     .admin-card {
         height: 100%;
-        border: 0;
-        border-radius: 14px;
-        transition:
-            transform 0.2s ease,
-            box-shadow 0.2s ease;
+        border: 1px solid var(--admin-border);
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: 0 7px 18px rgba(18, 52, 91, .055);
+        transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
     }
 
     .admin-card:hover {
         transform: translateY(-3px);
-        box-shadow: 0 10px 22px rgba(0, 0, 0, 0.10) !important;
+        border-color: #cbd9ea;
+        box-shadow: 0 14px 28px rgba(18, 52, 91, .11);
     }
 
     .admin-card .card-body {
+        min-height: 252px;
         display: flex;
         flex-direction: column;
         padding: 20px;
     }
 
+    .admin-icon {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 14px;
+        border-radius: 13px;
+        font-size: 22px;
+    }
+
+    .icon-blue { background: #eaf2ff; }
+    .icon-green { background: #eaf8ef; }
+    .icon-purple { background: #f2ebff; }
+    .icon-orange { background: #fff2df; }
+    .icon-teal { background: #e5f8f6; }
+    .icon-red { background: #ffebed; }
+
     .admin-card h5 {
+        margin-bottom: 7px;
+        color: #1d2939;
+        font-weight: 750;
+    }
+
+    .admin-stat {
+        min-height: 28px;
         margin-bottom: 8px;
-        font-weight: 700;
+        color: #344054;
+        font-weight: 650;
     }
 
     .admin-card p {
-        color: #6c757d;
-        font-size: 0.92rem;
-        min-height: 44px;
-        margin-bottom: 16px;
+        margin-bottom: 17px;
+        color: var(--admin-muted);
+        font-size: .91rem;
+        line-height: 1.52;
     }
 
     .admin-card .btn {
         margin-top: auto;
         align-self: flex-start;
-    }
-
-    .admin-icon {
-        width: 46px;
-        height: 46px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        margin-bottom: 14px;
-        border-radius: 11px;
-        font-size: 22px;
-    }
-
-    .admin-stat {
-        min-height: 30px;
-        margin-bottom: 8px;
+        border-radius: 9px;
         font-weight: 650;
     }
 
-    .icon-blue {
-        background: #eaf2ff;
-    }
-
-    .icon-green {
-        background: #eaf8ef;
-    }
-
-    .icon-purple {
-        background: #f2ebff;
-    }
-
-    .icon-orange {
-        background: #fff2df;
-    }
-
-    .icon-teal {
-        background: #e5f8f6;
-    }
-
-    .icon-red {
-        background: #ffebed;
-    }
-</style>
-<style>
-    .admin-group {
-        padding: 22px;
-        background: #f8f9fb;
-        border: 1px solid #e9ecef;
-        border-radius: 16px;
-    }
-
-    .admin-group-heading {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding-bottom: 14px;
-        border-bottom: 1px solid #dee2e6;
-    }
-
-    .admin-group-heading h4 {
-        font-weight: 750;
-    }
-
-    .admin-group-heading p {
-        font-size: 0.92rem;
-    }
-
-    .admin-card {
-        background: #ffffff;
+    .admin-card.featured {
+        border-color: #b9ddca;
+        box-shadow: 0 8px 22px rgba(32, 168, 122, .10);
     }
 
     @media (max-width: 767px) {
-        .admin-group {
-            padding: 16px;
-        }
+        .admin-hero { padding: 23px; }
+        .admin-hero-score { margin-top: 18px; }
+        .admin-group { padding: 16px; }
+        .admin-card .card-body { min-height: auto; }
     }
 </style>
 
-<div class="container-fluid py-3">
+{% set healthy_count = health.values() | select('equalto', true) | list | length %}
 
-    <div class="mb-4">
-        <h2 class="admin-section-title">
-            ⚙️ Administration Control Centre
-        </h2>
+<div class="container-fluid py-3 admin-shell">
+    <section class="admin-hero">
+        <div class="admin-hero-content d-lg-flex justify-content-between align-items-center gap-4">
+            <div>
+                <div class="admin-kicker">⚙️ System Administration</div>
+                <h2>Administration Control Centre</h2>
+                <p>
+                    Manage organisation settings, users, financial controls,
+                    communications, security and system maintenance from one place.
+                </p>
+            </div>
+            <div class="admin-hero-score text-lg-end">
+                <strong>{{ healthy_count }}/{{ health|length }}</strong>
+                <span>Readiness checks passed</span>
+            </div>
+        </div>
+    </section>
 
-        <p class="admin-section-subtitle">
-            Manage organisation settings, financial controls,
-            users, products and system configuration.
-        </p>
+    <div class="row g-3 mb-2">
+        <div class="col-sm-6 col-xl-3">
+            <div class="admin-summary-card">
+                <div class="admin-summary-icon">👥</div>
+                <strong>{{ stats.active_users }}</strong>
+                <small>Active system users</small>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="admin-summary-card">
+                <div class="admin-summary-icon">🧑‍🤝‍🧑</div>
+                <strong>{{ stats.active_members }}</strong>
+                <small>Active members</small>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="admin-summary-card">
+                <div class="admin-summary-icon">📒</div>
+                <strong>{{ stats.active_accounts }}</strong>
+                <small>Active ledger accounts</small>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="admin-summary-card">
+                <div class="admin-summary-icon">📅</div>
+                <strong>{% if current_year %}FY{{ current_year.year }}{% else %}Not Open{% endif %}</strong>
+                <small>Current financial year</small>
+            </div>
+        </div>
     </div>
 
-    <!-- SYSTEM HEALTH -->
-    <div class="card shadow-sm border-0 mb-4 system-health-card">
-        <div class="card-body">
-
-            <div class="d-flex flex-wrap justify-content-between
-                        align-items-center gap-2 mb-3">
-
-                <div>
-                    <h5 class="mb-1">System Health</h5>
-
-                    <div class="text-muted">
-                        Current configuration and operational readiness
-                    </div>
-                </div>
-
-                {% set healthy_count =
-                    health.values()
-                    | select('equalto', true)
-                    | list
-                    | length
-                %}
-
-                <span class="badge bg-primary fs-6">
-                    {{ healthy_count }}/{{ health|length }}
-                    Checks Passed
-                </span>
-
+    <section class="admin-health">
+        <div class="admin-health-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div>
+                <h5 class="mb-1 fw-bold">System Health</h5>
+                <div class="text-muted">Current configuration and operational readiness</div>
             </div>
-
+            <span class="badge bg-primary rounded-pill px-3 py-2">{{ healthy_count }}/{{ health|length }} checks passed</span>
+        </div>
+        <div class="admin-health-body">
             <div class="row g-3">
-
                 <div class="col-md-6 col-xl">
-                    <div class="health-item
-                        {% if health.organisation_configured %}
-                            health-success
-                        {% else %}
-                            health-danger
-                        {% endif %}">
-
-                        {% if health.organisation_configured %}
-                            <span>✅</span>
-                            <div>
-                                <strong>Organisation</strong>
-                                <small>Configured</small>
-                            </div>
-                        {% else %}
-                            <span>❌</span>
-                            <div>
-                                <strong>Organisation</strong>
-                                <small>Not configured</small>
-                            </div>
-                        {% endif %}
+                    <div class="health-item {% if health.organisation_configured %}health-success{% else %}health-danger{% endif %}">
+                        <span class="health-icon">{% if health.organisation_configured %}✅{% else %}❌{% endif %}</span>
+                        <div><strong>Organisation</strong><small>{% if health.organisation_configured %}Configured{% else %}Not configured{% endif %}</small></div>
                     </div>
                 </div>
-
                 <div class="col-md-6 col-xl">
-                    <div class="health-item
-                        {% if health.financial_year_open %}
-                            health-success
-                        {% else %}
-                            health-danger
-                        {% endif %}">
-
-                        {% if health.financial_year_open %}
-                            <span>✅</span>
-                            <div>
-                                <strong>Financial Year</strong>
-                                <small>FY{{ current_year.year }} open</small>
-                            </div>
-                        {% else %}
-                            <span>❌</span>
-                            <div>
-                                <strong>Financial Year</strong>
-                                <small>No open year</small>
-                            </div>
-                        {% endif %}
+                    <div class="health-item {% if health.financial_year_open %}health-success{% else %}health-danger{% endif %}">
+                        <span class="health-icon">{% if health.financial_year_open %}✅{% else %}❌{% endif %}</span>
+                        <div><strong>Financial Year</strong><small>{% if health.financial_year_open %}FY{{ current_year.year }} open{% else %}No open year{% endif %}</small></div>
                     </div>
                 </div>
-
                 <div class="col-md-6 col-xl">
-                    <div class="health-item
-                        {% if health.chart_of_accounts_installed %}
-                            health-success
-                        {% else %}
-                            health-danger
-                        {% endif %}">
-
-                        {% if health.chart_of_accounts_installed %}
-                            <span>✅</span>
-                            <div>
-                                <strong>Accounts</strong>
-                                <small>Chart installed</small>
-                            </div>
-                        {% else %}
-                            <span>❌</span>
-                            <div>
-                                <strong>Accounts</strong>
-                                <small>Chart missing</small>
-                            </div>
-                        {% endif %}
+                    <div class="health-item {% if health.chart_of_accounts_installed %}health-success{% else %}health-danger{% endif %}">
+                        <span class="health-icon">{% if health.chart_of_accounts_installed %}✅{% else %}❌{% endif %}</span>
+                        <div><strong>Accounts</strong><small>{% if health.chart_of_accounts_installed %}Chart installed{% else %}Chart missing{% endif %}</small></div>
                     </div>
                 </div>
-
                 <div class="col-md-6 col-xl">
-                    <div class="health-item
-                        {% if health.users_created %}
-                            health-success
-                        {% else %}
-                            health-danger
-                        {% endif %}">
-
-                        {% if health.users_created %}
-                            <span>✅</span>
-                            <div>
-                                <strong>Users</strong>
-                                <small>{{ stats.active_users }} active</small>
-                            </div>
-                        {% else %}
-                            <span>❌</span>
-                            <div>
-                                <strong>Users</strong>
-                                <small>No users created</small>
-                            </div>
-                        {% endif %}
+                    <div class="health-item {% if health.users_created %}health-success{% else %}health-danger{% endif %}">
+                        <span class="health-icon">{% if health.users_created %}✅{% else %}❌{% endif %}</span>
+                        <div><strong>Users</strong><small>{% if health.users_created %}{{ stats.active_users }} active{% else %}No users created{% endif %}</small></div>
                     </div>
                 </div>
-
                 <div class="col-md-6 col-xl">
-                    <div class="health-item
-                        {% if health.members_created %}
-                            health-success
-                        {% else %}
-                            health-warning
-                        {% endif %}">
-
-                        {% if health.members_created %}
-                            <span>✅</span>
-                            <div>
-                                <strong>Members</strong>
-                                <small>{{ stats.active_members }} active</small>
-                            </div>
-                        {% else %}
-                            <span>⚠️</span>
-                            <div>
-                                <strong>Members</strong>
-                                <small>None registered</small>
-                            </div>
-                        {% endif %}
+                    <div class="health-item {% if health.members_created %}health-success{% else %}health-warning{% endif %}">
+                        <span class="health-icon">{% if health.members_created %}✅{% else %}⚠️{% endif %}</span>
+                        <div><strong>Members</strong><small>{% if health.members_created %}{{ stats.active_members }} active{% else %}None registered{% endif %}</small></div>
                     </div>
-                </div>
-
-            </div>
-        </div>
-    </div>
-
-    <h5 class="mb-3">Administration Modules</h5>
-
-    <!-- ADMINISTRATION CARDS START HERE -->
-    <div class="row g-3">
-
-        <!-- =========================================================
-     ORGANISATION
-========================================================= -->
-<div class="admin-group mb-4">
-
-    <div class="admin-group-heading">
-        <div>
-            <h4 class="mb-1">🏢 Organisation</h4>
-            <p class="text-muted mb-0">
-                Maintain the organisation's identity and system-wide information.
-            </p>
-        </div>
-    </div>
-
-    <div class="row g-3 mt-1">
-
-        <!-- System Settings -->
-        <div class="col-md-6 col-xl-4">
-            <div class="card admin-card shadow-sm">
-                <div class="card-body">
-
-                    <div class="admin-icon icon-blue">🏢</div>
-
-                    <h5>System Settings</h5>
-
-                    <div class="admin-stat">
-                        {% if settings %}
-                            {{ settings.organisation_name or 'Name not configured' }}
-                        {% else %}
-                            Not configured
-                        {% endif %}
-                    </div>
-
-                    <p>
-                        Maintain organisation details, contacts,
-                        document headings and reporting information.
-                    </p>
-
-                    <a href="{{ url_for('system_settings') }}"
-                       class="btn btn-outline-primary btn-sm">
-                        Manage Settings
-                    </a>
-
                 </div>
             </div>
         </div>
-        <!-- Bank Management -->
-<div class="col-md-6 col-xl-4">
-    <a href="{{ url_for('bank_accounts') }}"
-       class="text-decoration-none">
-        <div class="admin-card h-100">
-            <div class="admin-card-icon">🏦</div>
+    </section>
 
-            <h4>Bank Account Management</h4>
-
-            <p>
-                Record and maintain the official bank accounts operated by
-                the village banking group.
-            </p>
-
-            <span class="admin-card-link">
-                Manage Bank Accounts →
-            </span>
+    <section class="admin-group">
+        <div class="admin-group-heading">
+            <div><h4>🏢 Organisation</h4><p>Maintain identity, branding, bank accounts and core system configuration.</p></div>
         </div>
-    </a>
+        <div class="row g-3">
+            <div class="col-md-6 col-xl-4"><div class="card admin-card"><div class="card-body"><div class="admin-icon icon-blue">⚙️</div><h5>System Settings</h5><div class="admin-stat">{% if settings %}{{ settings.organisation_name or 'Name not configured' }}{% else %}Not configured{% endif %}</div><p>Maintain organisation details, contacts, notification settings and report information.</p><a href="{{ url_for('settings') }}" class="btn btn-outline-primary btn-sm">Manage Settings</a></div></div></div>
+            <div class="col-md-6 col-xl-4"><div class="card admin-card"><div class="card-body"><div class="admin-icon icon-teal">🏦</div><h5>Bank Account Management</h5><div class="admin-stat">Official Bank Accounts</div><p>Record, review and maintain all bank accounts operated by the village banking group.</p><a href="{{ url_for('bank_accounts') }}" class="btn btn-outline-primary btn-sm">Manage Bank Accounts</a></div></div></div>
+            <div class="col-md-6 col-xl-4"><div class="card admin-card"><div class="card-body"><div class="admin-icon icon-purple">🖼️</div><h5>Logo Management</h5><div class="admin-stat">Organisation Branding</div><p>Upload or replace the logo used on reports, receipts and official documents.</p><a href="{{ url_for('logo_management') }}" class="btn btn-outline-primary btn-sm">Manage Logo</a></div></div></div>
+            <div class="col-md-6 col-xl-4"><div class="card admin-card featured"><div class="card-body"><div class="admin-icon icon-green">🚀</div><h5>Initialization Wizard</h5><div class="admin-stat">Initial System Configuration</div><p>Configure a new installation, opening financial year and essential master data.</p><a href="{{ url_for('first_time_setup') }}" class="btn btn-success btn-sm">Launch Wizard</a></div></div></div>
+        </div>
+    </section>
+
+    <section class="admin-group">
+        <div class="admin-group-heading"><div><h4>👥 Users & Security</h4><p>Control user access, roles, accountability and security administration.</p></div></div>
+        <div class="row g-3">
+            <div class="col-md-6 col-xl-4"><div class="card admin-card"><div class="card-body"><div class="admin-icon icon-purple">👥</div><h5>Users & Roles</h5><div class="admin-stat">{{ stats.total_users }} users <span class="text-muted">· {{ stats.active_users }} active</span></div><p>Create user accounts, assign roles and activate or deactivate system access.</p><a href="{{ url_for('users') }}" class="btn btn-outline-primary btn-sm">Manage Users</a></div></div></div>
+            <div class="col-md-6 col-xl-4"><div class="card admin-card"><div class="card-body"><div class="admin-icon icon-orange">🕵️</div><h5>Audit Trail</h5><div class="admin-stat">System Activity History</div><p>Review user actions, configuration changes, approvals and transaction activity.</p><a href="{{ url_for('audit_trail') }}" class="btn btn-outline-primary btn-sm">View Audit Trail</a></div></div></div>
+            <div class="col-md-6 col-xl-4"><div class="card admin-card"><div class="card-body"><div class="admin-icon icon-red">🔒</div><h5>Security Controls</h5><div class="admin-stat">Access Protection</div><p>Password policies, permissions and enhanced session controls will be managed here.</p><button type="button" class="btn btn-outline-secondary btn-sm" disabled>Coming Soon</button></div></div></div>
+        </div>
+    </section>
+
+    <section class="admin-group">
+        <div class="admin-group-heading"><div><h4>📒 Financial Administration</h4><p>Manage financial periods, accounting structures and opening information.</p></div></div>
+        <div class="row g-3">
+            <div class="col-md-6 col-xl-4"><div class="card admin-card"><div class="card-body"><div class="admin-icon icon-green">📅</div><h5>Financial Years</h5><div class="admin-stat">{% if current_year %}FY{{ current_year.year }} <span class="badge bg-success">{{ current_year.status }}</span>{% else %}<span class="text-danger">No open financial year</span>{% endif %}</div><p>Review, open, close and lock financial years and control posting periods.</p><a href="{{ url_for('financial_year_control_centre') }}" class="btn btn-outline-primary btn-sm">Manage Financial Years</a></div></div></div>
+            <div class="col-md-6 col-xl-4"><div class="card admin-card"><div class="card-body"><div class="admin-icon icon-orange">📒</div><h5>Accounting Control Centre</h5><div class="admin-stat">{{ stats.total_accounts }} accounts <span class="text-muted">· {{ stats.active_accounts }} active</span></div><p>Access the Chart of Accounts, journals, ledgers and accounting controls.</p><a href="{{ url_for('accounting_control_centre') }}" class="btn btn-outline-primary btn-sm">Open Accounting</a></div></div></div>
+            <div class="col-md-6 col-xl-4"><div class="card admin-card"><div class="card-body"><div class="admin-icon icon-blue">📥</div><h5>Opening Balances</h5><div class="admin-stat">Import and Posting Control</div><p>Import, validate, approve, post and lock opening balance batches.</p><a href="{{ url_for('opening_balances') }}" class="btn btn-outline-primary btn-sm">Manage Opening Balances</a></div></div></div>
+        </div>
+    </section>
+
+    <section class="admin-group">
+        <div class="admin-group-heading"><div><h4>🔄 Financial Operations</h4><p>Run period-end controls and reconcile financial records.</p></div></div>
+        <div class="row g-3">
+            <div class="col-md-6 col-xl-4"><div class="card admin-card"><div class="card-body"><div class="admin-icon icon-teal">🗓️</div><h5>Month-End Processing</h5><div class="admin-stat">Monthly Control Procedures</div><p>Review and process monthly closing activities, balances and automated entries.</p><a href="{{ url_for('month_end') }}" class="btn btn-outline-primary btn-sm">Open Month-End</a></div></div></div>
+            <div class="col-md-6 col-xl-4"><div class="card admin-card"><div class="card-body"><div class="admin-icon icon-red">🔐</div><h5>Year-End Closing</h5><div class="admin-stat">Financial Year Closure</div><p>Perform pre-close checks and complete the authorised year-end closing process.</p><a href="{{ url_for('year_end_closing') }}" class="btn btn-outline-primary btn-sm">Open Year-End</a></div></div></div>
+            <div class="col-md-6 col-xl-4"><div class="card admin-card"><div class="card-body"><div class="admin-icon icon-blue">🏦</div><h5>Bank Reconciliation</h5><div class="admin-stat">Cash and Bank Verification</div><p>Import statements, match entries and complete formal bank reconciliations.</p><a href="{{ url_for('bank_reconciliation') }}" class="btn btn-outline-primary btn-sm">Reconcile Bank</a></div></div></div>
+        </div>
+    </section>
+
+    <section class="admin-group mb-0">
+        <div class="admin-group-heading"><div><h4>🛠️ System Maintenance</h4><p>Protect, test and maintain the system environment and communications.</p></div></div>
+        <div class="row g-3">
+            <div class="col-md-6 col-xl-4"><div class="card admin-card"><div class="card-body"><div class="admin-icon icon-blue">💾</div><h5>Backup & Restore</h5><div class="admin-stat">Database Protection</div><p>Create authorised backups, download backup files and restore protected information.</p><a href="{{ url_for('backups') }}" class="btn btn-outline-primary btn-sm">Manage Backups</a></div></div></div>
+            <div class="col-md-6 col-xl-4"><div class="card admin-card"><div class="card-body"><div class="admin-icon icon-green">📱</div><h5>SMS Testing</h5><div class="admin-stat">Communication Service</div><p>Test the configured SMS service before sending operational member notifications.</p><a href="{{ url_for('sms_test') }}" class="btn btn-outline-primary btn-sm">Test SMS</a></div></div></div>
+            <div class="col-md-6 col-xl-4"><div class="card admin-card"><div class="card-body"><div class="admin-icon icon-orange">🩺</div><h5>System Diagnostics</h5><div class="admin-stat">Integrity and Health Tools</div><p>Database health checks and accounting integrity diagnostics will be available here.</p><button type="button" class="btn btn-outline-secondary btn-sm" disabled>Coming Soon</button></div></div></div>
+        </div>
+    </section>
 </div>
-
-
-        <!-- Logo Management -->
-        <div class="col-md-6 col-xl-4">
-            <div class="card admin-card shadow-sm">
-                <div class="card-body">
-
-                    <div class="admin-icon icon-purple">🖼️</div>
-
-                    <h5>Logo Management</h5>
-
-                    <div class="admin-stat">
-                        Organisation Branding
-                    </div>
-
-                    <p>
-                        Upload or replace the logo used on reports,
-                        receipts and official system documents.
-                    </p>
-
-                    <a href="{{ url_for('logo_management') }}"
-                       class="btn btn-outline-primary btn-sm">
-                        Manage Logo
-                    </a>
-
-                </div>
-            </div>
-        </div>
-
-        <!-- Initialization Wizard -->
-        <div class="col-md-6 col-xl-4">
-            <div class="card admin-card shadow-sm border border-success">
-                <div class="card-body">
-
-                    <div class="admin-icon icon-green">🚀</div>
-
-                    <h5>Initialization Wizard</h5>
-
-                    <div class="admin-stat">
-                        Initial System Configuration
-                    </div>
-
-                    <p>
-                        Configure a new installation, opening financial
-                        year and essential master information.
-                    </p>
-
-                    <a href="{{ url_for('first_time_setup') }}"
-                       class="btn btn-success btn-sm">
-                        Launch Wizard
-                    </a>
-
-                </div>
-            </div>
-        </div>
-
-    </div>
-</div>
-
-
-<!-- =========================================================
-     USERS AND SECURITY
-========================================================= -->
-<div class="admin-group mb-4">
-
-    <div class="admin-group-heading">
-        <div>
-            <h4 class="mb-1">👥 Users & Security</h4>
-            <p class="text-muted mb-0">
-                Control system access, user accounts and accountability.
-            </p>
-        </div>
-    </div>
-
-    <div class="row g-3 mt-1">
-
-        <!-- Users -->
-        <div class="col-md-6 col-xl-4">
-            <div class="card admin-card shadow-sm">
-                <div class="card-body">
-
-                    <div class="admin-icon icon-purple">👥</div>
-
-                    <h5>Users & Roles</h5>
-
-                    <div class="admin-stat">
-                        {{ stats.total_users }} users
-                        <span class="text-muted">
-                            · {{ stats.active_users }} active
-                        </span>
-                    </div>
-
-                    <p>
-                        Create user accounts, assign roles and
-                        activate or deactivate system access.
-                    </p>
-
-                    <a href="{{ url_for('users') }}"
-                       class="btn btn-outline-primary btn-sm">
-                        Manage Users
-                    </a>
-
-                </div>
-            </div>
-        </div>
-
-        <!-- Audit Trail -->
-        <div class="col-md-6 col-xl-4">
-            <div class="card admin-card shadow-sm">
-                <div class="card-body">
-
-                    <div class="admin-icon icon-orange">🕵️</div>
-
-                    <h5>Audit Trail</h5>
-
-                    <div class="admin-stat">
-                        System Activity History
-                    </div>
-
-                    <p>
-                        Review important user actions, changes,
-                        approvals and transaction activity.
-                    </p>
-
-                    <a href="{{ url_for('audit_trail') }}"
-                       class="btn btn-outline-primary btn-sm">
-                        View Audit Trail
-                    </a>
-
-                </div>
-            </div>
-        </div>
-
-        <!-- Security Settings -->
-        <div class="col-md-6 col-xl-4">
-            <div class="card admin-card shadow-sm">
-                <div class="card-body">
-
-                    <div class="admin-icon icon-red">🔒</div>
-
-                    <h5>Security Controls</h5>
-
-                    <div class="admin-stat">
-                        Access Protection
-                    </div>
-
-                    <p>
-                        Password policies, permissions and session
-                        controls will be managed here.
-                    </p>
-
-                    <button type="button"
-                            class="btn btn-outline-secondary btn-sm"
-                            disabled>
-                        Coming Soon
-                    </button>
-
-                </div>
-            </div>
-        </div>
-
-    </div>
-</div>
-
-
-<!-- =========================================================
-     FINANCIAL ADMINISTRATION
-========================================================= -->
-<div class="admin-group mb-4">
-
-    <div class="admin-group-heading">
-        <div>
-            <h4 class="mb-1">📒 Financial Administration</h4>
-            <p class="text-muted mb-0">
-                Manage accounting structures, financial periods and opening data.
-            </p>
-        </div>
-    </div>
-
-    <div class="row g-3 mt-1">
-
-        <!-- Financial Years -->
-        <div class="col-md-6 col-xl-4">
-            <div class="card admin-card shadow-sm">
-                <div class="card-body">
-
-                    <div class="admin-icon icon-green">📅</div>
-
-                    <h5>Financial Years</h5>
-
-                    <div class="admin-stat">
-                        {% if current_year %}
-                            FY{{ current_year.year }}
-                            <span class="badge bg-success">
-                                {{ current_year.status }}
-                            </span>
-                        {% else %}
-                            <span class="text-danger">
-                                No open financial year
-                            </span>
-                        {% endif %}
-                    </div>
-
-                    <p>
-                        Review, open, close and lock financial years
-                        and control the current posting period.
-                    </p>
-
-                    <a href="{{ url_for('financial_year_control_centre') }}"
-                       class="btn btn-outline-primary btn-sm">
-                        Manage Financial Years
-                    </a>
-
-                </div>
-            </div>
-        </div>
-
-        <!-- Accounting Control Centre -->
-        <div class="col-md-6 col-xl-4">
-            <div class="card admin-card shadow-sm">
-                <div class="card-body">
-
-                    <div class="admin-icon icon-orange">📒</div>
-
-                    <h5>Accounting Control Centre</h5>
-
-                    <div class="admin-stat">
-                        {{ stats.total_accounts }} accounts
-                        <span class="text-muted">
-                            · {{ stats.active_accounts }} active
-                        </span>
-                    </div>
-
-                    <p>
-                        Access the Chart of Accounts, journals,
-                        ledgers and accounting control functions.
-                    </p>
-
-                    <a href="{{ url_for('accounting_control_centre') }}"
-                       class="btn btn-outline-primary btn-sm">
-                        Open Accounting
-                    </a>
-
-                </div>
-            </div>
-        </div>
-
-        <!-- Opening Balances -->
-        <div class="col-md-6 col-xl-4">
-            <div class="card admin-card shadow-sm">
-                <div class="card-body">
-
-                    <div class="admin-icon icon-blue">📥</div>
-
-                    <h5>Opening Balances</h5>
-
-                    <div class="admin-stat">
-                        Import and Posting Control
-                    </div>
-
-                    <p>
-                        Import, validate, approve, post and lock
-                        opening balance batches.
-                    </p>
-
-                    <a href="{{ url_for('opening_balances') }}"
-                       class="btn btn-outline-primary btn-sm">
-                        Manage Opening Balances
-                    </a>
-
-                </div>
-            </div>
-        </div>
-
-    </div>
-</div>
-
-
-<!-- =========================================================
-     FINANCIAL OPERATIONS
-========================================================= -->
-<div class="admin-group mb-4">
-
-    <div class="admin-group-heading">
-        <div>
-            <h4 class="mb-1">🔄 Financial Operations</h4>
-            <p class="text-muted mb-0">
-                Run period-end controls and reconcile financial records.
-            </p>
-        </div>
-    </div>
-
-    <div class="row g-3 mt-1">
-
-        <!-- Month End -->
-        <div class="col-md-6 col-xl-4">
-            <div class="card admin-card shadow-sm">
-                <div class="card-body">
-
-                    <div class="admin-icon icon-teal">🗓️</div>
-
-                    <h5>Month-End Processing</h5>
-
-                    <div class="admin-stat">
-                        Monthly Control Procedures
-                    </div>
-
-                    <p>
-                        Review and process monthly closing activities,
-                        balances and automated entries.
-                    </p>
-
-                    <a href="{{ url_for('month_end') }}"
-                       class="btn btn-outline-primary btn-sm">
-                        Open Month-End
-                    </a>
-
-                </div>
-            </div>
-        </div>
-
-        <!-- Year End -->
-        <div class="col-md-6 col-xl-4">
-            <div class="card admin-card shadow-sm">
-                <div class="card-body">
-
-                    <div class="admin-icon icon-red">🔐</div>
-
-                    <h5>Year-End Closing</h5>
-
-                    <div class="admin-stat">
-                        Financial Year Closure
-                    </div>
-
-                    <p>
-                        Perform pre-close checks and complete the
-                        authorised year-end closing process.
-                    </p>
-
-                    <a href="{{ url_for('year_end_closing') }}"
-                       class="btn btn-outline-primary btn-sm">
-                        Open Year-End
-                    </a>
-
-                </div>
-            </div>
-        </div>
-
-        <!-- Bank Reconciliation -->
-        <div class="col-md-6 col-xl-4">
-            <div class="card admin-card shadow-sm">
-                <div class="card-body">
-
-                    <div class="admin-icon icon-blue">🏦</div>
-
-                    <h5>Bank Reconciliation</h5>
-
-                    <div class="admin-stat">
-                        Cash and Bank Verification
-                    </div>
-
-                    <p>
-                        Import statements, match entries and complete
-                        formal bank reconciliations.
-                    </p>
-
-                    <a href="{{ url_for('bank_reconciliation') }}"
-                       class="btn btn-outline-primary btn-sm">
-                        Reconcile Bank
-                    </a>
-
-                </div>
-            </div>
-        </div>
-
-    </div>
-</div>
-
-
-<!-- =========================================================
-     SYSTEM MAINTENANCE
-========================================================= -->
-<div class="admin-group mb-4">
-
-    <div class="admin-group-heading">
-        <div>
-            <h4 class="mb-1">🛠️ System Maintenance</h4>
-            <p class="text-muted mb-0">
-                Protect, test and maintain the system environment.
-            </p>
-        </div>
-    </div>
-
-    <div class="row g-3 mt-1">
-
-        <!-- Backup and Restore -->
-        <div class="col-md-6 col-xl-4">
-            <div class="card admin-card shadow-sm">
-                <div class="card-body">
-
-                    <div class="admin-icon icon-blue">💾</div>
-
-                    <h5>Backup & Restore</h5>
-
-                    <div class="admin-stat">
-                        Database Protection
-                    </div>
-
-                    <p>
-                        Create authorised backups, download backup
-                        files and restore protected information.
-                    </p>
-
-                    <a href="{{ url_for('backups') }}"
-                       class="btn btn-outline-primary btn-sm">
-                        Manage Backups
-                    </a>
-
-                </div>
-            </div>
-        </div>
-
-        <!-- SMS Testing -->
-        <div class="col-md-6 col-xl-4">
-            <div class="card admin-card shadow-sm">
-                <div class="card-body">
-
-                    <div class="admin-icon icon-green">📱</div>
-
-                    <h5>SMS Testing</h5>
-
-                    <div class="admin-stat">
-                        Communication Service
-                    </div>
-
-                    <p>
-                        Test the configured SMS service before sending
-                        operational member notifications.
-                    </p>
-
-                    <a href="{{ url_for('sms_test') }}"
-                       class="btn btn-outline-primary btn-sm">
-                        Test SMS
-                    </a>
-
-                </div>
-            </div>
-        </div>
-
-        <!-- Diagnostics -->
-        <div class="col-md-6 col-xl-4">
-            <div class="card admin-card shadow-sm">
-                <div class="card-body">
-
-                    <div class="admin-icon icon-orange">🩺</div>
-
-                    <h5>System Diagnostics</h5>
-
-                    <div class="admin-stat">
-                        Integrity and Health Tools
-                    </div>
-
-                    <p>
-                        Database health checks and accounting integrity
-                        diagnostics will be available here.
-                    </p>
-
-                    <button type="button"
-                            class="btn btn-outline-secondary btn-sm"
-                            disabled>
-                        Coming Soon
-                    </button>
-
-                </div>
-            </div>
-        </div>
-
-    </div>
-</div>
-
 {% endblock %}

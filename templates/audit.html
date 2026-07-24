@@ -1,82 +1,746 @@
 {% extends 'base.html' %}
-{% block page_title %}Audit Trail{% endblock %}
-{% block subtitle %}System activity log for users, records, exports, backups and approvals{% endblock %}
+
+{% block page_title %}Audit Trail Centre{% endblock %}
+{% block subtitle %}Monitor system activity, accountability and control events{% endblock %}
 
 {% block content %}
-<section class="panel">
-  <div class="panel-head">
+
+<link
+  href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+  rel="stylesheet"
+>
+
+<link
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+  rel="stylesheet"
+>
+
+<style>
+  .audit-hero {
+    background: linear-gradient(135deg, #0f766e, #134e4a);
+    color: #fff;
+    border-radius: 24px;
+    padding: 28px;
+    margin-bottom: 24px;
+    box-shadow: 0 14px 34px rgba(15, 118, 110, 0.2);
+  }
+
+  .audit-hero h2 {
+    margin: 0 0 8px;
+    font-size: 28px;
+    font-weight: 800;
+  }
+
+  .audit-hero p {
+    margin: 0;
+    max-width: 780px;
+    color: rgba(255, 255, 255, 0.88);
+    line-height: 1.6;
+  }
+
+  .audit-panel {
+    background: #fff;
+    border: 1px solid #e4e7ec;
+    border-radius: 22px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 10px 28px rgba(16, 24, 40, 0.07);
+  }
+
+  .audit-panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .audit-title {
+    display: flex;
+    align-items: flex-start;
+    gap: 13px;
+  }
+
+  .audit-title-icon {
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    background: #e6fffb;
+    color: #0f766e;
+    font-size: 20px;
+  }
+
+  .audit-title h3 {
+    margin: 0 0 5px;
+    font-size: 20px;
+    font-weight: 800;
+    color: #101828;
+  }
+
+  .audit-title p {
+    margin: 0;
+    color: #667085;
+  }
+
+  .export-button {
+    border: 0;
+    border-radius: 12px;
+    padding: 11px 16px;
+    background: linear-gradient(135deg, #16a34a, #087a34);
+    color: #fff;
+    text-decoration: none;
+    font-weight: 800;
+  }
+
+  .export-button:hover {
+    color: #fff;
+    transform: translateY(-1px);
+  }
+
+  .audit-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .audit-kpi {
+    border-radius: 20px;
+    padding: 20px;
+    color: #fff;
+    box-shadow: 0 12px 28px rgba(16, 24, 40, 0.14);
+  }
+
+  .audit-kpi-icon {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border-radius: 13px;
+    margin-bottom: 14px;
+    background: rgba(255, 255, 255, 0.2);
+    font-size: 19px;
+  }
+
+  .audit-kpi span {
+    display: block;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.9;
+  }
+
+  .audit-kpi strong {
+    display: block;
+    margin-top: 8px;
+    font-size: 26px;
+  }
+
+  .audit-kpi small {
+    display: block;
+    margin-top: 7px;
+    color: rgba(255, 255, 255, 0.84);
+  }
+
+  .audit-blue {
+    background: linear-gradient(135deg, #155eef, #0f3fa8);
+  }
+
+  .audit-green {
+    background: linear-gradient(135deg, #16a34a, #087a34);
+  }
+
+  .audit-purple {
+    background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  }
+
+  .audit-orange {
+    background: linear-gradient(135deg, #f97316, #c2410c);
+  }
+
+  .audit-filter-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 0.4fr) auto;
+    gap: 12px;
+    align-items: end;
+  }
+
+  .audit-field label {
+    display: block;
+    margin-bottom: 7px;
+    color: #344054;
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  .audit-filter-form input,
+  .audit-filter-form select {
+    width: 100%;
+    min-height: 46px;
+    padding: 11px 13px;
+    border: 1px solid #d0d5dd;
+    border-radius: 12px;
+    background: #fff;
+  }
+
+  .audit-filter-form input:focus,
+  .audit-filter-form select:focus {
+    border-color: #0f766e;
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.12);
+  }
+
+  .filter-button {
+    min-height: 46px;
+    border: 0;
+    border-radius: 12px;
+    padding: 11px 18px;
+    background: linear-gradient(135deg, #0f766e, #134e4a);
+    color: #fff;
+    font-weight: 800;
+  }
+
+  .audit-table {
+    margin: 0;
+  }
+
+  .audit-table thead th {
+    background: #f0fdfa;
+    color: #475467;
+    border-bottom: 1px solid #d1fae5;
+    padding: 13px;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+
+  .audit-table tbody td {
+    padding: 14px 13px;
+    vertical-align: top;
+    border-bottom: 1px solid #eef2f6;
+  }
+
+  .audit-table tbody tr:hover {
+    background: #f8fffd;
+  }
+
+  .audit-user {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .audit-user-avatar {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: #e6fffb;
+    color: #0f766e;
+    font-weight: 800;
+  }
+
+  .audit-user strong {
+    color: #101828;
+  }
+
+  .audit-user small {
+    color: #667085;
+  }
+
+  .audit-role {
+    display: inline-block;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #f2f4f7;
+    color: #475467;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .audit-action {
+    display: inline-block;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #eaf2ff;
+    color: #155eef;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .audit-entity {
+    font-weight: 700;
+    color: #344054;
+  }
+
+  .audit-details {
+    min-width: 250px;
+    max-width: 520px;
+    color: #475467;
+    line-height: 1.5;
+  }
+
+  .audit-date {
+    white-space: nowrap;
+    color: #475467;
+  }
+
+  .audit-empty-state {
+    padding: 36px 16px !important;
+    text-align: center;
+    color: #667085;
+  }
+
+  .audit-empty-state i {
+    display: block;
+    margin-bottom: 10px;
+    color: #98a2b3;
+    font-size: 28px;
+  }
+
+  .audit-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid #eaecf0;
+  }
+
+  .audit-page-status {
+    display: inline-block;
+    padding: 8px 13px;
+    border-radius: 999px;
+    background: #f2f4f7;
+    color: #475467;
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  .audit-page-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .audit-page-button {
+    border-radius: 10px;
+    font-weight: 700;
+  }
+
+  @media (max-width: 1100px) {
+    .audit-kpi-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 800px) {
+    .audit-filter-form {
+      grid-template-columns: 1fr;
+    }
+
+    .filter-button {
+      width: 100%;
+    }
+  }
+
+  @media (max-width: 620px) {
+    .audit-kpi-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<div class="audit-hero">
+
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+
     <div>
-      <h2>Audit Trail</h2>
-      <p>Review recent system activity and accountability records.</p>
+      <h2>
+        <i class="fa-solid fa-shield-halved me-2"></i>
+        Audit Trail Centre
+      </h2>
+
+      <p>
+        Monitor system activity, user accountability, approvals, exports,
+        backups and changes made throughout SL Village Banking Pro.
+      </p>
     </div>
-    <a class="btn" href="{{ url_for('export_audit_csv') }}">Export CSV</a>
+
+    <span class="badge rounded-pill bg-light text-success px-3 py-2">
+      <i class="fa-solid fa-lock me-1"></i>
+      Accountability Record
+    </span>
+
   </div>
 
-  <form method="get" class="actions">
-    <input name="q" value="{{ q }}" placeholder="Search user, action, entity or details">
-    <select name="action">
-      <option value="">All actions</option>
-      {% for a in actions %}
-        <option value="{{ a }}" {% if action == a %}selected{% endif %}>{{ a }}</option>
-      {% endfor %}
-    </select>
-    <button type="submit">Filter</button>
+</div>
+
+<div class="audit-kpi-grid">
+
+  <div class="audit-kpi audit-blue">
+
+    <div class="audit-kpi-icon">
+      <i class="fa-solid fa-list"></i>
+    </div>
+
+    <span>Entries Displayed</span>
+    <strong>{{ logs|length }}</strong>
+    <small>Audit records on this page</small>
+
+  </div>
+
+  <div class="audit-kpi audit-green">
+
+    <div class="audit-kpi-icon">
+      <i class="fa-solid fa-filter"></i>
+    </div>
+
+    <span>Current Filter</span>
+
+    {% if action %}
+      <strong style="font-size: 20px;">{{ action }}</strong>
+      <small>Filtered by action type</small>
+    {% else %}
+      <strong>All</strong>
+      <small>All activity types included</small>
+    {% endif %}
+
+  </div>
+
+  <div class="audit-kpi audit-purple">
+
+    <div class="audit-kpi-icon">
+      <i class="fa-solid fa-magnifying-glass"></i>
+    </div>
+
+    <span>Search Status</span>
+
+    {% if q %}
+      <strong style="font-size: 20px;">Active</strong>
+      <small>Search term: {{ q }}</small>
+    {% else %}
+      <strong>Clear</strong>
+      <small>No search term applied</small>
+    {% endif %}
+
+  </div>
+
+  <div class="audit-kpi audit-orange">
+
+    <div class="audit-kpi-icon">
+      <i class="fa-solid fa-file-export"></i>
+    </div>
+
+    <span>Export Format</span>
+    <strong>CSV</strong>
+    <small>Download audit records for review</small>
+
+  </div>
+
+</div>
+
+<section class="audit-panel">
+
+  <div class="audit-panel-head">
+
+    <div class="audit-title">
+
+      <div class="audit-title-icon">
+        <i class="fa-solid fa-sliders"></i>
+      </div>
+
+      <div>
+        <h3>Search and Filter Audit Records</h3>
+        <p>
+          Locate activity by user, action, entity or transaction details.
+        </p>
+      </div>
+
+    </div>
+
+    <a
+      class="export-button"
+      href="{{ url_for('export_audit_csv') }}"
+    >
+      <i class="fa-solid fa-file-csv me-1"></i>
+      Export CSV
+    </a>
+
+  </div>
+
+  <form method="get" class="audit-filter-form">
+
+    <div class="audit-field">
+
+      <label for="q">
+        Search Audit Trail
+      </label>
+
+      <input
+        id="q"
+        name="q"
+        value="{{ q }}"
+        placeholder="Search user, action, entity or details"
+      >
+
+    </div>
+
+    <div class="audit-field">
+
+      <label for="action">
+        Action Type
+      </label>
+
+      <select id="action" name="action">
+
+        <option value="">All actions</option>
+
+        {% for a in actions %}
+
+          <option
+            value="{{ a }}"
+            {% if action == a %}selected{% endif %}
+          >
+            {{ a }}
+          </option>
+
+        {% endfor %}
+
+      </select>
+
+    </div>
+
+    <button class="filter-button" type="submit">
+      <i class="fa-solid fa-filter me-1"></i>
+      Apply Filter
+    </button>
+
   </form>
 
-  <div class="table-wrap">
-    <table>
+</section>
+
+<section class="audit-panel">
+
+  <div class="audit-title mb-4">
+
+    <div class="audit-title-icon">
+      <i class="fa-solid fa-clock-rotate-left"></i>
+    </div>
+
+    <div>
+      <h3>System Activity Register</h3>
+      <p>
+        Review the chronological record of actions performed in the system.
+      </p>
+    </div>
+
+  </div>
+
+  <div class="table-responsive">
+
+    <table class="table audit-table align-middle">
+
       <thead>
+
         <tr>
-          <th>Date/Time</th>
+          <th>Date and Time</th>
           <th>User</th>
           <th>Role</th>
           <th>Action</th>
           <th>Entity</th>
           <th>Details</th>
         </tr>
+
       </thead>
+
       <tbody>
+
         {% for log in logs %}
+
         <tr>
-          <td>{{ log.created_at }}</td>
-          <td><strong>{{ log.full_name or log.username }}</strong><br><small>{{ log.username }}</small></td>
-          <td>{{ log.role }}</td>
-          <td><span class="status">{{ log.action }}</span></td>
-          <td>{{ log.entity or '-' }}{% if log.entity_id %}<br><small>ID: {{ log.entity_id }}</small>{% endif %}</td>
-          <td>{{ log.details or '-' }}</td>
+
+          <td class="audit-date">
+            {{ log.created_at }}
+          </td>
+
+          <td>
+
+            <div class="audit-user">
+
+              <div class="audit-user-avatar">
+                {{ (log.full_name or log.username or '?')[:1]|upper }}
+              </div>
+
+              <div>
+
+                <strong>
+                  {{ log.full_name or log.username or '-' }}
+                </strong>
+
+                <br>
+
+                <small>
+                  {{ log.username or '-' }}
+                </small>
+
+              </div>
+
+            </div>
+
+          </td>
+
+          <td>
+            <span class="audit-role">
+              {{ log.role or '-' }}
+            </span>
+          </td>
+
+          <td>
+            <span class="audit-action">
+              {{ log.action or '-' }}
+            </span>
+          </td>
+
+          <td>
+
+            <span class="audit-entity">
+              {{ log.entity or '-' }}
+            </span>
+
+            {% if log.entity_id %}
+
+              <br>
+
+              <small class="text-muted">
+                ID: {{ log.entity_id }}
+              </small>
+
+            {% endif %}
+
+          </td>
+
+          <td class="audit-details">
+            {{ log.details or '-' }}
+          </td>
+
         </tr>
+
         {% else %}
+
         <tr>
-          <td colspan="6">No audit log entries found.</td>
+
+          <td colspan="6" class="audit-empty-state">
+
+            <i class="fa-solid fa-magnifying-glass"></i>
+
+            No audit log entries matched the current search or filter.
+
+          </td>
+
         </tr>
+
         {% endfor %}
+
       </tbody>
+
     </table>
+
   </div>
+
   {% if pagination %}
-<div class="actions">
 
-  {% if pagination.page > 1 %}
-    <a class="btn" href="{{ url_for('audit_trail', page=1, q=q, action=action) }}">« First</a>
+  <div class="audit-pagination">
+
+    <span class="audit-page-status">
+      Page {{ pagination.page }} of {{ pagination.pages or 1 }}
+    </span>
+
+    <div class="audit-page-actions">
+
+      {% if pagination.page > 1 %}
+
+        <a
+          class="btn btn-outline-secondary audit-page-button"
+          href="{{ url_for(
+            'audit_trail',
+            page=1,
+            q=q,
+            action=action
+          ) }}"
+        >
+          « First
+        </a>
+
+      {% endif %}
+
+      {% if pagination.has_prev %}
+
+        <a
+          class="btn btn-outline-secondary audit-page-button"
+          href="{{ url_for(
+            'audit_trail',
+            page=pagination.prev_num,
+            q=q,
+            action=action
+          ) }}"
+        >
+          <i class="fa-solid fa-arrow-left me-1"></i>
+          Previous
+        </a>
+
+      {% endif %}
+
+      {% if pagination.has_next %}
+
+        <a
+          class="btn btn-outline-secondary audit-page-button"
+          href="{{ url_for(
+            'audit_trail',
+            page=pagination.next_num,
+            q=q,
+            action=action
+          ) }}"
+        >
+          Next
+          <i class="fa-solid fa-arrow-right ms-1"></i>
+        </a>
+
+      {% endif %}
+
+      {% if pagination.page < pagination.pages %}
+
+        <a
+          class="btn btn-outline-secondary audit-page-button"
+          href="{{ url_for(
+            'audit_trail',
+            page=pagination.pages,
+            q=q,
+            action=action
+          ) }}"
+        >
+          Last »
+        </a>
+
+      {% endif %}
+
+    </div>
+
+  </div>
+
   {% endif %}
 
-  {% if pagination.has_prev %}
-    <a class="btn" href="{{ url_for('audit_trail', page=pagination.prev_num, q=q, action=action) }}">← Previous</a>
-  {% endif %}
-
-  <span class="badge">
-    Page {{ pagination.page }} of {{ pagination.pages }}
-  </span>
-
-  {% if pagination.has_next %}
-    <a class="btn" href="{{ url_for('audit_trail', page=pagination.next_num, q=q, action=action) }}">Next →</a>
-  {% endif %}
-
-  {% if pagination.page < pagination.pages %}
-    <a class="btn" href="{{ url_for('audit_trail', page=pagination.pages, q=q, action=action) }}">Last »</a>
-  {% endif %}
-
-</div>
-{% endif %}
 </section>
+
 {% endblock %}

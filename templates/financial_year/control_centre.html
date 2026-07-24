@@ -5,146 +5,774 @@
 
 {% block content %}
 
-<section class="panel">
-  <div class="actions">
+<link
+  href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+  rel="stylesheet"
+>
+
+<link
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+  rel="stylesheet"
+>
+
+<style>
+  .fy-hero {
+    background: linear-gradient(135deg, #5b21b6, #312e81);
+    color: #fff;
+    border-radius: 24px;
+    padding: 28px;
+    margin-bottom: 24px;
+    box-shadow: 0 14px 34px rgba(49, 46, 129, 0.22);
+  }
+
+  .fy-hero h2 {
+    margin: 0 0 8px;
+    font-size: 28px;
+    font-weight: 800;
+  }
+
+  .fy-hero p {
+    margin: 0;
+    max-width: 780px;
+    color: rgba(255, 255, 255, 0.88);
+    line-height: 1.6;
+  }
+
+  .fy-panel {
+    background: #fff;
+    border: 1px solid #e4e7ec;
+    border-radius: 22px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 10px 28px rgba(16, 24, 40, 0.07);
+  }
+
+  .fy-panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .fy-title {
+    display: flex;
+    align-items: flex-start;
+    gap: 13px;
+  }
+
+  .fy-title-icon {
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    background: #f1eafe;
+    color: #6d28d9;
+    font-size: 20px;
+  }
+
+  .fy-title h3 {
+    margin: 0 0 5px;
+    color: #101828;
+    font-size: 20px;
+    font-weight: 800;
+  }
+
+  .fy-title p {
+    margin: 0;
+    color: #667085;
+  }
+
+  .fy-back-button {
+    border-radius: 12px;
+    font-weight: 700;
+  }
+
+  .fy-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .fy-summary-card {
+    position: relative;
+    overflow: hidden;
+    min-height: 150px;
+    border-radius: 20px;
+    padding: 20px;
+    color: #fff;
+    box-shadow: 0 12px 28px rgba(16, 24, 40, 0.14);
+  }
+
+  .fy-summary-card::after {
+    content: "";
+    position: absolute;
+    width: 110px;
+    height: 110px;
+    right: -35px;
+    bottom: -40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .fy-card-icon {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border-radius: 13px;
+    margin-bottom: 15px;
+    background: rgba(255, 255, 255, 0.2);
+    font-size: 19px;
+  }
+
+  .fy-summary-card span {
+    display: block;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.9;
+  }
+
+  .fy-summary-card strong {
+    display: block;
+    margin-top: 8px;
+    font-size: 25px;
+    line-height: 1.25;
+  }
+
+  .fy-summary-card small {
+    display: block;
+    margin-top: 7px;
+    color: rgba(255, 255, 255, 0.84);
+  }
+
+  .fy-blue {
+    background: linear-gradient(135deg, #155eef, #0f3fa8);
+  }
+
+  .fy-purple {
+    background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  }
+
+  .fy-green {
+    background: linear-gradient(135deg, #16a34a, #087a34);
+  }
+
+  .fy-orange {
+    background: linear-gradient(135deg, #f97316, #c2410c);
+  }
+
+  .fy-red {
+    background: linear-gradient(135deg, #dc2626, #991b1b);
+  }
+
+  .fy-action-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 15px;
+  }
+
+  .fy-action-card {
+    min-height: 165px;
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: #1d2939;
+    background: #fff;
+    border: 1px solid #e4e7ec;
+    border-radius: 19px;
+    padding: 20px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .fy-action-card:hover {
+    color: #1d2939;
+    transform: translateY(-3px);
+    box-shadow: 0 14px 28px rgba(16, 24, 40, 0.11);
+  }
+
+  .fy-action-card.disabled {
+    opacity: 0.58;
+    cursor: not-allowed;
+    background: #f8fafc;
+  }
+
+  .fy-action-card.disabled:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .fy-action-icon {
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    margin-bottom: 15px;
+    font-size: 21px;
+  }
+
+  .icon-blue {
+    background: #eaf2ff;
+    color: #155eef;
+  }
+
+  .icon-purple {
+    background: #f1eafe;
+    color: #7c3aed;
+  }
+
+  .icon-red {
+    background: #fee4e2;
+    color: #d92d20;
+  }
+
+  .icon-orange {
+    background: #fff0dc;
+    color: #e87800;
+  }
+
+  .icon-grey {
+    background: #f2f4f7;
+    color: #667085;
+  }
+
+  .fy-action-card h4 {
+    margin: 0 0 7px;
+    font-size: 16px;
+    font-weight: 800;
+  }
+
+  .fy-action-card p {
+    margin: 0;
+    color: #667085;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .fy-action-arrow {
+    margin-top: auto;
+    padding-top: 14px;
+    color: #7c3aed;
+    font-weight: 800;
+  }
+
+  .fy-status-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    border-radius: 16px;
+    padding: 16px;
+    margin-top: 18px;
+  }
+
+  .fy-status-note.open {
+    background: #ecfdf3;
+    border: 1px solid #abefc6;
+    color: #067647;
+  }
+
+  .fy-status-note.closed {
+    background: #f2f4f7;
+    border: 1px solid #d0d5dd;
+    color: #475467;
+  }
+
+  .fy-status-note i {
+    margin-top: 3px;
+    font-size: 18px;
+  }
+
+  .fy-table {
+    margin: 0;
+  }
+
+  .fy-table thead th {
+    background: #f5f0ff;
+    color: #475467;
+    border-bottom: 1px solid #e4e7ec;
+    padding: 13px;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+
+  .fy-table tbody td {
+    padding: 14px 13px;
+    vertical-align: middle;
+    border-bottom: 1px solid #eef2f6;
+  }
+
+  .fy-table tbody tr:hover {
+    background: #faf9ff;
+  }
+
+  .fy-year-badge {
+    display: inline-block;
+    min-width: 60px;
+    padding: 6px 11px;
+    border-radius: 999px;
+    background: #f1eafe;
+    color: #6d28d9;
+    text-align: center;
+    font-weight: 800;
+  }
+
+  .fy-badge {
+    display: inline-block;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .fy-badge-open {
+    background: #dcfae6;
+    color: #067647;
+  }
+
+  .fy-badge-closed {
+    background: #f2f4f7;
+    color: #475467;
+  }
+
+  .fy-badge-locked {
+    background: #fee4e2;
+    color: #b42318;
+  }
+
+  .fy-badge-unlocked {
+    background: #eaf2ff;
+    color: #155eef;
+  }
+
+  .fy-empty-state {
+    padding: 34px 16px;
+    text-align: center;
+    color: #667085;
+  }
+
+  .fy-empty-state i {
+    display: block;
+    margin-bottom: 10px;
+    color: #98a2b3;
+    font-size: 28px;
+  }
+
+  .fy-warning {
+    display: flex;
+    gap: 13px;
+    align-items: flex-start;
+    border-radius: 16px;
+    padding: 18px;
+    background: #fffaeb;
+    border: 1px solid #fedf89;
+    color: #854a0e;
+  }
+
+  .fy-warning i {
+    margin-top: 3px;
+    font-size: 20px;
+  }
+
+  @media (max-width: 1200px) {
+    .fy-action-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 992px) {
+    .fy-summary-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 650px) {
+    .fy-summary-grid,
+    .fy-action-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<div class="fy-hero">
+
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+
+    <div>
+      <h2>
+        <i class="fa-solid fa-calendar-check me-2"></i>
+        Financial Year Control Centre
+      </h2>
+
+      <p>
+        Review the active financial year, run pre-close controls, preview
+        closing entries and safely manage the financial-year closing process.
+      </p>
+    </div>
+
+    <span class="badge rounded-pill bg-light text-primary px-3 py-2">
+      <i class="fa-solid fa-shield-halved me-1"></i>
+      Year-End Governance
+    </span>
+
+  </div>
+
+</div>
+
+<section class="fy-panel">
+
+  <div class="fy-panel-head">
+
+    <div class="fy-title">
+
+      <div class="fy-title-icon">
+        <i class="fa-solid fa-arrow-left"></i>
+      </div>
+
+      <div>
+        <h3>Accounting Navigation</h3>
+        <p>Return to the Accounting Control Centre.</p>
+      </div>
+
+    </div>
+
     <a
-      class="btn"
+      class="btn btn-outline-secondary fy-back-button"
       href="{{ url_for('accounting_control_centre') }}"
     >
-      ← Back to Accounting
+      <i class="fa-solid fa-arrow-left me-1"></i>
+      Back to Accounting
     </a>
+
   </div>
+
 </section>
 
 {% if financial_year %}
 
-<section class="panel">
-  <h2>Current Financial Year</h2>
+<section class="fy-panel">
 
-  <div class="summary-grid">
+  <div class="fy-title mb-4">
 
-    <div class="summary-card">
-      <div class="summary-label">Financial Year</div>
-      <div class="summary-value">
-        {{ financial_year.year }}
-      </div>
+    <div class="fy-title-icon">
+      <i class="fa-solid fa-calendar-days"></i>
     </div>
 
-    <div class="summary-card">
-      <div class="summary-label">Period</div>
-      <div class="summary-value">
-        {{ financial_year.start_date.strftime('%d %b %Y') }}
-        to
-        {{ financial_year.end_date.strftime('%d %b %Y') }}
-      </div>
-    </div>
-
-    <div class="summary-card">
-      <div class="summary-label">Status</div>
-      <div class="summary-value">
-        {% if financial_year.status == 'Open' %}
-          <span class="badge badge-success">Open</span>
-        {% else %}
-          <span class="badge badge-secondary">
-            {{ financial_year.status }}
-          </span>
-        {% endif %}
-      </div>
-    </div>
-
-    <div class="summary-card">
-      <div class="summary-label">Locked</div>
-      <div class="summary-value">
-        {% if financial_year.is_locked %}
-          <span class="badge badge-danger">Yes</span>
-        {% else %}
-          <span class="badge badge-success">No</span>
-        {% endif %}
-      </div>
+    <div>
+      <h3>Current Financial Year</h3>
+      <p>Review the active financial period and its control status.</p>
     </div>
 
   </div>
+
+  <div class="fy-summary-grid">
+
+    <div class="fy-summary-card fy-blue">
+
+      <div class="fy-card-icon">
+        <i class="fa-solid fa-calendar"></i>
+      </div>
+
+      <span>Financial Year</span>
+      <strong>{{ financial_year.year }}</strong>
+      <small>Currently active accounting year</small>
+
+    </div>
+
+    <div class="fy-summary-card fy-purple">
+
+      <div class="fy-card-icon">
+        <i class="fa-solid fa-calendar-range"></i>
+      </div>
+
+      <span>Financial Period</span>
+
+      <strong style="font-size: 19px;">
+        {{ financial_year.start_date.strftime('%d %b %Y') }}
+        <br>
+        to {{ financial_year.end_date.strftime('%d %b %Y') }}
+      </strong>
+
+      <small>Approved start and end dates</small>
+
+    </div>
+
+    <div class="fy-summary-card
+      {% if financial_year.status == 'Open' %}fy-green{% else %}fy-orange{% endif %}">
+
+      <div class="fy-card-icon">
+        <i class="fa-solid fa-circle-info"></i>
+      </div>
+
+      <span>Status</span>
+      <strong>{{ financial_year.status }}</strong>
+
+      {% if financial_year.status == 'Open' %}
+        <small>Transactions may still be processed</small>
+      {% else %}
+        <small>The financial year has been closed</small>
+      {% endif %}
+
+    </div>
+
+    <div class="fy-summary-card
+      {% if financial_year.is_locked %}fy-red{% else %}fy-green{% endif %}">
+
+      <div class="fy-card-icon">
+        {% if financial_year.is_locked %}
+          <i class="fa-solid fa-lock"></i>
+        {% else %}
+          <i class="fa-solid fa-lock-open"></i>
+        {% endif %}
+      </div>
+
+      <span>Ledger Lock</span>
+
+      {% if financial_year.is_locked %}
+        <strong>Locked</strong>
+        <small>Posting is restricted for this year</small>
+      {% else %}
+        <strong>Unlocked</strong>
+        <small>Transactions may still be posted</small>
+      {% endif %}
+
+    </div>
+
+  </div>
+
 </section>
 
-<section class="panel">
-  <h2>Year-End Actions</h2>
+<section class="fy-panel">
 
-  <div class="actions">
+  <div class="fy-title mb-4">
+
+    <div class="fy-title-icon">
+      <i class="fa-solid fa-gears"></i>
+    </div>
+
+    <div>
+      <h3>Year-End Actions</h3>
+      <p>Complete each control stage before closing the financial year.</p>
+    </div>
+
+  </div>
+
+  <div class="fy-action-grid">
 
     <a
-      class="btn"
+      class="fy-action-card"
       href="{{ url_for('financial_year_preclose_checks') }}"
     >
-      🔍 Run Pre-Close Checks
+
+      <div class="fy-action-icon icon-blue">
+        <i class="fa-solid fa-magnifying-glass"></i>
+      </div>
+
+      <h4>Run Pre-Close Checks</h4>
+
+      <p>
+        Validate ledger balances, reconciliations and outstanding control
+        matters before closing.
+      </p>
+
+      <div class="fy-action-arrow">
+        Open checks →
+      </div>
+
     </a>
 
     <a
-      class="btn"
+      class="fy-action-card"
       href="{{ url_for('financial_year_closing_preview') }}"
     >
-      📊 Preview Closing Entries
+
+      <div class="fy-action-icon icon-purple">
+        <i class="fa-solid fa-chart-column"></i>
+      </div>
+
+      <h4>Preview Closing Entries</h4>
+
+      <p>
+        Review the accounting journals that will be generated during closing.
+      </p>
+
+      <div class="fy-action-arrow">
+        Preview entries →
+      </div>
+
     </a>
 
     {% if financial_year.status == 'Open' and not financial_year.is_locked %}
 
       <a
-        class="btn btn-danger"
+        class="fy-action-card"
         href="{{ url_for('close_financial_year') }}"
       >
-        🔒 Close Financial Year
+
+        <div class="fy-action-icon icon-red">
+          <i class="fa-solid fa-lock"></i>
+        </div>
+
+        <h4>Close Financial Year</h4>
+
+        <p>
+          Complete the closing process and lock the financial year against
+          further posting.
+        </p>
+
+        <div class="fy-action-arrow" style="color: #d92d20;">
+          Proceed carefully →
+        </div>
+
       </a>
 
     {% else %}
 
-      <button
-        type="button"
-        class="btn btn-danger"
-        disabled
-      >
-        🔒 Financial Year Closed
-      </button>
+      <div class="fy-action-card disabled">
+
+        <div class="fy-action-icon icon-grey">
+          <i class="fa-solid fa-lock"></i>
+        </div>
+
+        <h4>Financial Year Closed</h4>
+
+        <p>
+          This financial year has already been closed or locked.
+        </p>
+
+        <div class="fy-action-arrow" style="color: #667085;">
+          No action available
+        </div>
+
+      </div>
 
     {% endif %}
 
-    <button
-      type="button"
-      class="btn"
-      disabled
+    <div
+      class="fy-action-card disabled"
       title="This function will be added in the next stage."
     >
-      📂 Open New Financial Year
-    </button>
 
-    <button
-      type="button"
-      class="btn"
-      disabled
+      <div class="fy-action-icon icon-orange">
+        <i class="fa-solid fa-folder-open"></i>
+      </div>
+
+      <h4>Open New Financial Year</h4>
+
+      <p>
+        Create and initialise the next financial year after closing.
+      </p>
+
+      <div class="fy-action-arrow" style="color: #667085;">
+        Coming soon
+      </div>
+
+    </div>
+
+    <div
+      class="fy-action-card disabled"
       title="The closing report will be added after the closing engine."
     >
-      📄 Closing Report
-    </button>
+
+      <div class="fy-action-icon icon-grey">
+        <i class="fa-solid fa-file-lines"></i>
+      </div>
+
+      <h4>Closing Report</h4>
+
+      <p>
+        Produce the official financial-year closing summary and audit record.
+      </p>
+
+      <div class="fy-action-arrow" style="color: #667085;">
+        Coming soon
+      </div>
+
+    </div>
 
   </div>
+
+  {% if financial_year.status == 'Open' and not financial_year.is_locked %}
+
+    <div class="fy-status-note open">
+
+      <i class="fa-solid fa-circle-check"></i>
+
+      <div>
+        <strong>Financial year is open</strong><br>
+        Run the pre-close checks and review the closing preview before
+        initiating the final closing process.
+      </div>
+
+    </div>
+
+  {% else %}
+
+    <div class="fy-status-note closed">
+
+      <i class="fa-solid fa-lock"></i>
+
+      <div>
+        <strong>Financial year is closed and locked</strong><br>
+        Further accounting entries for this year are restricted.
+      </div>
+
+    </div>
+
+  {% endif %}
+
 </section>
 
 {% else %}
 
-<section class="panel">
-  <div class="alert alert-warning">
-    <strong>No open financial year was found.</strong>
-    Please initialise the financial year before continuing.
+<section class="fy-panel">
+
+  <div class="fy-warning">
+
+    <i class="fa-solid fa-triangle-exclamation"></i>
+
+    <div>
+      <strong>No open financial year was found.</strong><br>
+      Initialise a financial year before continuing with year-end controls.
+    </div>
+
   </div>
+
 </section>
 
 {% endif %}
 
-<section class="panel">
-  <h2>Financial Year History</h2>
+<section class="fy-panel">
+
+  <div class="fy-title mb-4">
+
+    <div class="fy-title-icon">
+      <i class="fa-solid fa-clock-rotate-left"></i>
+    </div>
+
+    <div>
+      <h3>Financial Year History</h3>
+      <p>
+        Review prior financial years, closing status and control references.
+      </p>
+    </div>
+
+  </div>
 
   {% if financial_years %}
 
     <div class="table-responsive">
-      <table>
+
+      <table class="table fy-table align-middle">
+
         <thead>
           <tr>
             <th>Year</th>
@@ -159,9 +787,16 @@
         </thead>
 
         <tbody>
+
           {% for year in financial_years %}
+
             <tr>
-              <td>{{ year.year }}</td>
+
+              <td>
+                <span class="fy-year-badge">
+                  {{ year.year }}
+                </span>
+              </td>
 
               <td>
                 {% if year.start_date %}
@@ -181,11 +816,15 @@
 
               <td>
                 {% if year.status == 'Open' %}
-                  <span class="badge badge-success">Open</span>
+                  <span class="fy-badge fy-badge-open">
+                    Open
+                  </span>
                 {% elif year.status == 'Closed' %}
-                  <span class="badge badge-secondary">Closed</span>
+                  <span class="fy-badge fy-badge-closed">
+                    Closed
+                  </span>
                 {% else %}
-                  <span class="badge">
+                  <span class="fy-badge fy-badge-closed">
                     {{ year.status }}
                   </span>
                 {% endif %}
@@ -193,28 +832,49 @@
 
               <td>
                 {% if year.is_locked %}
-                  <span class="badge badge-danger">Yes</span>
+                  <span class="fy-badge fy-badge-locked">
+                    Yes
+                  </span>
                 {% else %}
-                  No
+                  <span class="fy-badge fy-badge-unlocked">
+                    No
+                  </span>
                 {% endif %}
               </td>
 
               <td>{{ year.opened_by or '—' }}</td>
               <td>{{ year.closed_by or '—' }}</td>
-              <td>{{ year.closing_reference or '—' }}</td>
+
+              <td>
+                {% if year.closing_reference %}
+                  <strong>{{ year.closing_reference }}</strong>
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+
             </tr>
+
           {% endfor %}
+
         </tbody>
+
       </table>
+
     </div>
 
   {% else %}
 
-    <div class="alert alert-info">
+    <div class="fy-empty-state">
+
+      <i class="fa-regular fa-calendar-xmark"></i>
+
       No financial-year history is available.
+
     </div>
 
   {% endif %}
+
 </section>
 
 {% endblock %}

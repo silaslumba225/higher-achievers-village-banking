@@ -1,133 +1,796 @@
 {% extends 'base.html' %}
 
-{% block page_title %}Year-End Closing{% endblock %}
-{% block subtitle %}Close the financial year and transfer surplus to Accumulated Surplus{% endblock %}
+{% block page_title %}Financial Year-End Centre{% endblock %}
+{% block subtitle %}Review, validate and close the financial year safely{% endblock %}
 
 {% block content %}
 
-<section class="panel">
-  <div class="panel-head">
+<link
+  href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+  rel="stylesheet"
+>
+
+<link
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+  rel="stylesheet"
+>
+
+<style>
+  .year-end-hero {
+    background: linear-gradient(135deg, #6f42c1, #4c1d95);
+    color: #fff;
+    border-radius: 24px;
+    padding: 28px;
+    margin-bottom: 24px;
+    box-shadow: 0 14px 32px rgba(16, 24, 40, 0.16);
+  }
+
+  .year-end-hero h2 {
+    margin: 0 0 8px;
+    font-size: 28px;
+    font-weight: 800;
+  }
+
+  .year-end-hero p {
+    margin: 0;
+    max-width: 760px;
+    color: rgba(255, 255, 255, 0.88);
+  }
+
+  .year-end-panel {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 24px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 10px 28px rgba(16, 24, 40, 0.07);
+  }
+
+  .panel-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .panel-title {
+    display: flex;
+    align-items: flex-start;
+    gap: 13px;
+  }
+
+  .panel-icon {
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    background: #f1eafe;
+    color: #6f42c1;
+    font-size: 20px;
+  }
+
+  .panel-title h3 {
+    margin: 0 0 5px;
+    font-size: 20px;
+    font-weight: 800;
+    color: #101828;
+  }
+
+  .panel-title p {
+    margin: 0;
+    color: #667085;
+  }
+
+  .preview-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+    gap: 14px;
+    align-items: end;
+  }
+
+  .preview-form label {
+    display: block;
+    color: #344054;
+    font-weight: 700;
+  }
+
+  .preview-form input {
+    width: 100%;
+    margin-top: 7px;
+    padding: 12px 14px;
+    border: 1px solid #d0d5dd;
+    border-radius: 12px;
+    font-size: 15px;
+  }
+
+  .preview-form input:focus {
+    border-color: #6f42c1;
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(111, 66, 193, 0.12);
+  }
+
+  .preview-button {
+    border: 0;
+    border-radius: 12px;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #6f42c1, #4c1d95);
+    color: #fff;
+    font-weight: 800;
+    min-height: 48px;
+  }
+
+  .year-end-kpi {
+    height: 100%;
+    border: 0;
+    border-radius: 22px;
+    color: #fff;
+    box-shadow: 0 12px 28px rgba(16, 24, 40, 0.14);
+  }
+
+  .year-end-kpi .card-body {
+    padding: 22px;
+  }
+
+  .year-end-kpi .kpi-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    background: rgba(255, 255, 255, 0.20);
+    font-size: 21px;
+    margin-bottom: 14px;
+  }
+
+  .year-end-kpi span {
+    display: block;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.9;
+  }
+
+  .year-end-kpi strong {
+    display: block;
+    margin-top: 7px;
+    font-size: 25px;
+    line-height: 1.2;
+  }
+
+  .year-end-kpi small {
+    display: block;
+    margin-top: 7px;
+    color: rgba(255, 255, 255, 0.84);
+  }
+
+  .grad-blue {
+    background: linear-gradient(135deg, #155eef, #0f3fa8);
+  }
+
+  .grad-green {
+    background: linear-gradient(135deg, #16a34a, #087a34);
+  }
+
+  .grad-orange {
+    background: linear-gradient(135deg, #f97316, #c2410c);
+  }
+
+  .grad-purple {
+    background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  }
+
+  .table-modern {
+    margin: 0;
+  }
+
+  .table-modern thead th {
+    background: #f8fafc;
+    color: #667085;
+    border-bottom: 1px solid #e4e7ec;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .table-modern th,
+  .table-modern td {
+    padding: 13px;
+    vertical-align: middle;
+    border-bottom: 1px solid #eef2f6;
+  }
+
+  .table-modern tbody tr:hover {
+    background: #fafbff;
+  }
+
+  .account-code {
+    display: inline-block;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #f2f4f7;
+    color: #344054;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .empty-state {
+    padding: 30px 15px !important;
+    text-align: center;
+    color: #667085;
+  }
+
+  .empty-state i {
+    display: block;
+    margin-bottom: 10px;
+    color: #98a2b3;
+    font-size: 25px;
+  }
+
+  .year-end-checklist {
+    padding: 20px;
+    border-radius: 18px;
+    background: #f8f5ff;
+    border: 1px solid #e6d9ff;
+    margin-bottom: 20px;
+  }
+
+  .year-end-checklist h4 {
+    margin: 0 0 14px;
+    font-size: 16px;
+    font-weight: 800;
+    color: #344054;
+  }
+
+  .year-end-checklist ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .year-end-checklist li {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+    color: #475467;
+  }
+
+  .year-end-checklist li:last-child {
+    margin-bottom: 0;
+  }
+
+  .year-end-checklist i {
+    margin-top: 3px;
+    color: #16a34a;
+  }
+
+  .status-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 18px;
+  }
+
+  .status-box.ready {
+    background: #ecfdf3;
+    border: 1px solid #abefc6;
+    color: #067647;
+  }
+
+  .status-box.blocked {
+    background: #fef3f2;
+    border: 1px solid #fecdca;
+    color: #b42318;
+  }
+
+  .status-box i {
+    margin-top: 3px;
+    font-size: 18px;
+  }
+
+  .close-button {
+    border: 0;
+    border-radius: 13px;
+    padding: 13px 20px;
+    background: linear-gradient(135deg, #dc2626, #991b1b);
+    color: #fff;
+    font-weight: 800;
+  }
+
+  .close-button:hover {
+    filter: brightness(0.95);
+  }
+
+  .back-button {
+    border-radius: 12px;
+    font-weight: 700;
+  }
+
+  @media (max-width: 900px) {
+    .preview-form {
+      grid-template-columns: 1fr;
+    }
+
+    .preview-button {
+      width: 100%;
+    }
+  }
+</style>
+
+<div class="year-end-hero">
+
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+
     <div>
-      <h2>Year-End Closing Wizard</h2>
-      <p>Preview the year before closing.</p>
+      <h2>
+        <i class="fa-solid fa-calendar-check me-2"></i>
+        Financial Year-End Centre
+      </h2>
+
+      <p>
+        Review the financial year, confirm ledger integrity, close income and
+        expense accounts, and transfer the final surplus or deficit to
+        Accumulated Surplus.
+      </p>
     </div>
-    <a class="btn" href="{{ url_for('accounting') }}">← Back to Accounting</a>
+
+    <span class="badge rounded-pill bg-light text-purple px-3 py-2">
+      <i class="fa-solid fa-shield-halved me-1"></i>
+      Controlled Closing Process
+    </span>
+
   </div>
 
-  <form method="get" class="form-grid">
-    <label>Start Date
-      <input type="date" name="start" value="{{ start }}">
+</div>
+
+<section class="year-end-panel">
+
+  <div class="panel-heading">
+
+    <div class="panel-title">
+
+      <div class="panel-icon">
+        <i class="fa-solid fa-calendar-days"></i>
+      </div>
+
+      <div>
+        <h3>Year-End Closing Preview</h3>
+        <p>
+          Select the financial period and review all closing balances before
+          finalising the year.
+        </p>
+      </div>
+
+    </div>
+
+    <a
+      class="btn btn-outline-secondary back-button"
+      href="{{ url_for('accounting') }}"
+    >
+      <i class="fa-solid fa-arrow-left me-1"></i>
+      Back to Accounting
+    </a>
+
+  </div>
+
+  <form method="get" class="preview-form">
+
+    <label>
+      Start Date
+
+      <input
+        type="date"
+        name="start"
+        value="{{ start }}"
+        required
+      >
     </label>
 
-    <label>End Date
-      <input type="date" name="end" value="{{ end }}">
+    <label>
+      End Date
+
+      <input
+        type="date"
+        name="end"
+        value="{{ end }}"
+        required
+      >
     </label>
 
-    <button class="btn primary" type="submit">Preview</button>
+    <button class="preview-button" type="submit">
+      <i class="fa-solid fa-magnifying-glass-chart me-1"></i>
+      Preview Year
+    </button>
+
   </form>
+
 </section>
 
-<section class="kpi-grid">
-  <div class="kpi">
-    <span>Trial Balance</span>
-    {% if trial_balance_ok %}
-      <strong class="good-text">Balanced</strong>
-    {% else %}
-      <strong class="bad-text">Not Balanced</strong>
-    {% endif %}
-    <em>Dr {{ total_debits|kwacha }} / Cr {{ total_credits|kwacha }}</em>
+<div class="row g-4 mb-4">
+
+  <div class="col-md-6 col-xl-3">
+
+    <div
+      class="card year-end-kpi
+      {% if trial_balance_ok %}grad-green{% else %}grad-orange{% endif %}"
+    >
+
+      <div class="card-body">
+
+        <div class="kpi-icon">
+          <i class="fa-solid fa-scale-balanced"></i>
+        </div>
+
+        <span>Trial Balance</span>
+
+        {% if trial_balance_ok %}
+          <strong>Balanced</strong>
+          <small>Debits equal credits</small>
+        {% else %}
+          <strong>Not Balanced</strong>
+          <small>Review ledger postings before closing</small>
+        {% endif %}
+
+      </div>
+
+    </div>
+
   </div>
 
-  <div class="kpi">
-    <span>Total Income</span>
-    <strong>{{ total_income|kwacha }}</strong>
+  <div class="col-md-6 col-xl-3">
+
+    <div class="card year-end-kpi grad-blue">
+
+      <div class="card-body">
+
+        <div class="kpi-icon">
+          <i class="fa-solid fa-arrow-trend-up"></i>
+        </div>
+
+        <span>Total Income</span>
+        <strong>{{ total_income|kwacha }}</strong>
+        <small>Income accounts within the selected period</small>
+
+      </div>
+
+    </div>
+
   </div>
 
-  <div class="kpi">
-    <span>Total Expenses</span>
-    <strong>{{ total_expenses|kwacha }}</strong>
+  <div class="col-md-6 col-xl-3">
+
+    <div class="card year-end-kpi grad-orange">
+
+      <div class="card-body">
+
+        <div class="kpi-icon">
+          <i class="fa-solid fa-arrow-trend-down"></i>
+        </div>
+
+        <span>Total Expenses</span>
+        <strong>{{ total_expenses|kwacha }}</strong>
+        <small>Expense accounts within the selected period</small>
+
+      </div>
+
+    </div>
+
   </div>
 
-  <div class="kpi accent">
-    <span>Net Surplus / Deficit</span>
-    <strong>{{ net_surplus|kwacha }}</strong>
+  <div class="col-md-6 col-xl-3">
+
+    <div class="card year-end-kpi grad-purple">
+
+      <div class="card-body">
+
+        <div class="kpi-icon">
+          <i class="fa-solid fa-chart-pie"></i>
+        </div>
+
+        <span>Net Surplus / Deficit</span>
+        <strong>{{ net_surplus|kwacha }}</strong>
+        <small>Amount to transfer at year-end</small>
+
+      </div>
+
+    </div>
+
   </div>
+
+</div>
+
+<section class="year-end-panel">
+
+  <div class="panel-title">
+
+    <div class="panel-icon">
+      <i class="fa-solid fa-scale-balanced"></i>
+    </div>
+
+    <div>
+      <h3>Accounting Control Summary</h3>
+      <p>
+        Confirm that the General Ledger is ready for year-end closing.
+      </p>
+    </div>
+
+  </div>
+
+  <div class="row g-3">
+
+    <div class="col-md-6">
+
+      <div class="p-3 rounded-4 bg-light border h-100">
+        <span class="text-muted d-block mb-1">Total Debits</span>
+        <strong class="fs-5">{{ total_debits|kwacha }}</strong>
+      </div>
+
+    </div>
+
+    <div class="col-md-6">
+
+      <div class="p-3 rounded-4 bg-light border h-100">
+        <span class="text-muted d-block mb-1">Total Credits</span>
+        <strong class="fs-5">{{ total_credits|kwacha }}</strong>
+      </div>
+
+    </div>
+
+  </div>
+
 </section>
 
-<section class="panel">
-  <h2>Income Accounts to Close</h2>
+<section class="year-end-panel">
 
-  <div class="table-wrap">
-    <table>
+  <div class="panel-title">
+
+    <div class="panel-icon">
+      <i class="fa-solid fa-money-bill-trend-up"></i>
+    </div>
+
+    <div>
+      <h3>Income Accounts to Close</h3>
+      <p>
+        These income balances will be cleared during the closing process.
+      </p>
+    </div>
+
+  </div>
+
+  <div class="table-responsive">
+
+    <table class="table table-modern align-middle">
+
       <thead>
         <tr>
           <th>Code</th>
           <th>Account</th>
-          <th>Balance</th>
+          <th class="text-end">Balance</th>
         </tr>
       </thead>
+
       <tbody>
+
         {% for b in income_accounts %}
+
         <tr>
-          <td>{{ b.account.code }}</td>
-          <td>{{ b.account.name }}</td>
-          <td>{{ b.balance|kwacha }}</td>
+          <td>
+            <span class="account-code">
+              {{ b.account.code }}
+            </span>
+          </td>
+
+          <td>
+            <strong>{{ b.account.name }}</strong>
+          </td>
+
+          <td class="text-end">
+            <strong>{{ b.balance|kwacha }}</strong>
+          </td>
         </tr>
+
         {% else %}
+
         <tr>
-          <td colspan="3">No income accounts to close.</td>
+          <td colspan="3" class="empty-state">
+            <i class="fa-solid fa-circle-check"></i>
+            No income accounts require closing.
+          </td>
         </tr>
+
         {% endfor %}
+
       </tbody>
+
     </table>
+
   </div>
+
 </section>
 
-<section class="panel">
-  <h2>Expense Accounts to Close</h2>
+<section class="year-end-panel">
 
-  <div class="table-wrap">
-    <table>
+  <div class="panel-title">
+
+    <div class="panel-icon">
+      <i class="fa-solid fa-receipt"></i>
+    </div>
+
+    <div>
+      <h3>Expense Accounts to Close</h3>
+      <p>
+        These expense balances will be cleared during the closing process.
+      </p>
+    </div>
+
+  </div>
+
+  <div class="table-responsive">
+
+    <table class="table table-modern align-middle">
+
       <thead>
         <tr>
           <th>Code</th>
           <th>Account</th>
-          <th>Balance</th>
+          <th class="text-end">Balance</th>
         </tr>
       </thead>
+
       <tbody>
+
         {% for b in expense_accounts %}
+
         <tr>
-          <td>{{ b.account.code }}</td>
-          <td>{{ b.account.name }}</td>
-          <td>{{ b.balance|kwacha }}</td>
+          <td>
+            <span class="account-code">
+              {{ b.account.code }}
+            </span>
+          </td>
+
+          <td>
+            <strong>{{ b.account.name }}</strong>
+          </td>
+
+          <td class="text-end">
+            <strong>{{ b.balance|kwacha }}</strong>
+          </td>
         </tr>
+
         {% else %}
+
         <tr>
-          <td colspan="3">No expense accounts to close.</td>
+          <td colspan="3" class="empty-state">
+            <i class="fa-solid fa-circle-check"></i>
+            No expense accounts require closing.
+          </td>
         </tr>
+
         {% endfor %}
+
       </tbody>
+
     </table>
+
   </div>
+
 </section>
 
-<section class="panel">
-  <h2>Close Financial Year</h2>
+<section class="year-end-panel">
+
+  <div class="panel-title">
+
+    <div class="panel-icon">
+      <i class="fa-solid fa-lock"></i>
+    </div>
+
+    <div>
+      <h3>Close Financial Year</h3>
+      <p>
+        Complete the final transfer of the year’s surplus or deficit to
+        Accumulated Surplus.
+      </p>
+    </div>
+
+  </div>
+
+  <div class="year-end-checklist">
+
+    <h4>Before closing, confirm that:</h4>
+
+    <ul>
+
+      <li>
+        <i class="fa-solid fa-circle-check"></i>
+        <span>All contributions and loan repayments have been recorded.</span>
+      </li>
+
+      <li>
+        <i class="fa-solid fa-circle-check"></i>
+        <span>Month-end processing has been completed for the final month.</span>
+      </li>
+
+      <li>
+        <i class="fa-solid fa-circle-check"></i>
+        <span>Bank and mobile money accounts have been reconciled.</span>
+      </li>
+
+      <li>
+        <i class="fa-solid fa-circle-check"></i>
+        <span>All audit and correcting journals have been posted.</span>
+      </li>
+
+      <li>
+        <i class="fa-solid fa-circle-check"></i>
+        <span>The Trial Balance is balanced.</span>
+      </li>
+
+    </ul>
+
+  </div>
 
   {% if trial_balance_ok %}
-    <form method="post" action="{{ url_for('year_end_close') }}">
-      <input type="hidden" name="start" value="{{ start }}">
-      <input type="hidden" name="end" value="{{ end }}">
 
-      <button class="btn danger" type="submit"
-              onclick="return confirm('Are you sure you want to close this financial year?')">
+    <div class="status-box ready">
+
+      <i class="fa-solid fa-circle-check"></i>
+
+      <div>
+        <strong>Ready for closing</strong><br>
+        The Trial Balance is balanced and the financial year may be closed.
+      </div>
+
+    </div>
+
+    <form method="post" action="{{ url_for('year_end_close') }}">
+
+      <input
+        type="hidden"
+        name="start"
+        value="{{ start }}"
+      >
+
+      <input
+        type="hidden"
+        name="end"
+        value="{{ end }}"
+      >
+
+      <button
+        class="close-button"
+        type="submit"
+        onclick="return confirm(
+          'Are you sure you want to close this financial year? This action will transfer the final surplus or deficit to Accumulated Surplus.'
+        );"
+      >
+        <i class="fa-solid fa-lock me-1"></i>
         Close Financial Year
       </button>
+
     </form>
+
   {% else %}
-    <p class="bad-text">You cannot close the year until the Trial Balance is balanced.</p>
+
+    <div class="status-box blocked">
+
+      <i class="fa-solid fa-triangle-exclamation"></i>
+
+      <div>
+        <strong>Closing blocked</strong><br>
+        The financial year cannot be closed until the Trial Balance is balanced.
+      </div>
+
+    </div>
+
   {% endif %}
+
 </section>
 
 {% endblock %}

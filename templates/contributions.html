@@ -1,217 +1,835 @@
 {% extends 'base.html' %}
 
-{% block page_title %}Savings Intelligence Centre{% endblock %}
-{% block subtitle %}Build wealth, track savings, and strengthen the group{% endblock %}
+{% block page_title %}Contributions Intelligence Centre{% endblock %}
+{% block subtitle %}Record contributions, track participation and strengthen the group{% endblock %}
 
 {% block content %}
 
 <style>
-  .contribution-actions {
+  .savings-page {
     display: flex;
-    gap: 6px;
+    flex-direction: column;
+    gap: 22px;
+  }
+
+  .savings-hero {
+    position: relative;
+    overflow: hidden;
+    padding: 30px;
+    border-radius: 24px;
+    color: white;
+    background:
+      radial-gradient(circle at top right, rgba(255,255,255,.18), transparent 36%),
+      linear-gradient(135deg, #5b2a86 0%, #7b3fb2 52%, #198754 100%);
+    box-shadow: 0 18px 45px rgba(63, 31, 95, .22);
+  }
+
+  .savings-hero::after {
+    content: "";
+    position: absolute;
+    right: -70px;
+    bottom: -110px;
+    width: 240px;
+    height: 240px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.09);
+  }
+
+  .savings-hero-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
     flex-wrap: wrap;
   }
 
-  .transaction-pill {
-    display: inline-flex;
-    padding: 4px 8px;
-    border-radius: 999px;
-    font-size: 0.72rem;
+  .hero-icon {
+    width: 58px;
+    height: 58px;
+    display: grid;
+    place-items: center;
+    margin-bottom: 14px;
+    border-radius: 18px;
+    background: rgba(255,255,255,.16);
+    border: 1px solid rgba(255,255,255,.22);
+    font-size: 1.75rem;
+  }
+
+  .savings-hero h2 {
+    margin: 0 0 8px;
+    color: white;
+    font-size: clamp(1.75rem, 3vw, 2.35rem);
     font-weight: 800;
   }
 
+  .savings-hero p {
+    margin: 0;
+    max-width: 720px;
+    color: rgba(255,255,255,.88);
+    line-height: 1.6;
+  }
+
+  .hero-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 13px 19px;
+    border-radius: 14px;
+    background: white;
+    color: #5b2a86;
+    text-decoration: none;
+    font-weight: 800;
+    box-shadow: 0 10px 25px rgba(0,0,0,.16);
+  }
+
+  .hero-button:hover {
+    color: #3e1d5f;
+    transform: translateY(-2px);
+  }
+
+  .savings-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .summary-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+    border-radius: 18px;
+    background: white;
+    border: 1px solid #eee8f6;
+    box-shadow: 0 10px 28px rgba(45,28,72,.08);
+  }
+
+  .summary-icon {
+    width: 50px;
+    height: 50px;
+    flex: 0 0 50px;
+    display: grid;
+    place-items: center;
+    border-radius: 15px;
+    font-size: 1.35rem;
+    background: #f2ebfb;
+    color: #6f42c1;
+  }
+
+  .summary-icon.green {
+    background: #e8f8ef;
+    color: #198754;
+  }
+
+  .summary-icon.blue {
+    background: #eaf1ff;
+    color: #2557a7;
+  }
+
+  .summary-icon.orange {
+    background: #fff4e4;
+    color: #d97706;
+  }
+
+  .summary-label {
+    margin-bottom: 4px;
+    color: #776d81;
+    font-size: .81rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+
+  .summary-value {
+    color: #21152f;
+    font-size: 1.55rem;
+    line-height: 1.1;
+    font-weight: 800;
+  }
+
+  .assistant-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    padding: 20px 22px;
+    border-radius: 18px;
+    border: 1px solid #eee8f6;
+    background: linear-gradient(135deg, #faf7ff 0%, #f6fbf8 100%);
+    box-shadow: 0 10px 28px rgba(45,28,72,.07);
+  }
+
+  .assistant-icon {
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
+    display: grid;
+    place-items: center;
+    border-radius: 15px;
+    background: #efe5fa;
+    color: #6f42c1;
+    font-size: 1.35rem;
+  }
+
+  .assistant-card h3 {
+    margin: 0 0 5px;
+    color: #281c35;
+    font-size: 1.05rem;
+    font-weight: 800;
+  }
+
+  .assistant-card p {
+    margin: 0;
+    color: #6f6578;
+    line-height: 1.55;
+  }
+
+  .assistant-message {
+    margin-top: 10px;
+    padding: 10px 13px;
+    border-radius: 11px;
+    font-size: .9rem;
+    font-weight: 700;
+  }
+
+  .assistant-message.good {
+    background: #e8f8ef;
+    color: #157347;
+  }
+
+  .assistant-message.warning {
+    background: #fff4e4;
+    color: #9a5b00;
+  }
+
+  .modern-panel {
+    overflow: hidden;
+    border-radius: 22px;
+    background: white;
+    border: 1px solid #eee8f6;
+    box-shadow: 0 12px 34px rgba(45,28,72,.08);
+  }
+
+  .modern-panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 22px 24px;
+    border-bottom: 1px solid #eee8f6;
+  }
+
+  .modern-panel-head h3 {
+    margin: 0;
+    color: #20142f;
+    font-size: 1.15rem;
+    font-weight: 800;
+  }
+
+  .modern-panel-head p {
+    margin: 5px 0 0;
+    color: #766d82;
+    font-size: .92rem;
+  }
+
+  .panel-badge {
+    display: inline-flex;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: #f2ebfb;
+    color: #6535a5;
+    font-size: .78rem;
+    font-weight: 800;
+  }
+
+  .panel-body {
+    padding: 24px;
+  }
+
+  .modern-form-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .field-group label {
+    color: #493d54;
+    font-size: .84rem;
+    font-weight: 800;
+  }
+
+  .field-group input,
+  .field-group select {
+    width: 100%;
+    min-height: 46px;
+    padding: 10px 12px;
+    border: 1px solid #dcd5e4;
+    border-radius: 12px;
+    background: white;
+    color: #292031;
+    outline: none;
+  }
+
+  .field-group input:focus,
+  .field-group select:focus {
+    border-color: #7b3fb2;
+    box-shadow: 0 0 0 3px rgba(123,63,178,.12);
+  }
+
+  .form-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+  }
+
+  .modern-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 42px;
+    padding: 10px 15px;
+    border: 0;
+    border-radius: 11px;
+    text-decoration: none;
+    cursor: pointer;
+    font-size: .84rem;
+    font-weight: 800;
+  }
+
+  .button-primary {
+    background: linear-gradient(135deg, #6f42c1, #198754);
+    color: white;
+  }
+
+  .button-secondary {
+    background: #f2edf7;
+    color: #5c356f;
+  }
+
+  .button-outline {
+    background: white;
+    color: #5c356f;
+    border: 1px solid #d8cde2;
+  }
+
+  .button-danger {
+    background: #fdebec;
+    color: #b42318;
+  }
+
+  .button-warning {
+    background: #fff4e4;
+    color: #9a5b00;
+  }
+
+  .modern-button:hover {
+    transform: translateY(-1px);
+  }
+
+  .filter-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 16px;
+  }
+
+  .table-wrap {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .modern-table {
+    width: 100%;
+    min-width: 1050px;
+    border-collapse: collapse;
+  }
+
+  .modern-table thead th {
+    padding: 14px 16px;
+    background: #f2e8fb;
+    color: #40334f;
+    text-align: left;
+    font-size: .78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .modern-table tbody td {
+    padding: 15px 16px;
+    border-bottom: 1px solid #eee8f6;
+    color: #292031;
+    vertical-align: middle;
+  }
+
+  .modern-table tbody tr:hover {
+    background: #fbf9fd;
+  }
+
+  .modern-table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .member-name {
+    color: #21152f;
+    font-weight: 800;
+  }
+
+  .member-number {
+    margin-top: 3px;
+    color: #7a7084;
+    font-size: .8rem;
+  }
+
+  .method-chip,
+  .transaction-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 9px;
+    border-radius: 999px;
+    font-size: .73rem;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  .method-chip {
+    background: #edf3ff;
+    color: #3156a4;
+  }
+
   .transaction-pill.reversed {
+    margin-top: 5px;
     background: #fef3f2;
     color: #b42318;
   }
 
   .transaction-pill.reversal {
-    background: #fff7e8;
+    margin-top: 5px;
+    background: #fff4e4;
     color: #9a5b00;
   }
 
-  .btn.danger {
-    background: #ffffff;
-    border: 1px solid #efb6b2;
+  .amount-value {
+    color: #157347;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  .contribution-actions {
+    display: flex;
+    gap: 7px;
+    flex-wrap: wrap;
+  }
+
+  .contribution-actions form {
+    margin: 0;
+  }
+
+  .table-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    padding: 7px 10px;
+    border: 0;
+    border-radius: 9px;
+    text-decoration: none;
+    cursor: pointer;
+    font-size: .75rem;
+    font-weight: 800;
+  }
+
+  .table-button.passbook {
+    background: #eaf1ff;
+    color: #3156a4;
+  }
+
+  .table-button.edit {
+    background: #f1e9fa;
+    color: #6535a5;
+  }
+
+  .table-button.reverse {
+    background: #fdebec;
     color: #b42318;
+  }
+
+  .empty-state {
+    padding: 42px 20px !important;
+    text-align: center;
+    color: #7a7183 !important;
+  }
+
+  .pagination-panel {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding: 18px 22px;
+    border-radius: 18px;
+    background: white;
+    border: 1px solid #eee8f6;
+    box-shadow: 0 10px 28px rgba(45,28,72,.07);
+  }
+
+  .pagination-actions {
+    display: flex;
+    gap: 9px;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 1050px) {
+    .savings-summary-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .modern-form-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 760px) {
+    .savings-hero {
+      padding: 23px;
+      border-radius: 18px;
+    }
+
+    .hero-button {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .savings-summary-grid,
+    .modern-form-grid,
+    .filter-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .panel-body,
+    .modern-panel-head {
+      padding: 18px;
+    }
   }
 </style>
 
-<div class="decision-hero">
-  <h2>💰 Savings Intelligence Centre</h2>
-  <p>Build wealth, monitor member savings and guide committee decisions.</p>
-</div>
+<div class="savings-page">
 
-<div class="decision-grid">
-  <div class="decision-card">
-    <span>Total Savings</span>
-    <strong>{{ total_savings|kwacha }}</strong>
-  </div>
+  <section class="savings-hero">
+    <div class="savings-hero-content">
+      <div>
+        <div class="hero-icon">💰</div>
+        <h2>Contributions Intelligence Centre</h2>
+        <p>
+        Record member contributions, monitor participation and strengthen the
+        financial position of the village banking group.
+      </p>
+      </div>
 
-  <div class="decision-card good">
-    <span>This Month</span>
-    <strong>{{ this_month_savings|kwacha }}</strong>
-  </div>
-
-  <div class="decision-card">
-    <span>Members Saved</span>
-    <strong>{{ saved_this_month }}</strong>
-  </div>
-
-  <div class="decision-card warning">
-    <span>Members Outstanding</span>
-    <strong>{{ missing_this_month }}</strong>
-  </div>
-</div>
-
-<div class="decision-assistant {% if missing_this_month == 0 %}good{% else %}warning{% endif %}">
-  <h3>Committee Assistant</h3>
-  <h2>🤖 Executive AI Advisor</h2>
-<p class="text-muted-small">
-    Savings Intelligence • Powered by {{ settings.product_name }}
-</p>
-
-  {% if missing_this_month > 0 %}
-    <div class="alert alert-warning">
-      {{ missing_this_month }} member(s) have not yet saved this month. Consider reminding them before month-end.
+      <a class="hero-button" href="#record-savings">
+        ＋ Record Contribution
+      </a>
     </div>
-  {% else %}
-    <div class="alert alert-success">
-      Excellent. All recorded members have saved this month.
+  </section>
+
+  <section class="savings-summary-grid">
+
+    <div class="summary-card">
+      <div class="summary-icon">💼</div>
+      <div>
+        <div class="summary-label">Total Contributions</div>
+        <div class="summary-value">{{ total_savings|kwacha }}</div>
+      </div>
     </div>
-  {% endif %}
-</div>
 
-<section class="panel highlight">
-  <h2>Record Savings</h2>
-  <p class="muted">Capture member savings for the selected month.</p>
+    <div class="summary-card">
+      <div class="summary-icon green">📈</div>
+      <div>
+        <div class="summary-label">This Month</div>
+        <div class="summary-value">{{ this_month_savings|kwacha }}</div>
+      </div>
+    </div>
 
-  <form method="post" class="form-grid">
-    <label>Member
-      <select name="member_id" required>
-        {% for m in members %}
-          <option value="{{ m.id }}">{{ m.member_no }} - {{ m.full_name }}</option>
-        {% endfor %}
-      </select>
-    </label>
+    <div class="summary-card">
+      <div class="summary-icon blue">👥</div>
+      <div>
+        <div class="summary-label">Members Contributed</div>
+        <div class="summary-value">{{ saved_this_month }}</div>
+      </div>
+    </div>
 
-    <label>Month
-      <input type="month" name="month" required>
-    </label>
+    <div class="summary-card">
+      <div class="summary-icon orange">⏳</div>
+      <div>
+        <div class="summary-label">Outstanding Members</div>
+        <div class="summary-value">{{ missing_this_month }}</div>
+      </div>
+    </div>
 
-    <label>Amount
-      <input type="number" step="0.01" min="0.01" name="amount" required>
-    </label>
+  </section>
 
-    <label>Method
-      <select name="method" required>
-        {% for p in payment_methods %}
-          <option value="{{ p }}">{{ p }}</option>
-        {% endfor %}
-      </select>
-    </label>
+  <section class="assistant-card">
+    <div class="assistant-icon">🤖</div>
 
-    <label>Reference
-      <input name="reference" placeholder="Receipt, mobile money or bank ref">
-    </label>
-
-    <label>Paid On
-      <input type="date" name="paid_on">
-    </label>
-
-    <button class="btn primary" type="submit">Record Savings</button>
-  </form>
-</section>
-<section class="panel">
-  <h2>Search & Filter Savings</h2>
-  <p class="muted">Find savings by member, month, payment method or reference.</p>
-
-  <form method="get" class="form-grid">
-    <label>Search
-      <input
-        type="text"
-        name="search"
-        value="{{ search or '' }}"
-        placeholder="Member name, member no. or reference">
-    </label>
-
-    <label>Month
-      <input
-        type="month"
-        name="month"
-        value="{{ month_filter or '' }}">
-    </label>
-
-    <label>Method
-      <select name="method">
-        <option value="">All methods</option>
-        {% for p in payment_methods %}
-          <option value="{{ p }}" {% if method_filter == p %}selected{% endif %}>{{ p }}</option>
-        {% endfor %}
-      </select>
-    </label>
-
-    <button class="btn primary" type="submit">Apply Filter</button>
-    <a class="btn" href="{{ url_for('contributions') }}">Clear</a>
-  </form>
-</section>
-
-<div class="panel">
-  <div class="panel-head">
     <div>
-      <h2>Savings Register</h2>
-      <p class="muted">Most recent member savings.</p>
+      <h3>Executive Contributions Advisor</h3>
+      <p>
+        Contributions intelligence powered by
+        {{ settings.product_name if settings and settings.product_name else 'SL Village Banking Pro' }}.
+      </p>
+
+      {% if missing_this_month > 0 %}
+        <div class="assistant-message warning">
+          ⚠ {{ missing_this_month }} member(s) have not yet contributed this month.
+          Consider issuing reminders before month-end.
+        </div>
+      {% else %}
+        <div class="assistant-message good">
+          ✓ Excellent. All recorded members have saved this month.
+        </div>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="modern-panel" id="record-savings">
+
+    <div class="modern-panel-head">
+      <div>
+        <h3>Record Member Contribution</h3>
+        <p>Capture a member's contributions transaction for the selected month.</p>
+      </div>
+
+      <span class="panel-badge">New Transaction</span>
     </div>
 
-    <span class="badge">{{ contributions|length }} Records</span>
-  </div>
+    <div class="panel-body">
+      <form method="post">
 
-  <table>
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th>Member No.</th>
-        <th>Member</th>
-        <th>Month</th>
-        <th>Method</th>
-        <th>Reference</th>
-        <th class="text-end">Amount</th>
-        <th>Action</th>
-      </tr>
-    </thead>
+        <div class="modern-form-grid">
 
-    <tbody>
-      {% for c in contributions %}
-      <tr>
-        <td>{{ c.paid_on }}</td>
-        <td>{{ c.member.member_no }}</td>
-        <td>{{ c.member.full_name }}</td>
-        <td>{{ c.month }}</td>
-        <td>{{ c.method }}</td>
-        <td>
-          {{ c.reference or '-' }}
-          {% if c.source_type == 'Reversal' %}
-            <br><span class="transaction-pill reversal">Reversal</span>
-          {% elif c.id in reversed_contribution_ids %}
-            <br><span class="transaction-pill reversed">Reversed</span>
-          {% endif %}
-        </td>
-        <td class="text-end">
-          <strong>{{ c.amount|kwacha }}</strong>
-        </td>
-        <td>
-          <div class="contribution-actions">
-            <a class="btn" href="{{ url_for('contribution_passbook', member_id=c.member.id) }}">
-              View Passbook
-            </a>
+          <div class="field-group">
+            <label for="member_id">Member</label>
+            <select id="member_id" name="member_id" required>
+              {% for m in members %}
+                <option value="{{ m.id }}">
+                  {{ m.member_no }} - {{ m.full_name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
 
-            {% if c.source_type != 'Reversal' and c.id not in reversed_contribution_ids %}
-              <a class="btn"
-                 href="{{ url_for('contribution_edit', contribution_id=c.id) }}">
-                Edit
-              </a>
+          <div class="field-group">
+            <label for="month">Contribution Month</label>
+            <input id="month" type="month" name="month" required>
+          </div>
 
-              <form method="post"
+          <div class="field-group">
+            <label for="amount">Amount</label>
+            <input
+              id="amount"
+              type="number"
+              step="0.01"
+              min="0.01"
+              name="amount"
+              placeholder="0.00"
+              required>
+          </div>
+
+          <div class="field-group">
+            <label for="method">Payment Method</label>
+            <select id="method" name="method" required>
+              {% for p in payment_methods %}
+                <option value="{{ p }}">{{ p }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="field-group">
+            <label for="reference">Reference</label>
+            <input
+              id="reference"
+              name="reference"
+              placeholder="Receipt, bank or mobile money reference">
+          </div>
+
+          <div class="field-group">
+            <label for="paid_on">Date Paid</label>
+            <input id="paid_on" type="date" name="paid_on">
+          </div>
+
+        </div>
+
+        <div class="form-actions">
+          <button class="modern-button button-primary" type="submit">
+            💾 Record Contribution
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </section>
+
+  <section class="modern-panel">
+
+    <div class="modern-panel-head">
+      <div>
+        <h3>Search & Filter Contributions</h3>
+        <p>Find transactions by member, month, payment method or reference.</p>
+      </div>
+
+      {% if search or month_filter or method_filter %}
+        <span class="panel-badge">Filter Active</span>
+      {% endif %}
+    </div>
+
+    <div class="panel-body">
+      <form method="get">
+
+        <div class="filter-grid">
+
+          <div class="field-group">
+            <label for="search">Search</label>
+            <input
+              id="search"
+              type="text"
+              name="search"
+              value="{{ search or '' }}"
+              placeholder="Member name, number or reference">
+          </div>
+
+          <div class="field-group">
+            <label for="month_filter">Month</label>
+            <input
+              id="month_filter"
+              type="month"
+              name="month"
+              value="{{ month_filter or '' }}">
+          </div>
+
+          <div class="field-group">
+            <label for="method_filter">Payment Method</label>
+            <select id="method_filter" name="method">
+              <option value="">All methods</option>
+
+              {% for p in payment_methods %}
+                <option
+                  value="{{ p }}"
+                  {% if method_filter == p %}selected{% endif %}>
+                  {{ p }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+        </div>
+
+        <div class="form-actions">
+          <button class="modern-button button-primary" type="submit">
+            🔍 Apply Filter
+          </button>
+
+          <a class="modern-button button-secondary"
+             href="{{ url_for('contributions') }}">
+            ✕ Clear
+          </a>
+        </div>
+
+      </form>
+    </div>
+  </section>
+
+  <section class="modern-panel">
+
+    <div class="modern-panel-head">
+      <div>
+        <h3>Contributions Register</h3>
+        <p>Review recent member contributions and transaction status.</p>
+      </div>
+
+      <span class="panel-badge">
+        {{ contributions|length }} record{% if contributions|length != 1 %}s{% endif %}
+      </span>
+    </div>
+
+    <div class="table-wrap">
+      <table class="modern-table">
+
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Member</th>
+            <th>Month</th>
+            <th>Method</th>
+            <th>Reference</th>
+            <th>Amount</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for c in contributions %}
+          <tr>
+
+            <td>{{ c.paid_on }}</td>
+
+            <td>
+              <div class="member-name">{{ c.member.full_name }}</div>
+              <div class="member-number">{{ c.member.member_no }}</div>
+            </td>
+
+            <td>{{ c.month }}</td>
+
+            <td>
+              <span class="method-chip">{{ c.method }}</span>
+            </td>
+
+            <td>
+              {{ c.reference or '-' }}
+
+              {% if c.source_type == 'Reversal' %}
+                <br>
+                <span class="transaction-pill reversal">Reversal Entry</span>
+
+              {% elif c.id in reversed_contribution_ids %}
+                <br>
+                <span class="transaction-pill reversed">Reversed</span>
+              {% endif %}
+            </td>
+
+            <td>
+              <span class="amount-value">{{ c.amount|kwacha }}</span>
+            </td>
+
+            <td>
+              <div class="contribution-actions">
+
+                <a
+                  class="table-button passbook"
+                  href="{{ url_for('contribution_passbook', member_id=c.member.id) }}">
+                  📘 Passbook
+                </a>
+
+                {% if c.source_type != 'Reversal'
+                      and c.id not in reversed_contribution_ids %}
+
+                  <a
+                    class="table-button edit"
+                    href="{{ url_for('contribution_edit', contribution_id=c.id) }}">
+                    ✏ Edit
+                  </a>
+
+                  <form
+                    method="post"
                     action="{{ url_for('contribution_reverse', contribution_id=c.id) }}"
                     onsubmit="
                       const reason = prompt('Enter the reason for reversing this contribution:');
@@ -219,34 +837,79 @@
                       this.querySelector('[name=reason]').value = reason.trim();
                       return confirm('Reverse this contribution? The original entry will remain in the audit trail.');
                     ">
-                <input type="hidden" name="reason" value="">
-                <button class="btn danger" type="submit">Reverse</button>
-              </form>
-            {% endif %}
-          </div>
-        </td>
-      </tr>
-      {% else %}
-      <tr>
-        <td colspan="8">No savings recorded yet.</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
 
-{% if pagination %}
-<div class="actions">
-  {% if pagination.has_prev %}
-    <a class="btn" href="{{ url_for('contributions', page=pagination.prev_num, search=search, month=month_filter, method=method_filter) }}">← Previous</a>
+                    <input type="hidden" name="reason" value="">
+
+                    <button class="table-button reverse" type="submit">
+                      ↩ Reverse
+                    </button>
+                  </form>
+
+                {% endif %}
+              </div>
+            </td>
+
+          </tr>
+
+          {% else %}
+
+          <tr>
+            <td colspan="7" class="empty-state">
+              No contributions transactions were found.
+            </td>
+          </tr>
+
+          {% endfor %}
+        </tbody>
+
+      </table>
+    </div>
+  </section>
+
+  {% if pagination %}
+  <section class="pagination-panel">
+
+    <div>
+      <strong>Page {{ pagination.page }}</strong>
+      <span style="color:#776d81;">
+        of {{ pagination.pages }}
+      </span>
+    </div>
+
+    <div class="pagination-actions">
+
+      {% if pagination.has_prev %}
+        <a
+          class="modern-button button-outline"
+          href="{{ url_for(
+            'contributions',
+            page=pagination.prev_num,
+            search=search,
+            month=month_filter,
+            method=method_filter
+          ) }}">
+          ← Previous
+        </a>
+      {% endif %}
+
+      {% if pagination.has_next %}
+        <a
+          class="modern-button button-outline"
+          href="{{ url_for(
+            'contributions',
+            page=pagination.next_num,
+            search=search,
+            month=month_filter,
+            method=method_filter
+          ) }}">
+          Next →
+        </a>
+      {% endif %}
+
+    </div>
+  </section>
   {% endif %}
 
-  <span class="badge">Page {{ pagination.page }} of {{ pagination.pages }}</span>
-
-  {% if pagination.has_next %}
-    <a class="btn" href="{{ url_for('contributions', page=pagination.next_num, search=search, month=month_filter, method=method_filter) }}">Next →</a>
-  {% endif %}
 </div>
-{% endif %}
 
 {% endblock %}

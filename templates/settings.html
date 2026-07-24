@@ -433,6 +433,74 @@ Customize organisation identity, system colours and operating defaults
                     </div>
                 </div>
 
+
+                <!-- SMS & WhatsApp Settings -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">📱 SMS & WhatsApp Settings</h5>
+                </div>
+
+                <div class="card-body">
+
+                    <div class="row">
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">SMS Provider</label>
+                            <select name="sms_provider" class="form-control">
+                                <option value="">-- Select Provider --</option>
+                                <option value="Africa's Talking"
+                                    {% if setting.sms_provider=="Africa's Talking" %}selected{% endif %}>
+                                    Africa's Talking
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">SMS Username</label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                name="sms_username"
+                                value="{{ setting.sms_username or '' }}">
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">SMS Sender ID</label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                name="sms_sender_id"
+                                value="{{ setting.sms_sender_id or '' }}">
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">SMS API Key</label>
+                            <input
+                                type="password"
+                                class="form-control"
+                                name="sms_api_key"
+                                value="{{ setting.sms_api_key or '' }}">
+                        </div>
+
+                    </div>
+
+                    <div class="form-check form-switch mt-2">
+
+                        <input
+                            class="form-check-input"
+                            type="checkbox"
+                            name="whatsapp_enabled"
+                            {% if setting.whatsapp_enabled %}checked{% endif %}>
+
+                        <label class="form-check-label">
+                            Enable WhatsApp Notifications
+                        </label>
+
+                    </div>
+
+                </div>
+            </div>
+
                 <!-- Product Identity -->
                 <div class="card settings-card">
 
@@ -1187,12 +1255,10 @@ Customize organisation identity, system colours and operating defaults
                                     SMS Provider
                                 </label>
 
-                                <input
-                                    type="text"
-                                    name="sms_provider"
-                                    class="form-control"
-                                    value="{{ setting.sms_provider or 'Manual' }}"
-                                >
+                                <select name="sms_provider" class="form-select">
+                                    <option value="Manual" {% if (setting.sms_provider or 'Manual') == 'Manual' %}selected{% endif %}>Manual / Not configured</option>
+                                    <option value="Africa's Talking" {% if setting.sms_provider in ["Africa's Talking", 'Africas Talking', 'AfricaTalking'] %}selected{% endif %}>Africa's Talking</option>
+                                </select>
                             </div>
 
                             <div class="col-md-4">
@@ -1230,7 +1296,9 @@ Customize organisation identity, system colours and operating defaults
                                     type="password"
                                     name="sms_api_key"
                                     class="form-control"
-                                    value="{{ setting.sms_api_key or '' }}"
+                                    value=""
+                                    placeholder="{% if setting.sms_api_key %}Saved — leave blank to keep current key{% else %}Enter Africa's Talking API key{% endif %}"
+                                    autocomplete="new-password"
                                 >
                             </div>
 
