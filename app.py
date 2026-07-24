@@ -1473,10 +1473,18 @@ class SystemSetting(db.Model):
         default=True
     )
 
+    setup_completed = db.Column(
+            db.Boolean,
+            nullable=False,
+            default=False
+    )
+
     created_at = db.Column(
         db.DateTime,
         default=datetime.utcnow
     )
+
+    
 
 class CashBookEntry(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -3044,7 +3052,10 @@ def ensure_settings_columns():
 
         # Audit fields
         'created_at': 'TIMESTAMP',
-        'updated_on': 'TIMESTAMP'
+        'updated_on': 'TIMESTAMP',
+
+        # First-time setup
+        'setup_completed': 'BOOLEAN DEFAULT FALSE',
     }
 
     inspector = inspect(db.engine)
@@ -4008,7 +4019,7 @@ def settings():
 def first_time_setup():
     settings = SystemSetting.query.first()
 
-    if settings and settings.setup_completed:
+    if settings and getattr(settings, 'setup_completed', False):
         flash('Initial system setup has already been completed.', 'info')
         return redirect(url_for('dashboard'))
 

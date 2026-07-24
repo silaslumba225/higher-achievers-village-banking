@@ -132,12 +132,12 @@ Customize organisation identity, system colours and operating defaults
     }
 
     .preview-shell {
-        background: var(--preview-background, #f4f7fb);
-        border-radius: 15px;
-        overflow: hidden;
-        border: 1px solid #dee2e6;
-    }
-
+    background: var(--preview-background, #f4f7fb);
+    border-radius: 15px;
+    overflow: hidden;
+    border: 1px solid #dee2e6;
+    min-height: 340px;
+}
     .preview-navbar {
         background: var(--preview-navbar, #ffffff);
         padding: 12px 15px;
@@ -150,12 +150,27 @@ Customize organisation identity, system colours and operating defaults
         min-height: 280px;
     }
 
-    .preview-sidebar {
-        width: 34%;
-        background: var(--preview-sidebar, #17324d);
-        color: var(--preview-sidebar-text, #ffffff);
-        padding: 17px 12px;
-    }
+   .preview-sidebar {
+    width: 38%;
+    flex: 0 0 38%;
+    background: var(--preview-sidebar, #17324d);
+    color: var(--preview-sidebar-text, #ffffff);
+    padding: 17px 12px;
+}
+.preview-sidebar > div {
+    white-space: nowrap;
+    font-size: 0.78rem;
+    padding: 7px 10px;
+    margin-bottom: 6px;
+    border-radius: 6px;
+    cursor: default;
+    transition: background .2s ease, transform .2s ease;
+}
+
+.preview-sidebar > div:hover {
+    background: rgba(255,255,255,.12);
+    transform: translateX(2px);
+}
 
     .preview-sidebar div {
         padding: 8px 10px;
@@ -169,9 +184,10 @@ Customize organisation identity, system colours and operating defaults
     }
 
     .preview-content {
-        width: 66%;
-        padding: 16px;
-    }
+    width: 62%;
+    flex: 0 0 62%;
+    padding: 16px;
+}
 
     .preview-mini-card {
         background: var(--preview-card, #ffffff);
