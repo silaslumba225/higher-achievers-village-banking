@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block page_title %}Members Workspace{% endblock %}
-{% block subtitle %}Who belongs to our village banking group?{% endblock %}
+{% block subtitle %}Who belongs to our village banking band?{% endblock %}
 
 {% block content %}
 
@@ -96,7 +96,7 @@
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
     <div>
       <h2 class="mb-2">Members Workspace</h2>
-      <p class="mb-0">Register members, view their details, and keep your group records organised.</p>
+      <p class="mb-0">Register members, view their details, and keep your band records organised.</p>
     </div>
 
     <a class="btn btn-light quick-btn" href="{{ url_for('member_new') }}">
@@ -112,7 +112,7 @@
         <div class="icon"><i class="fa-solid fa-users"></i></div>
         <span>Total Members</span>
         <strong>{{ total_members|default(members|length) }}</strong>
-        <small>Everyone registered in the group</small>
+        <small>Everyone registered in the band</small>
       </div>
     </div>
   </div>
@@ -149,7 +149,7 @@
       </h3>
 
       <p class="text-muted mb-0">
-        Search by member number, name, phone, NRC/ID, group,
+        Search by member number, name, phone, NRC/ID, band,
         member type or committee position.
       </p>
     </div>
@@ -191,7 +191,7 @@
         class="form-control form-control-lg"
         name="q"
         value="{{ q }}"
-        placeholder="Search member no, name, phone, NRC/ID, group, type or position"
+        placeholder="Search member no, name, phone, NRC/ID, band, type or position"
         autofocus
       >
     </div>
@@ -270,7 +270,7 @@
           <th>Member</th>
           <th>Phone</th>
           <th>NRC/ID</th>
-          <th>Group</th>
+          <th>Band</th>
           <th>Type</th>
           <th>Position</th>
           <th>Status</th>

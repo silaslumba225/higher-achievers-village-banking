@@ -2225,7 +2225,7 @@ def is_financial_year_locked(transaction_date):
 
 def ensure_group_profile_columns():
     """
-    Add Village Banking Group profile columns to SystemSetting
+    Add Village Banking Band profile columns to SystemSetting
     without affecting existing data.
     """
 

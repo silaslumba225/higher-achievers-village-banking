@@ -378,26 +378,30 @@
           </div>
 
           <div class="member-form-field">
-            <label for="group_name">
-              Group
-            </label>
+            <label for="group_name" class="form-label">
+            Band
+        </label>
 
-            <input
-              type="text"
-              id="group_name"
-              name="group_name"
-              value="{{
-                form_data.get(
-                  'group_name',
-                  member.group_name
-                  if member and member.group_name
-                  else ''
-                )
-              }}"
-              maxlength="80"
-              placeholder="Example: Group 1"
-            >
-          </div>
+        <select
+            id="group_name"
+            name="group_name"
+            class="form-select"
+        >
+            <option value="">Select Band</option>
+
+            {% for band in ['Diamond', 'Gold', 'Platinum', 'Silver'] %}
+                <option
+                    value="{{ band }}"
+                    {% if member is defined
+                          and member
+                          and member.group_name == band %}
+                        selected
+                    {% endif %}
+                >
+                    {{ band }}
+                </option>
+            {% endfor %}
+        </select>
 
           <div class="member-form-field">
             <label for="status">
