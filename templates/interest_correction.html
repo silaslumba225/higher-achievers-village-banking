@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block page_title %}Controlled Interest Correction{% endblock %}
+{% block subtitle %}Backup-gated correction of historical interest{% endblock %}
+{% block content %}
+<div class="actions"><a class="btn" href="{{ url_for('month_end') }}">← Back to Month-End</a></div>
+<section class="panel"><h2>Correction Preview</h2>
+<p>Members, contributions, loans, repayments, journals, fines, distributions and welfare records are not removed.</p>
+<table><tbody>
+<tr><th>Months to reopen</th><td>{{ preview.months|join(', ') or 'None' }}</td></tr>
+<tr><th>Savings interest</th><td>{{ preview.savings_count }} entries — {{ preview.savings_total|kwacha }}</td></tr>
+<tr><th>Monthly loan interest</th><td>{{ preview.loan_count }} entries — {{ preview.loan_total|kwacha }}</td></tr>
+<tr><th>Legacy upfront charges</th><td>{{ preview.legacy_loan_count }} loans — {{ preview.legacy_interest_total|kwacha }}</td></tr>
+</tbody></table></section>
+<section class="panel"><h2>Authorize Correction</h2>
+<form method="post" class="form-grid single">
+<label><input type="checkbox" name="backup_confirmed" value="yes" required> I downloaded the Render PostgreSQL backup.</label>
+<label>Type CORRECT INTEREST<input name="confirmation" required autocomplete="off"></label>
+<button class="btn primary" type="submit" onclick="return confirm('Apply the previewed correction?');">Apply Controlled Correction</button>
+</form></section>
+{% endblock %}

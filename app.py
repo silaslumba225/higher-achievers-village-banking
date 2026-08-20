@@ -15173,9 +15173,7 @@ def member_statement_pdf(member_id):
         .scalar()
     )
 
-    adjusted_loan_balance = money(
-        total_balance + total_loan_interest_charged
-    )
+    adjusted_loan_balance = total_balance
 
     member_equity = money(
         gross_savings_value
@@ -15203,7 +15201,7 @@ def member_statement_pdf(member_id):
     ['Loan Interest Charged', kwacha(total_loan_interest_charged)],
     ['Loan Repayments', kwacha(total_repaid)],
     ['Outstanding Loan Balance', kwacha(total_balance)],
-    ['Adjusted Loan Balance', kwacha(adjusted_loan_balance)],
+    ['Verified Outstanding Loan Balance', kwacha(adjusted_loan_balance)],
 
     ['Distributions Received', kwacha(total_distrib)],
 
@@ -15235,7 +15233,7 @@ def member_statement_pdf(member_id):
     ['Gross Savings Value', kwacha(gross_savings_value)],
     ['+ Distributions Received', kwacha(total_distrib)],
     ['+ Welfare Support Paid', kwacha(total_welfare_paid)],
-    ['- Adjusted Loan Balance', f'({kwacha(adjusted_loan_balance)})'],
+    ['- Outstanding Loan Balance', f'({kwacha(adjusted_loan_balance)})'],
     ['- Outstanding Fines', f'({kwacha(total_fine_balance)})'],
     [equity_label, kwacha(member_equity)],
 ]
@@ -17261,6 +17259,47 @@ def month_end():
         reversal_logs=reversal_logs,
         reversal_pagination=reversal_pagination
     )
+
+
+@app.route('/administration/interest-correction', methods=['GET', 'POST'])
+@login_required
+@role_required('backups')
+def interest_correction():
+    savings_entries = SavingsInterest.query.all()
+    loan_entries = LoanInterest.query.all()
+    processes = MonthEndProcess.query.order_by(MonthEndProcess.month).all()
+    legacy_loans = Loan.query.filter(Loan.opening_interest > 0).all()
+    preview = {
+        'savings_count': len(savings_entries),
+        'savings_total': money(sum((x.interest_amount for x in savings_entries), Decimal('0.00'))),
+        'loan_count': len(loan_entries),
+        'loan_total': money(sum((x.interest_amount for x in loan_entries), Decimal('0.00'))),
+        'months': [x.month for x in processes],
+        'legacy_loan_count': len(legacy_loans),
+        'legacy_interest_total': money(sum((x.opening_interest for x in legacy_loans), Decimal('0.00'))),
+    }
+    if request.method == 'POST':
+        confirmed = request.form.get('backup_confirmed') == 'yes'
+        phrase = request.form.get('confirmation', '').strip()
+        if not confirmed or phrase != 'CORRECT INTEREST':
+            flash('Confirm the external backup and type CORRECT INTEREST.', 'error')
+            return render_template('interest_correction.html', preview=preview)
+        try:
+            SavingsInterest.query.delete(synchronize_session=False)
+            LoanInterest.query.delete(synchronize_session=False)
+            MonthEndProcess.query.delete(synchronize_session=False)
+            Loan.query.filter(Loan.opening_interest > 0).update(
+                {Loan.opening_interest: Decimal('0.00')}, synchronize_session=False
+            )
+            db.session.commit()
+            log_audit('CONTROLLED_INTEREST_CORRECTION', 'Accounting', None,
+                      'External PostgreSQL backup confirmed; historical interest runs and legacy upfront charges cleared for chronological reprocessing.')
+            flash('Historical interest cleared. Reprocess the listed months oldest to newest.', 'success')
+            return redirect(url_for('month_end'))
+        except Exception as exc:
+            db.session.rollback()
+            flash(f'Correction failed; no changes were committed: {exc}', 'error')
+    return render_template('interest_correction.html', preview=preview)
 
 
 @app.route('/month-end/<month>')
