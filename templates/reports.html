@@ -43,7 +43,7 @@
   </div>
 
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 no-print">
-    <div class="text-muted">Reporting month: <strong class="text-dark">{{ month }}</strong> · Required contribution: <strong class="text-dark">{{ required_contribution|kwacha }}</strong></div>
+    <div class="text-muted">Reporting month: <strong class="text-dark">{{ month }}</strong> · Requirements are calculated from each member's annual band.</div>
     <div class="d-flex gap-2">
       <a class="btn btn-outline-danger" target="_blank" href="{{ url_for('reports_compliance_pdf', month=month) }}"><i class="fas fa-file-pdf me-1"></i>Compliance PDF</a>
       <a class="btn btn-outline-success" href="{{ url_for('reports_contributions_csv', month=month) }}"><i class="fas fa-file-csv me-1"></i>Contributions CSV</a>
@@ -69,9 +69,9 @@
   </div></div>
 
   <div class="row g-4 mb-4">
-    <div class="col-xl-7"><div class="table-card bg-white h-100"><div class="p-4 pb-2"><h5 class="fw-bold mb-1">Contribution Arrears</h5><p class="text-muted">Members whose net monthly contribution is below {{ required_contribution|kwacha }}.</p></div><div class="table-responsive"><table class="table align-middle"><thead><tr><th>Member</th><th>Net Paid</th><th>Shortfall</th><th>Status</th></tr></thead><tbody>
-      {% for row in arrears %}<tr><td><strong>{{ row.member.full_name }}</strong><br><small class="text-muted">{{ row.member.member_no }} · {{ row.member.phone or '-' }}</small></td><td>{{ row.net_paid|kwacha }}</td><td class="text-danger fw-semibold">{{ row.shortfall|kwacha }}</td><td>{% if row.status == 'Partially Paid' %}<span class="status-pill status-partial">Partially Paid</span>{% else %}<span class="status-pill status-unpaid">Not Paid</span>{% endif %}</td></tr>
-      {% else %}<tr><td colspan="4" class="text-center text-muted py-4">All active members have met the monthly contribution requirement.</td></tr>{% endfor %}
+    <div class="col-xl-7"><div class="table-card bg-white h-100"><div class="p-4 pb-2"><h5 class="fw-bold mb-1">Contribution Arrears</h5><p class="text-muted">Members whose monthly contribution is below their band-based target.</p></div><div class="table-responsive"><table class="table align-middle"><thead><tr><th>Member</th><th>Required</th><th>Net Paid</th><th>Shortfall</th><th>Status</th></tr></thead><tbody>
+      {% for row in arrears %}<tr><td><strong>{{ row.member.full_name }}</strong><br><small class="text-muted">{{ row.member.member_no }} · {{ row.member.group_name or 'No band' }}</small></td><td>{{ row.required|kwacha }}</td><td>{{ row.net_paid|kwacha }}</td><td class="text-danger fw-semibold">{{ row.shortfall|kwacha }}</td><td>{% if row.status == 'Partially Paid' %}<span class="status-pill status-partial">Partially Paid</span>{% else %}<span class="status-pill status-unpaid">Not Paid</span>{% endif %}</td></tr>
+      {% else %}<tr><td colspan="5" class="text-center text-muted py-4">All active members have met the monthly contribution requirement.</td></tr>{% endfor %}
     </tbody></table></div>
     {% if arrears_pages > 1 %}<div class="p-3 d-flex justify-content-between align-items-center no-print"><span class="text-muted">Page {{ arrears_page }} of {{ arrears_pages }} · {{ arrears_total }} members</span><div class="btn-group">{% if arrears_page > 1 %}<a class="btn btn-sm btn-outline-primary" href="{{ url_for('reports', month=month, page=arrears_page-1) }}">Previous</a>{% endif %}{% if arrears_page < arrears_pages %}<a class="btn btn-sm btn-outline-primary" href="{{ url_for('reports', month=month, page=arrears_page+1) }}">Next</a>{% endif %}</div></div>{% endif %}
     </div></div>

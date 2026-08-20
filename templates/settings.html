@@ -910,9 +910,11 @@ Customize organisation identity, system colours and operating defaults
                                     step="0.01"
                                     name="contribution_amount"
                                     class="form-control"
-                                    value="{{ setting.contribution_amount or 0 }}"
+                                    value="0"
+                                    readonly
                                     required
                                 >
+                                <div class="form-text">Calculated automatically from each member's annual contribution band.</div>
                             </div>
 
                             <div class="col-md-4">
