@@ -114,6 +114,12 @@ ANNUAL_CONTRIBUTION_BANDS = (
     ('Diamond', Decimal('40001.00'), Decimal('80000.00')),
     ('Platinum', Decimal('80001.00'), Decimal('120000.00')),
 )
+MONTHLY_CONTRIBUTION_TARGETS = {
+    'Silver': Decimal('833.33'),
+    'Gold': Decimal('1666.75'),
+    'Diamond': Decimal('3333.42'),
+    'Platinum': Decimal('6666.75'),
+}
 PAYMENT_METHODS = ['Bank Transfer', 'Mobile Money', 'Cash']
 ABSENCE_FINE_AMOUNT = Decimal('50.00')
 LATE_ATTENDANCE_FINE_AMOUNT = Decimal('20.00')
@@ -3647,6 +3653,10 @@ def annual_contribution_band(amount):
             return name
     return None
 
+
+def monthly_contribution_target(band):
+    return money(MONTHLY_CONTRIBUTION_TARGETS.get(band, Decimal('0.00')))
+
 @app.route('/system-settings', methods=['GET', 'POST'])
 @login_required
 @role_required('settings')
@@ -3898,9 +3908,8 @@ def settings():
         )
 
         # Financial settings
-        setting.contribution_amount = money(
-            request.form.get('contribution_amount') or 0
-        )
+        # Monthly compliance is determined by each member's annual band.
+        setting.contribution_amount = Decimal('0.00')
 
         setting.savings_interest_rate = Decimal('0.00')
         setting.loan_interest_rate = LOAN_MONTHLY_INTEREST_PERCENT
@@ -10361,9 +10370,6 @@ def export_attendance_csv():
 def reports():
     month = request.args.get('month') or date.today().strftime('%Y-%m')
     settings = get_settings()
-    required_contribution = money(
-        settings.contribution_amount or 0
-    )
 
     active_members = Member.query.filter(
         db.or_(
@@ -10414,6 +10420,7 @@ def reports():
     total_shortfall = Decimal('0.00')
 
     for member in active_members:
+        required_contribution = monthly_contribution_target(member.group_name)
         net_paid = money(
             contributions_by_member.get(
                 member.id,
@@ -10460,9 +10467,9 @@ def reports():
             arrears_all.append(row)
 
     active_members_count = len(active_members)
-    total_expected = money(
-        required_contribution * active_members_count
-    )
+    total_expected = money(sum(
+        (row['required'] for row in contribution_status), Decimal('0.00')
+    ))
     total_collected = money(total_collected)
     total_shortfall = money(total_shortfall)
 
@@ -10522,7 +10529,7 @@ def reports():
     return render_template(
         'reports.html',
         month=month,
-        required_contribution=required_contribution,
+        monthly_targets=MONTHLY_CONTRIBUTION_TARGETS,
         active_members_count=active_members_count,
         total_expected=total_expected,
         total_collected=total_collected,
@@ -10548,7 +10555,6 @@ def reports():
 
 def build_monthly_compliance_export(month):
     settings = get_settings()
-    required = money(settings.contribution_amount or 0)
 
     members = Member.query.filter(
         db.or_(
@@ -10585,6 +10591,7 @@ def build_monthly_compliance_export(month):
     unpaid = 0
 
     for member in members:
+        required = monthly_contribution_target(member.group_name)
         net_paid = money(totals.get(member.id, Decimal('0.00')))
         shortfall = money(max(required - net_paid, Decimal('0.00')))
 
@@ -10610,7 +10617,7 @@ def build_monthly_compliance_export(month):
             'last_paid_on': last_dates.get(member.id),
         })
 
-    expected = money(required * len(members))
+    expected = money(sum((row['required'] for row in rows), Decimal('0.00')))
     collected = money(sum(
         (max(row['net_paid'], Decimal('0.00')) for row in rows),
         Decimal('0.00')
@@ -10625,7 +10632,7 @@ def build_monthly_compliance_export(month):
 
     return {
         'settings': settings,
-        'required': required,
+        'required': None,
         'members': members,
         'entries': entries,
         'rows': rows,
