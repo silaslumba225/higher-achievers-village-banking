@@ -25,6 +25,23 @@
 </section>
 
 <section class="panel">
+  <h2>Filter Cash Book</h2>
+  <form method="get" class="form-grid">
+    <label>From date
+      <input type="date" name="start" value="{{ start }}">
+    </label>
+    <label>To date
+      <input type="date" name="end" value="{{ end }}">
+    </label>
+    <button class="btn primary" type="submit">Apply Date Range</button>
+    <a class="btn" href="{{ url_for('cash_book') }}">Clear Filter</a>
+  </form>
+  {% if start or end %}
+    <p>Totals and entries below are limited to {{ start or 'the beginning' }} through {{ end or 'today' }}.</p>
+  {% endif %}
+</section>
+
+<section class="panel">
   <h2>New Cash Book Entry</h2>
 
   <form method="post" class="form-grid">

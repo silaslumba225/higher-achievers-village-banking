@@ -304,7 +304,7 @@
             {% endif %}
 
             <small class="field-help">
-              The suggested number may be changed if necessary.
+              Required format: HA001, HA002, HA003 and so on.
             </small>
           </div>
 
@@ -389,7 +389,7 @@
         >
             <option value="">Select Band</option>
 
-            {% for band in ['Diamond', 'Gold', 'Platinum', 'Silver'] %}
+            {% for band, minimum, maximum in contribution_bands %}
                 <option
                     value="{{ band }}"
                     {% if member is defined
@@ -398,7 +398,7 @@
                         selected
                     {% endif %}
                 >
-                    {{ band }}
+                    {{ band }} — K{{ '{:,.0f}'.format(minimum) }} to K{{ '{:,.0f}'.format(maximum) }} annually
                 </option>
             {% endfor %}
         </select>

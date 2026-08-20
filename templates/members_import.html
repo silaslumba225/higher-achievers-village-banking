@@ -1,20 +1,24 @@
 {% extends 'base.html' %}
 {% block page_title %}Import Members{% endblock %}
-{% block subtitle %}Bulk upload members using a CSV file{% endblock %}
+{% block subtitle %}Controlled CSV/XLSX upload with confirmation and automatic backup{% endblock %}
 
 {% block content %}
 <section class="panel">
   <div class="panel-head">
     <div>
       <h2>Bulk Member Import</h2>
-      <p>Upload a CSV file containing member records.</p>
+      <p>Upload member records. A database backup is created before any rows are changed.</p>
     </div>
     <a class="btn" href="{{ url_for('members') }}">Back to Members</a>
   </div>
 
   <form method="post" enctype="multipart/form-data" class="form-grid single">
-    <label>CSV File
-      <input type="file" name="file" accept=".csv" required>
+    <label>CSV or Excel File
+      <input type="file" name="file" accept=".csv,.xlsx" required>
+    </label>
+    <label>Confirmation
+      <input name="confirm_import" required autocomplete="off" placeholder="Type IMPORT MEMBERS">
+      <small>Existing member numbers may be updated; no members or transactions are deleted.</small>
     </label>
     <button type="submit" class="primary">Import Members</button>
   </form>
@@ -28,8 +32,10 @@
 
   <p>Example:</p>
 
-  <pre>M001,John Banda,+260971234567,123456/10/1,Gold,Active
-M002,Mary Phiri,+260961234567,223456/10/1,Gold,Active</pre>
+  <pre>HA001,John Banda,+260971234567,123456/10/1,Gold,Active
+HA002,Mary Phiri,+260961234567,223456/10/1,Gold,Active</pre>
+
+  <p><strong>Removal control:</strong> member and transaction deletion remains disabled. Use Inactive status for members. Any future removal must require explicit confirmation and a successful backup.</p>
 </section>
 
 {% if results %}

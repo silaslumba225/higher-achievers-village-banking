@@ -9,7 +9,7 @@
 </div>
 <section class="panel">
   <h2>Reverse Month-End</h2>
-  <p>This will remove the interest entries for this month and allow processing again.</p>
+  <p>This creates a safety backup, then removes this month's interest entries and allows processing again.</p>
 
   <form method="post" action="{{ url_for('month_end_reverse', month=process.month) }}">
     <label>Reason for reversal
@@ -41,7 +41,7 @@
 </section>
 
 <section class="panel">
-  <h2>Savings Interest Details</h2>
+  <h2>Savings Interest Details (Disabled)</h2>
 
   <table>
     <thead>
@@ -64,7 +64,7 @@
       </tr>
       {% else %}
       <tr>
-        <td colspan="5">No savings interest entries found.</td>
+        <td colspan="5">No savings interest is charged under Higher Achievers rules.</td>
       </tr>
       {% endfor %}
     </tbody>

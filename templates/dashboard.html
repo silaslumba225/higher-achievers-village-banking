@@ -6,7 +6,7 @@
   <div class="kpi"><span>Total Members</span><strong>{{ members }}</strong><em>{{ active_members }} active</em></div>
   <div class="kpi"><span>Total Contributions</span><strong>{{ contribution_total|kwacha }}</strong><em>This month: {{ month_contribution_total|kwacha }}</em></div>
   <div class="kpi"><span>Active Loans</span><strong>{{ open_loans|length }}</strong><em>Outstanding {{ loan_balance|kwacha }}</em></div>
-  <div class="kpi"><span>Interest Earned</span><strong>{{ interest_earned|kwacha }}</strong><em>Flat {{ interest_percent }}% lending rate</em></div>
+  <div class="kpi"><span>Interest Earned</span><strong>{{ interest_earned|kwacha }}</strong><em>{{ interest_percent }}% monthly lending rate</em></div>
   <div class="kpi"><span>Distributions</span><strong>{{ distribution_total|kwacha }}</strong><em>Bank, Mobile Money, Cash</em></div>
   <div class="kpi accent"><span>Available Fund</span><strong>{{ available_fund|kwacha }}</strong><em>Estimated net position</em></div>
 </section>
@@ -124,7 +124,7 @@
   </div>
 </section>
 <div class="kpi">
-  <span>Savings Interest Earned</span>
+  <span>Historical Savings Interest</span>
   <strong>{{ savings_interest_total|kwacha }}</strong>
 </div>
 
@@ -145,7 +145,7 @@
 <div class="kpi">
   <span>Total Savings Value</span>
   <strong>{{ total_savings_value|kwacha }}</strong>
-  <em>Contributions plus savings interest</em>
+  <em>Contributions plus any preserved historical interest</em>
 </div>
 
 <div class="kpi">

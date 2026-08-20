@@ -925,7 +925,8 @@ Customize organisation identity, system colours and operating defaults
                                     step="0.01"
                                     name="savings_interest_rate"
                                     class="form-control"
-                                    value="{{ setting.savings_interest_rate or 0 }}"
+                                    value="0"
+                                    readonly
                                     required
                                 >
                             </div>
@@ -940,7 +941,8 @@ Customize organisation identity, system colours and operating defaults
                                     step="0.01"
                                     name="loan_interest_rate"
                                     class="form-control"
-                                    value="{{ setting.loan_interest_rate or 0 }}"
+                                    value="10"
+                                    readonly
                                     required
                                 >
                             </div>

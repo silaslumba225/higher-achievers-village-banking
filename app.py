@@ -105,7 +105,15 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-INTEREST_RATE = Decimal('0.15')
+INTEREST_RATE = Decimal('0.10')
+LOAN_MONTHLY_INTEREST_PERCENT = Decimal('10.00')
+MEMBER_NUMBER_PATTERN = re.compile(r'^HA(\d{3,})$', re.IGNORECASE)
+ANNUAL_CONTRIBUTION_BANDS = (
+    ('Silver', Decimal('10000.00'), Decimal('20000.00')),
+    ('Gold', Decimal('20001.00'), Decimal('40000.00')),
+    ('Diamond', Decimal('40001.00'), Decimal('80000.00')),
+    ('Platinum', Decimal('80001.00'), Decimal('120000.00')),
+)
 PAYMENT_METHODS = ['Bank Transfer', 'Mobile Money', 'Cash']
 ABSENCE_FINE_AMOUNT = Decimal('50.00')
 LATE_ATTENDANCE_FINE_AMOUNT = Decimal('20.00')
@@ -957,12 +965,20 @@ class Loan(db.Model):
     def interest_amount(self):
         if self.source_type == 'OpeningBalance':
             return money(self.opening_interest or 0)
+        return money(0)
 
-        return money(self.principal * self.interest_rate)
+    @property
+    def monthly_interest_charged(self):
+        return money(sum(
+            (entry.interest_amount for entry in self.loan_interest_entries),
+            Decimal('0.00')
+        ))
 
     @property
     def total_due(self):
-        return money(self.principal + self.interest_amount)
+        return money(
+            self.principal + self.interest_amount + self.monthly_interest_charged
+        )
 
     @property
     def total_paid(self):
@@ -1243,6 +1259,9 @@ class SavingsInterest(db.Model):
 
 
 class LoanInterest(db.Model):
+    __table_args__ = (
+        db.UniqueConstraint('loan_id', 'month', name='uq_loan_interest_loan_month'),
+    )
     id = db.Column(db.Integer, primary_key=True)
     loan_id = db.Column(db.Integer, db.ForeignKey('loan.id'), nullable=False)
     member_id = db.Column(db.Integer, db.ForeignKey('member.id'), nullable=False)
@@ -1264,6 +1283,9 @@ class LoanInterest(db.Model):
     source_id = db.Column(db.Integer)
 
 class MonthEndProcess(db.Model):
+    __table_args__ = (
+        db.UniqueConstraint('month', name='uq_month_end_process_month'),
+    )
     id = db.Column(db.Integer, primary_key=True)
     month = db.Column(db.String(7), nullable=False)  # YYYY-MM
 
@@ -1848,6 +1870,28 @@ class OpeningBalance(db.Model):
         ),
     )
 
+def format_audit_action(action):
+    if not action:
+        return "All"
+
+    text = action.replace("_", " ").title()
+
+    replacements = {
+        "Pdf": "PDF",
+        "Csv": "CSV",
+        "Ai": "AI",
+        "Sms": "SMS",
+        "Api": "API",
+        "V2": "V2",
+        "Id": "ID",
+        "Nrc": "NRC",
+        "Whatsapp": "WhatsApp",
+    }
+
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+
+    return text
 
 def build_financial_year_closing_preview(financial_year):
     """
@@ -3574,11 +3618,9 @@ def get_next_member_number():
         if not member_no:
             continue
 
-        match = re.fullmatch(
-            r'M(\d+)',
-            member_no.strip(),
-            re.IGNORECASE
-        )
+        match = MEMBER_NUMBER_PATTERN.fullmatch(member_no.strip())
+        if not match:
+            match = re.fullmatch(r'M(\d+)', member_no.strip(), re.IGNORECASE)
 
         if match:
             number = int(match.group(1))
@@ -3587,7 +3629,23 @@ def get_next_member_number():
                 number
             )
 
-    return f'M{highest_number + 1:03d}'
+    return f'HA{highest_number + 1:03d}'
+
+
+def normalize_member_number(value):
+    member_no = (value or '').strip().upper()
+    match = MEMBER_NUMBER_PATTERN.fullmatch(member_no)
+    if not match:
+        raise ValueError('Member number must use the HA001 format.')
+    return f'HA{int(match.group(1)):03d}'
+
+
+def annual_contribution_band(amount):
+    annual_total = money(amount or 0)
+    for name, minimum, maximum in ANNUAL_CONTRIBUTION_BANDS:
+        if minimum <= annual_total <= maximum:
+            return name
+    return None
 
 @app.route('/system-settings', methods=['GET', 'POST'])
 @login_required
@@ -3844,13 +3902,8 @@ def settings():
             request.form.get('contribution_amount') or 0
         )
 
-        setting.savings_interest_rate = money(
-            request.form.get('savings_interest_rate') or 0
-        )
-
-        setting.loan_interest_rate = money(
-            request.form.get('loan_interest_rate') or 0
-        )
+        setting.savings_interest_rate = Decimal('0.00')
+        setting.loan_interest_rate = LOAN_MONTHLY_INTEREST_PERCENT
 
         setting.welfare_contribution_amount = money(
             request.form.get('welfare_contribution_amount') or 0
@@ -5015,10 +5068,16 @@ def member_new():
     next_member_no = get_next_member_number()
 
     if request.method == 'POST':
-        member_no = (
-            request.form.get('member_no')
-            or next_member_no
-        ).strip().upper()
+        try:
+            member_no = normalize_member_number(
+                request.form.get('member_no') or next_member_no
+            )
+        except ValueError as exc:
+            flash(str(exc), 'error')
+            return render_template(
+                'member_form.html', member=None, next_member_no=next_member_no,
+                form_data=request.form, contribution_bands=ANNUAL_CONTRIBUTION_BANDS
+            )
 
         existing = Member.query.filter(
             db.func.upper(Member.member_no) == member_no
@@ -5037,7 +5096,8 @@ def member_new():
                 'member_form.html',
                 member=None,
                 next_member_no=next_member_no,
-                form_data=request.form
+                form_data=request.form,
+                contribution_bands=ANNUAL_CONTRIBUTION_BANDS
             )
 
         full_name = (
@@ -5055,7 +5115,8 @@ def member_new():
                 'member_form.html',
                 member=None,
                 next_member_no=next_member_no,
-                form_data=request.form
+                form_data=request.form,
+                contribution_bands=ANNUAL_CONTRIBUTION_BANDS
             )
 
         member = Member(
@@ -5111,7 +5172,8 @@ def member_new():
         'member_form.html',
         member=None,
         next_member_no=next_member_no,
-        form_data={}
+        form_data={},
+        contribution_bands=ANNUAL_CONTRIBUTION_BANDS
     )
 
 @app.route('/members/<int:member_id>/edit', methods=['GET', 'POST'])
@@ -5121,7 +5183,14 @@ def member_edit(member_id):
     member = Member.query.get_or_404(member_id)
 
     if request.method == 'POST':
-        member.member_no = request.form['member_no'].strip()
+        try:
+            member.member_no = normalize_member_number(request.form.get('member_no'))
+        except ValueError as exc:
+            flash(str(exc), 'error')
+            return render_template(
+                'member_form.html', member=member, form_data=request.form,
+                contribution_bands=ANNUAL_CONTRIBUTION_BANDS
+            )
         member.full_name = request.form['full_name'].strip()
         member.phone = request.form.get('phone')
         member.national_id = request.form.get('national_id')
@@ -5139,7 +5208,8 @@ def member_edit(member_id):
     return render_template(
     'member_form.html',
     member=member,
-    form_data={}
+    form_data={},
+    contribution_bands=ANNUAL_CONTRIBUTION_BANDS
         )
 
 
@@ -5169,6 +5239,10 @@ def members_import():
     }
 
     if request.method == 'POST':
+        if request.form.get('confirm_import', '').strip().upper() != 'IMPORT MEMBERS':
+            flash('Import cancelled. Type IMPORT MEMBERS to confirm the controlled import.', 'error')
+            return render_template('members_import.html', results=results)
+
         uploaded_file = request.files.get('file')
 
         if not uploaded_file or not uploaded_file.filename:
@@ -5275,6 +5349,10 @@ def members_import():
                     results=results
                 )
 
+            backup = create_database_backup(
+                'pre_member_import', notes='Automatic safety backup before member import'
+            )
+
             for line_no, row in rows:
                 results['processed'] += 1
 
@@ -5300,6 +5378,13 @@ def members_import():
 
                 if not member_no:
                     member_no = get_next_member_number()
+                else:
+                    try:
+                        member_no = normalize_member_number(member_no)
+                    except ValueError as exc:
+                        results['skipped'] += 1
+                        results['errors'].append(f'Line {line_no}: {exc}')
+                        continue
 
                 phone = str(
                     row.get('phone') or ''
@@ -5399,7 +5484,7 @@ def members_import():
                     f'Processed: {results["processed"]}; '
                     f'Created: {results["created"]}; '
                     f'Updated: {results["updated"]}; '
-                    f'Skipped: {results["skipped"]}'
+                    f'Skipped: {results["skipped"]}; Backup: {backup.filename}'
                 )
             )
 
@@ -13972,7 +14057,22 @@ def cash_book():
         flash('Cash book entry recorded.')
         return redirect(url_for('cash_book'))
 
-    entries = CashBookEntry.query.order_by(
+    start = request.args.get('start', '').strip()
+    end = request.args.get('end', '').strip()
+    start_date = parse_date(start) if start else None
+    end_date = parse_date(end) if end else None
+
+    if start_date and end_date and start_date > end_date:
+        flash('Start date cannot be later than end date.', 'error')
+        return redirect(url_for('cash_book'))
+
+    entries_query = CashBookEntry.query
+    if start_date:
+        entries_query = entries_query.filter(CashBookEntry.entry_date >= start_date)
+    if end_date:
+        entries_query = entries_query.filter(CashBookEntry.entry_date <= end_date)
+
+    entries = entries_query.order_by(
         CashBookEntry.entry_date.desc(),
         CashBookEntry.id.desc()
     ).all()
@@ -13999,7 +14099,9 @@ def cash_book():
         total_out=total_out,
         bank_balance=bank_balance,
         payment_methods=PAYMENT_METHODS,
-        accounts=accounts
+        accounts=accounts,
+        start=start,
+        end=end
     )
 
 @app.route('/accounting/trial-balance')
@@ -14923,6 +15025,7 @@ def audit_trail():
         .order_by(AuditLog.action)
         .all()
     ]
+    current_filter = format_audit_action(action)
 
     return render_template(
         'audit.html',
@@ -14930,8 +15033,10 @@ def audit_trail():
         pagination=pagination,
         q=q,
         action=action,
+         current_filter=current_filter,
         actions=actions
     )
+
 @app.route('/export/audit.csv')
 @login_required
 @role_required('audit')
@@ -17045,8 +17150,8 @@ def month_end():
         db.session.add(setting)
         db.session.commit()
 
-    rate = Decimal(setting.savings_interest_rate or 15) / Decimal('100')
-    loan_rate = Decimal(setting.loan_interest_rate or 15) / Decimal('100')
+    rate = Decimal('0.00')
+    loan_rate = LOAN_MONTHLY_INTEREST_PERCENT / Decimal('100')
 
     if request.method == 'POST':
         existing = MonthEndProcess.query.filter_by(month=selected_month).first()
@@ -17060,63 +17165,16 @@ def month_end():
         members_processed = 0
         loans_processed = 0
 
-        SavingsInterest.query.filter_by(month=selected_month).delete()
-        LoanInterest.query.filter_by(month=selected_month).delete()
-        db.session.commit()
-
-        members = Member.query.filter_by(status='Active').all()
-
-        for member in members:
-            total_contributions = money(
-                db.session.query(db.func.coalesce(db.func.sum(Contribution.amount), 0))
-                .filter(Contribution.member_id == member.id)
-                .scalar()
-            )
-
-            previous_interest = money(
-                db.session.query(db.func.coalesce(db.func.sum(SavingsInterest.interest_amount), 0))
-                .filter(SavingsInterest.member_id == member.id)
-                .filter(SavingsInterest.month < selected_month)
-                .scalar()
-            )
-
-            distributions_total = money(
-                db.session.query(db.func.coalesce(db.func.sum(Distribution.amount), 0))
-                .filter(Distribution.member_id == member.id)
-                .scalar()
-            )
-
-            opening_balance = money(total_contributions + previous_interest - distributions_total)
-
-            if opening_balance > 0:
-                interest_amount = money(opening_balance * rate)
-                closing_balance = money(opening_balance + interest_amount)
-
-                db.session.add(SavingsInterest(
-                    member_id=member.id,
-                    month=selected_month,
-                    opening_balance=opening_balance,
-                    interest_rate=setting.savings_interest_rate,
-                    interest_amount=interest_amount,
-                    closing_balance=closing_balance
-                ))
-
-                savings_total += interest_amount
-                members_processed += 1
+        if LoanInterest.query.filter_by(month=selected_month).first():
+            flash(f'Loan interest entries already exist for {selected_month}; duplicate charging was prevented.', 'error')
+            return redirect(url_for('month_end', month=selected_month))
 
         loans = Loan.query.filter(
             Loan.status.in_(['Disbursed', 'Partially Paid'])
         ).all()
 
         for loan in loans:
-            previous_interest = money(
-                db.session.query(db.func.coalesce(db.func.sum(LoanInterest.interest_amount), 0))
-                .filter(LoanInterest.loan_id == loan.id)
-                .filter(LoanInterest.month < selected_month)
-                .scalar()
-            )
-
-            opening_balance = money(loan.balance + previous_interest)
+            opening_balance = money(loan.balance)
 
             if opening_balance > 0:
                 interest_amount = money(opening_balance * loan_rate)
@@ -17127,7 +17185,7 @@ def month_end():
                     member_id=loan.member_id,
                     month=selected_month,
                     opening_balance=opening_balance,
-                    interest_rate=setting.loan_interest_rate,
+                    interest_rate=LOAN_MONTHLY_INTEREST_PERCENT,
                     interest_amount=interest_amount,
                     closing_balance=closing_balance
                 ))
@@ -17245,6 +17303,9 @@ def month_end_reverse(month):
 
     process = MonthEndProcess.query.filter_by(month=month).first_or_404()
 
+    safety = create_database_backup(
+        'pre_month_end_reverse', notes=f'Safety backup before reversing month-end {month}'
+    )
     SavingsInterest.query.filter_by(month=month).delete()
     LoanInterest.query.filter_by(month=month).delete()
     db.session.delete(process)
@@ -17255,7 +17316,7 @@ def month_end_reverse(month):
         'REVERSE_MONTH_END',
         'MonthEndProcess',
         None,
-        f'Month-end reversed for {month}. Reason: {reason}'
+        f'Month-end reversed for {month}. Reason: {reason}. Backup: {safety.filename}'
     )
 
     flash(f'Month-end processing for {month} has been reversed. You can now process it again.')
