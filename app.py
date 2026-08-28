@@ -5252,6 +5252,21 @@ def members_import():
             flash('Import cancelled. Type IMPORT MEMBERS to confirm the controlled import.', 'error')
             return render_template('members_import.html', results=results)
 
+        database_backend = db.engine.url.get_backend_name()
+        if (
+            database_backend != 'sqlite'
+            and request.form.get('external_backup_confirmed') != 'yes'
+        ):
+            flash(
+                'Import cancelled. Confirm that a fresh Render PostgreSQL export was downloaded.',
+                'error'
+            )
+            return render_template(
+                'members_import.html',
+                results=results,
+                requires_external_backup=True
+            )
+
         uploaded_file = request.files.get('file')
 
         if not uploaded_file or not uploaded_file.filename:
@@ -5358,9 +5373,16 @@ def members_import():
                     results=results
                 )
 
-            backup = create_database_backup(
-                'pre_member_import', notes='Automatic safety backup before member import'
-            )
+            if database_backend == 'sqlite':
+                backup = create_database_backup(
+                    'pre_member_import',
+                    notes='Automatic safety backup before member import'
+                )
+                backup_reference = backup.filename
+            else:
+                # Render PostgreSQL has no local .db file to copy. The operator
+                # must create and download a logical export before importing.
+                backup_reference = 'External Render PostgreSQL export confirmed'
 
             for line_no, row in rows:
                 results['processed'] += 1
@@ -5493,7 +5515,7 @@ def members_import():
                     f'Processed: {results["processed"]}; '
                     f'Created: {results["created"]}; '
                     f'Updated: {results["updated"]}; '
-                    f'Skipped: {results["skipped"]}; Backup: {backup.filename}'
+                    f'Skipped: {results["skipped"]}; Backup: {backup_reference}'
                 )
             )
 
@@ -5517,12 +5539,14 @@ def members_import():
 
         return render_template(
             'members_import.html',
-            results=results
+            results=results,
+            requires_external_backup=(db.engine.url.get_backend_name() != 'sqlite')
         )
 
     return render_template(
         'members_import.html',
-        results=results
+        results=results,
+        requires_external_backup=(db.engine.url.get_backend_name() != 'sqlite')
     )
 
 @app.route('/contributions', methods=['GET', 'POST'])
@@ -17261,47 +17285,6 @@ def month_end():
     )
 
 
-@app.route('/administration/interest-correction', methods=['GET', 'POST'])
-@login_required
-@role_required('backups')
-def interest_correction():
-    savings_entries = SavingsInterest.query.all()
-    loan_entries = LoanInterest.query.all()
-    processes = MonthEndProcess.query.order_by(MonthEndProcess.month).all()
-    legacy_loans = Loan.query.filter(Loan.opening_interest > 0).all()
-    preview = {
-        'savings_count': len(savings_entries),
-        'savings_total': money(sum((x.interest_amount for x in savings_entries), Decimal('0.00'))),
-        'loan_count': len(loan_entries),
-        'loan_total': money(sum((x.interest_amount for x in loan_entries), Decimal('0.00'))),
-        'months': [x.month for x in processes],
-        'legacy_loan_count': len(legacy_loans),
-        'legacy_interest_total': money(sum((x.opening_interest for x in legacy_loans), Decimal('0.00'))),
-    }
-    if request.method == 'POST':
-        confirmed = request.form.get('backup_confirmed') == 'yes'
-        phrase = request.form.get('confirmation', '').strip()
-        if not confirmed or phrase != 'CORRECT INTEREST':
-            flash('Confirm the external backup and type CORRECT INTEREST.', 'error')
-            return render_template('interest_correction.html', preview=preview)
-        try:
-            SavingsInterest.query.delete(synchronize_session=False)
-            LoanInterest.query.delete(synchronize_session=False)
-            MonthEndProcess.query.delete(synchronize_session=False)
-            Loan.query.filter(Loan.opening_interest > 0).update(
-                {Loan.opening_interest: Decimal('0.00')}, synchronize_session=False
-            )
-            db.session.commit()
-            log_audit('CONTROLLED_INTEREST_CORRECTION', 'Accounting', None,
-                      'External PostgreSQL backup confirmed; historical interest runs and legacy upfront charges cleared for chronological reprocessing.')
-            flash('Historical interest cleared. Reprocess the listed months oldest to newest.', 'success')
-            return redirect(url_for('month_end'))
-        except Exception as exc:
-            db.session.rollback()
-            flash(f'Correction failed; no changes were committed: {exc}', 'error')
-    return render_template('interest_correction.html', preview=preview)
-
-
 @app.route('/month-end/<month>')
 @login_required
 @role_required('accounting')
@@ -18606,6 +18589,131 @@ def initialize_database():
         ensure_chart_of_accounts()
         ensure_admin()
         ensure_opening_balance_reversal_audits()
+
+
+def test_data_reset_preview():
+    """Return exact counts for operational tables cleared by the one-time reset."""
+    models = [
+        ('Members', Member),
+        ('Contributions', Contribution),
+        ('Loans', Loan),
+        ('Loan guarantors', LoanGuarantor),
+        ('Repayments', Repayment),
+        ('Distributions', Distribution),
+        ('Welfare contributions', WelfareContribution),
+        ('Welfare claims', WelfareClaim),
+        ('Fines', FinePenalty),
+        ('Fine payments', FinePayment),
+        ('Meetings', Meeting),
+        ('Attendance records', MeetingAttendance),
+        ('Savings-interest entries', SavingsInterest),
+        ('Loan-interest entries', LoanInterest),
+        ('Month-end runs', MonthEndProcess),
+        ('Journal entries', JournalEntry),
+        ('Journal lines', JournalLine),
+        ('Cashbook entries', CashBookEntry),
+        ('Bank-statement lines', BankStatementLine),
+        ('Bank-statement imports', BankStatementImportBatch),
+        ('Bank reconciliations', BankReconciliation),
+        ('Share-out cycles', ShareOutCycle),
+        ('Opening-balance rows', OpeningBalance),
+        ('Opening-balance batches', OpeningBalanceBatch),
+        ('Member notifications', NotificationLog),
+        ('Audit-log entries', AuditLog),
+    ]
+    return [(label, model.query.count()) for label, model in models]
+
+
+@app.route('/administration/reset-test-data', methods=['GET', 'POST'])
+@login_required
+@role_required('settings')
+def reset_test_data():
+    preview = test_data_reset_preview()
+
+    if request.method == 'POST':
+        if request.form.get('backup_confirmed') != 'yes':
+            flash('Reset cancelled. Confirm that the Render PostgreSQL export was downloaded.', 'error')
+            return render_template('reset_test_data.html', preview=preview)
+
+        if request.form.get('confirmation', '').strip().upper() != 'RESET TEST DATA':
+            flash('Reset cancelled. Type RESET TEST DATA exactly.', 'error')
+            return render_template('reset_test_data.html', preview=preview)
+
+        try:
+            # Delete dependants before their parent records so PostgreSQL foreign
+            # keys remain satisfied throughout the transaction.
+            delete_order = [
+                NotificationLog,
+                MeetingAttendance,
+                FinePayment,
+                LoanGuarantor,
+                Repayment,
+                LoanInterest,
+                SavingsInterest,
+                OpeningBalance,
+                Distribution,
+                WelfareContribution,
+                WelfareClaim,
+                FinePenalty,
+                Contribution,
+                Loan,
+                Member,
+                Meeting,
+                MonthEndProcess,
+                JournalLine,
+                JournalEntry,
+                BankStatementLine,
+                BankStatementImportBatch,
+                BankReconciliation,
+                CashBookEntry,
+                ShareOutCycle,
+                OpeningBalanceBatch,
+                AuditLog,
+            ]
+
+            deleted = {}
+            for model in delete_order:
+                deleted[model.__tablename__] = model.query.delete(
+                    synchronize_session=False
+                )
+
+            # Keep configured bank accounts but remove test-data balances.
+            BankAccount.query.update(
+                {
+                    BankAccount.opening_balance: Decimal('0.00'),
+                    BankAccount.current_balance: Decimal('0.00'),
+                },
+                synchronize_session=False
+            )
+
+            user = session.get('user') or {}
+            db.session.add(AuditLog(
+                user_id=user.get('id'),
+                username=user.get('username', 'system'),
+                full_name=user.get('full_name', 'System'),
+                role=user.get('role', 'System'),
+                action='RESET_TEST_DATA',
+                entity='System',
+                details=(
+                    'Controlled removal of test operational data completed after '
+                    'confirmation of downloaded Render PostgreSQL export. '
+                    'Users, settings, chart of accounts, financial-year setup, '
+                    'bank-account configuration and database structure preserved.'
+                ),
+                ip_address=request.headers.get('X-Forwarded-For', request.remote_addr)
+            ))
+            db.session.commit()
+
+            flash(
+                'Test operational data was cleared successfully. System users, settings and configuration were preserved.',
+                'success'
+            )
+            return redirect(url_for('members'))
+        except Exception as exc:
+            db.session.rollback()
+            flash(f'Test-data reset failed. No changes were committed: {exc}', 'error')
+
+    return render_template('reset_test_data.html', preview=preview)
 
 
 # Initialize tables when the application is imported by Gunicorn on Render.

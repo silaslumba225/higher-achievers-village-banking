@@ -1,13 +1,13 @@
 {% extends 'base.html' %}
 {% block page_title %}Import Members{% endblock %}
-{% block subtitle %}Controlled CSV/XLSX upload with confirmation and automatic backup{% endblock %}
+{% block subtitle %}Controlled CSV/XLSX upload with verified backup protection{% endblock %}
 
 {% block content %}
 <section class="panel">
   <div class="panel-head">
     <div>
       <h2>Bulk Member Import</h2>
-      <p>Upload member records. A database backup is created before any rows are changed.</p>
+      <p>Upload member records only after completing the backup requirement shown below.</p>
     </div>
     <a class="btn" href="{{ url_for('members') }}">Back to Members</a>
   </div>
@@ -20,6 +20,14 @@
       <input name="confirm_import" required autocomplete="off" placeholder="Type IMPORT MEMBERS">
       <small>Existing member numbers may be updated; no members or transactions are deleted.</small>
     </label>
+    {% if requires_external_backup %}
+    <label>
+      <input type="checkbox" name="external_backup_confirmed" value="yes" required>
+      I created and downloaded a fresh Render PostgreSQL export before this import.
+    </label>
+    {% else %}
+    <p><strong>Backup:</strong> A local database backup will be created automatically before import.</p>
+    {% endif %}
     <button type="submit" class="primary">Import Members</button>
   </form>
 </section>

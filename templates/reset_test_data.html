@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block page_title %}Controlled Test-Data Reset{% endblock %}
+{% block subtitle %}One-time preparation for real Higher Achievers member records{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Controlled Test-Data Reset</h2>
+      <p>This operation permanently removes test operational records. It does not run when this page is opened.</p>
+    </div>
+    <a class="btn" href="{{ url_for('members') }}">Cancel</a>
+  </div>
+
+  <div class="alert alert-warning">
+    <strong>Preserved:</strong> users and logins, organisation settings and branding,
+    contribution rules, chart of accounts, financial-year setup, bank-account details,
+    roles, permissions, database tables and application features. Configured bank accounts
+    remain, but their test opening and current balances will be reset to K0.00.
+  </div>
+
+  <h3>Records scheduled for removal</h3>
+  <table>
+    <thead><tr><th>Record type</th><th style="text-align:right">Count</th></tr></thead>
+    <tbody>
+      {% for label, count in preview %}
+      <tr><td>{{ label }}</td><td style="text-align:right">{{ count }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <form method="post" class="form-grid single" onsubmit="return confirm('Permanently clear all listed test operational data?');">
+    <label>
+      <input type="checkbox" name="backup_confirmed" value="yes" required>
+      I created and downloaded a fresh Render PostgreSQL export.
+    </label>
+    <label>Confirmation
+      <input name="confirmation" required autocomplete="off" placeholder="Type RESET TEST DATA">
+      <small>This phrase is required exactly before any records can be removed.</small>
+    </label>
+    <button type="submit" class="primary">Clear Test Operational Data</button>
+  </form>
+</section>
+{% endblock %}
