@@ -11842,6 +11842,26 @@ def opening_balance_batch(batch_id):
         .count()
     )
 
+    opening_savings_entries = {
+        contribution.source_id: contribution
+        for contribution in Contribution.query.filter(
+            Contribution.source_type == "OpeningBalance",
+            Contribution.source_id.in_([balance.id for balance in balances])
+        ).all()
+    } if balances else {}
+
+    missing_savings_balances = [
+        balance for balance in balances
+        if money(balance.savings_balance or 0) > 0
+        and balance.id not in opening_savings_entries
+    ]
+
+    missing_savings_count = len(missing_savings_balances)
+    missing_savings_total = money(sum(
+        (money(balance.savings_balance or 0) for balance in missing_savings_balances),
+        Decimal("0.00")
+    ))
+
     return render_template(
         "opening_balances/batch.html",
         batch=batch,
@@ -11849,7 +11869,9 @@ def opening_balance_batch(batch_id):
         validation_errors=validation_errors,
         total_records=total_records,
         valid_records=valid_records,
-        posted_records=posted_records
+        posted_records=posted_records,
+        missing_savings_count=missing_savings_count,
+        missing_savings_total=missing_savings_total
     )
 
 @app.route(
@@ -12384,6 +12406,7 @@ def opening_balance_post(batch_id):
 
         created_loans = 0
         created_fines = 0
+        created_savings = 0
 
         for balance in balances:
             existing_posted_balance = OpeningBalance.query.filter(
@@ -12413,6 +12436,35 @@ def opening_balance_post(batch_id):
             total_interest += loan_interest
             total_fines += fine_balance
             total_welfare += welfare
+
+            # -------------------------------------------------
+            # Create migrated opening savings record
+            # -------------------------------------------------
+            if savings > 0:
+                duplicate_savings = Contribution.query.filter_by(
+                    source_type="OpeningBalance",
+                    source_id=balance.id
+                ).first()
+
+                if duplicate_savings:
+                    raise Exception(
+                        f"Opening savings already exist for record {balance.id}."
+                    )
+
+                contribution = Contribution(
+                    member_id=balance.member_id,
+                    month=batch.effective_date.strftime("%Y-%m"),
+                    amount=savings,
+                    method="Opening Balance",
+                    reference=posting_reference,
+                    paid_on=batch.effective_date,
+                    source_type="OpeningBalance",
+                    source_id=balance.id
+                )
+                db.session.add(contribution)
+                db.session.flush()
+                balance.posted_contribution_id = contribution.id
+                created_savings += 1
 
             # -------------------------------------------------
             # Create migrated opening loan
@@ -12651,6 +12703,7 @@ def opening_balance_post(batch_id):
             (
                 f"Posted opening balance batch {batch.batch_no}; "
                 f"{len(balances)} member record(s), "
+                f"{created_savings} opening savings record(s), "
                 f"{created_loans} opening loan(s), "
                 f"{created_fines} opening fine(s), "
                 f"reference {posting_reference}"
@@ -12684,6 +12737,87 @@ def opening_balance_post(batch_id):
             batch_id=batch.id
         )
     )
+
+@app.route(
+    "/opening-balances/<int:batch_id>/repair-savings",
+    methods=["POST"]
+)
+@role_required("accounting")
+def opening_balance_repair_savings(batch_id):
+    batch = OpeningBalanceBatch.query.get_or_404(batch_id)
+
+    if batch.status != "Posted" or batch.is_locked:
+        flash("Savings can only be repaired on an unlocked posted batch.", "danger")
+        return redirect(url_for("opening_balance_batch", batch_id=batch.id))
+
+    if (request.form.get("confirmation") or "").strip() != "REPAIR SAVINGS":
+        flash("Type REPAIR SAVINGS exactly to confirm.", "danger")
+        return redirect(url_for("opening_balance_batch", batch_id=batch.id))
+
+    balances = OpeningBalance.query.filter_by(batch_id=batch.id).all()
+    created_count = 0
+    created_total = Decimal("0.00")
+
+    try:
+        for balance in balances:
+            savings = money(balance.savings_balance or 0)
+            if savings <= 0:
+                continue
+
+            existing = Contribution.query.filter_by(
+                source_type="OpeningBalance",
+                source_id=balance.id
+            ).first()
+            if existing:
+                if existing.member_id != balance.member_id or money(existing.amount) != savings:
+                    raise Exception(
+                        f"Opening savings record {existing.id} does not match {balance.member.member_no}."
+                    )
+                balance.posted_contribution_id = existing.id
+                continue
+
+            contribution = Contribution(
+                member_id=balance.member_id,
+                month=batch.effective_date.strftime("%Y-%m"),
+                amount=savings,
+                method="Opening Balance",
+                reference=batch.posting_reference or f"OB-{batch.batch_no}",
+                paid_on=batch.effective_date,
+                source_type="OpeningBalance",
+                source_id=balance.id
+            )
+            db.session.add(contribution)
+            db.session.flush()
+            balance.posted_contribution_id = contribution.id
+            created_count += 1
+            created_total += savings
+
+        if created_count == 0:
+            db.session.rollback()
+            flash("No missing opening savings records were found.", "warning")
+            return redirect(url_for("opening_balance_batch", batch_id=batch.id))
+
+        db.session.commit()
+        log_audit(
+            "REPAIR_OPENING_SAVINGS",
+            "OpeningBalanceBatch",
+            batch.id,
+            (
+                f"Created {created_count} missing opening savings record(s) "
+                f"totalling {kwacha(money(created_total))} for batch {batch.batch_no}. "
+                "No journal or loan records were changed."
+            )
+        )
+        flash(
+            f"Opening savings repaired: {created_count} record(s), {kwacha(money(created_total))}.",
+            "success"
+        )
+    except Exception as error:
+        db.session.rollback()
+        app.logger.exception("Opening savings repair failed for batch %s", batch.id)
+        flash(f"Opening savings repair failed: {error}", "danger")
+
+    return redirect(url_for("opening_balance_batch", batch_id=batch.id))
 
 @app.route(
     "/opening-balances/<int:batch_id>/reverse",
@@ -12745,8 +12879,17 @@ def opening_balance_reverse(batch_id):
 
     loans_to_remove = []
     fines_to_remove = []
+    savings_to_remove = []
 
     for balance in balances:
+        opening_savings = Contribution.query.filter_by(
+            source_type="OpeningBalance",
+            source_id=balance.id,
+        ).first()
+
+        if opening_savings:
+            savings_to_remove.append(opening_savings)
+
         opening_loan = Loan.query.filter_by(
             source_type="OpeningBalance",
             source_id=balance.id,
@@ -12874,12 +13017,16 @@ def opening_balance_reverse(batch_id):
         for fine in fines_to_remove:
             db.session.delete(fine)
 
+        for contribution in savings_to_remove:
+            db.session.delete(contribution)
+
         for balance in balances:
             balance.is_posted = False
             balance.posted_on = None
             balance.posted_by = None
             balance.created_loan_id = None
             balance.created_fine_id = None
+            balance.posted_contribution_id = None
 
         batch.status = "Reversed"
         batch.reversed_by = reversed_by
