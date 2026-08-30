@@ -783,6 +783,24 @@ Review batch details, approvals, posting status and controls.
 
     {% if batch.status == 'Posted' %}
 
+      {% if missing_savings_count > 0 %}
+
+        <div class="col-xl-3 col-md-6">
+
+          <button
+            type="button"
+            class="action-card w-100"
+            data-bs-toggle="modal"
+            data-bs-target="#repairSavingsModal"
+          >
+            <i class="fa-solid fa-piggy-bank"></i>
+            Repair Opening Savings
+          </button>
+
+        </div>
+
+      {% endif %}
+
       <div class="col-xl-3 col-md-6">
 
         <form
@@ -814,6 +832,60 @@ Review batch details, approvals, posting status and controls.
   </div>
 
 </div>
+
+{% if batch.status == 'Posted' and missing_savings_count > 0 %}
+
+  <div
+    class="modal fade"
+    id="repairSavingsModal"
+    tabindex="-1"
+    aria-labelledby="repairSavingsModalLabel"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <form
+          method="POST"
+          action="{{ url_for('opening_balance_repair_savings', batch_id=batch.id) }}"
+        >
+          <div class="modal-header">
+            <h5 class="modal-title" id="repairSavingsModalLabel">
+              Repair Missing Opening Savings
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="alert alert-warning">
+              This will create <strong>{{ missing_savings_count }}</strong>
+              member savings record(s) totalling
+              <strong>{{ kwacha(missing_savings_total) }}</strong>.
+              It will not change loans or post another accounting journal.
+            </div>
+            <label class="form-label" for="repairSavingsConfirmation">
+              Type <strong>REPAIR SAVINGS</strong> to continue.
+            </label>
+            <input
+              class="form-control"
+              id="repairSavingsConfirmation"
+              name="confirmation"
+              autocomplete="off"
+              required
+            >
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-warning">
+              Repair Opening Savings
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+{% endif %}
 
 {% if batch.status in ['Posted', 'Locked'] %}
 
