@@ -11487,10 +11487,10 @@ def opening_balance_download_template():
     # Example row
     # ---------------------------------------------------------
     example_values = [
-        "M001",
+        "HA001",
         5000.00,
         1500.00,
-        225.00,
+        0.00,
         0.00,
         200.00,
         "2026-12-31",
@@ -11607,7 +11607,7 @@ def opening_balance_download_template():
             "member_no",
             "Yes",
             "Existing system member number",
-            "M001"
+            "HA001"
         ],
         [
             "savings_balance",
@@ -11624,8 +11624,8 @@ def opening_balance_download_template():
         [
             "loan_interest",
             "Yes",
-            "Outstanding accrued loan interest",
-            "225.00"
+            "Outstanding accrued loan interest only when separately identified; use 0.00 when the loan total already includes interest",
+            "0.00"
         ],
         [
             "fine_balance",
@@ -11915,7 +11915,16 @@ def opening_balance_approve(batch_id):
             )
         )
 
+    user = session.get("user") or {}
+    approved_by = (
+        user.get("full_name")
+        or user.get("username")
+        or "System"
+    )
+
     batch.status = "Approved"
+    batch.approved_by = approved_by
+    batch.approved_on = datetime.utcnow()
 
     db.session.commit()
 
@@ -12444,7 +12453,10 @@ def opening_balance_post(batch_id):
                     opening_interest=loan_interest,
                     interest_rate=Decimal("0.00"),
                     issued_on=batch.effective_date,
-                    due_on=batch.effective_date,
+                    due_on=(
+                        balance.loan_due_date
+                        or batch.effective_date
+                    ),
                     purpose="Opening loan balance brought forward",
                     status="Disbursed",
                     approved_by="Opening Balance Migration",
@@ -18589,131 +18601,6 @@ def initialize_database():
         ensure_chart_of_accounts()
         ensure_admin()
         ensure_opening_balance_reversal_audits()
-
-
-def test_data_reset_preview():
-    """Return exact counts for operational tables cleared by the one-time reset."""
-    models = [
-        ('Members', Member),
-        ('Contributions', Contribution),
-        ('Loans', Loan),
-        ('Loan guarantors', LoanGuarantor),
-        ('Repayments', Repayment),
-        ('Distributions', Distribution),
-        ('Welfare contributions', WelfareContribution),
-        ('Welfare claims', WelfareClaim),
-        ('Fines', FinePenalty),
-        ('Fine payments', FinePayment),
-        ('Meetings', Meeting),
-        ('Attendance records', MeetingAttendance),
-        ('Savings-interest entries', SavingsInterest),
-        ('Loan-interest entries', LoanInterest),
-        ('Month-end runs', MonthEndProcess),
-        ('Journal entries', JournalEntry),
-        ('Journal lines', JournalLine),
-        ('Cashbook entries', CashBookEntry),
-        ('Bank-statement lines', BankStatementLine),
-        ('Bank-statement imports', BankStatementImportBatch),
-        ('Bank reconciliations', BankReconciliation),
-        ('Share-out cycles', ShareOutCycle),
-        ('Opening-balance rows', OpeningBalance),
-        ('Opening-balance batches', OpeningBalanceBatch),
-        ('Member notifications', NotificationLog),
-        ('Audit-log entries', AuditLog),
-    ]
-    return [(label, model.query.count()) for label, model in models]
-
-
-@app.route('/administration/reset-test-data', methods=['GET', 'POST'])
-@login_required
-@role_required('settings')
-def reset_test_data():
-    preview = test_data_reset_preview()
-
-    if request.method == 'POST':
-        if request.form.get('backup_confirmed') != 'yes':
-            flash('Reset cancelled. Confirm that the Render PostgreSQL export was downloaded.', 'error')
-            return render_template('reset_test_data.html', preview=preview)
-
-        if request.form.get('confirmation', '').strip().upper() != 'RESET TEST DATA':
-            flash('Reset cancelled. Type RESET TEST DATA exactly.', 'error')
-            return render_template('reset_test_data.html', preview=preview)
-
-        try:
-            # Delete dependants before their parent records so PostgreSQL foreign
-            # keys remain satisfied throughout the transaction.
-            delete_order = [
-                NotificationLog,
-                MeetingAttendance,
-                FinePayment,
-                LoanGuarantor,
-                Repayment,
-                LoanInterest,
-                SavingsInterest,
-                OpeningBalance,
-                Distribution,
-                WelfareContribution,
-                WelfareClaim,
-                FinePenalty,
-                Contribution,
-                Loan,
-                Member,
-                Meeting,
-                MonthEndProcess,
-                JournalLine,
-                JournalEntry,
-                BankStatementLine,
-                BankStatementImportBatch,
-                BankReconciliation,
-                CashBookEntry,
-                ShareOutCycle,
-                OpeningBalanceBatch,
-                AuditLog,
-            ]
-
-            deleted = {}
-            for model in delete_order:
-                deleted[model.__tablename__] = model.query.delete(
-                    synchronize_session=False
-                )
-
-            # Keep configured bank accounts but remove test-data balances.
-            BankAccount.query.update(
-                {
-                    BankAccount.opening_balance: Decimal('0.00'),
-                    BankAccount.current_balance: Decimal('0.00'),
-                },
-                synchronize_session=False
-            )
-
-            user = session.get('user') or {}
-            db.session.add(AuditLog(
-                user_id=user.get('id'),
-                username=user.get('username', 'system'),
-                full_name=user.get('full_name', 'System'),
-                role=user.get('role', 'System'),
-                action='RESET_TEST_DATA',
-                entity='System',
-                details=(
-                    'Controlled removal of test operational data completed after '
-                    'confirmation of downloaded Render PostgreSQL export. '
-                    'Users, settings, chart of accounts, financial-year setup, '
-                    'bank-account configuration and database structure preserved.'
-                ),
-                ip_address=request.headers.get('X-Forwarded-For', request.remote_addr)
-            ))
-            db.session.commit()
-
-            flash(
-                'Test operational data was cleared successfully. System users, settings and configuration were preserved.',
-                'success'
-            )
-            return redirect(url_for('members'))
-        except Exception as exc:
-            db.session.rollback()
-            flash(f'Test-data reset failed. No changes were committed: {exc}', 'error')
-
-    return render_template('reset_test_data.html', preview=preview)
 
 
 # Initialize tables when the application is imported by Gunicorn on Render.
