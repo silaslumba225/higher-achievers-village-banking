@@ -715,7 +715,9 @@ Review batch details, approvals, posting status and controls.
 
     {% endif %}
 
-    {% if batch.status == 'Validated' %}
+    {% if batch.status == 'Validated' or
+          (batch.status == 'Approved' and
+           (not batch.approved_by or not batch.approved_on)) %}
 
       <div class="col-xl-3 col-md-6">
 
@@ -727,7 +729,7 @@ Review batch details, approvals, posting status and controls.
           ) }}"
           class="h-100"
           onsubmit="return confirm(
-            'Approve this opening balance batch?'
+            '{% if batch.status == "Approved" %}Complete the approval audit record for this batch?{% else %}Approve this opening balance batch?{% endif %}'
           );"
         >
 
@@ -736,7 +738,11 @@ Review batch details, approvals, posting status and controls.
             class="action-card w-100"
           >
             <i class="fa-solid fa-user-check"></i>
-            Approve Batch
+            {% if batch.status == 'Approved' %}
+              Complete Approval Audit
+            {% else %}
+              Approve Batch
+            {% endif %}
           </button>
 
         </form>
