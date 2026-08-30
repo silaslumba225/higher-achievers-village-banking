@@ -858,7 +858,7 @@ Review batch details, approvals, posting status and controls.
             <div class="alert alert-warning">
               This will create <strong>{{ missing_savings_count }}</strong>
               member savings record(s) totalling
-              <strong>{{ kwacha(missing_savings_total) }}</strong>.
+              <strong>{{ missing_savings_total|kwacha }}</strong>.
               It will not change loans or post another accounting journal.
             </div>
             <label class="form-label" for="repairSavingsConfirmation">
